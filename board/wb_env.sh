@@ -25,6 +25,10 @@ if [ "x$FORCE_WB_VERSION" = "x" ]; then
                 WB_VERSION=58;
                 break;
             ;;
+            "contactless,imx6ul-wirenboard-evk" )
+                WB_VERSION=60;
+                break;
+            ;;
             "contactless,imx23-wirenboard32" )
                 WB_VERSION=32;
                 break;
@@ -293,6 +297,14 @@ case "$WB_VERSION" in
 
     export WB_ADC_TYPE WB_GPIO_RFM_IRQ WB_RFM_SPI_MINOR WB_GSM_POWER_TYPE WB_GPIO_GSM_POWER WB_GPIO_GSM_POWER WB_GPIO_GSM_PWRKEY  WB_GPIO_GSM_STATUS WB_GPIO_PWM_ON WB_PWM_BUZZER WB_GPIO_MOD3_OFF WB_GSM_HAS_STATUS_PIN
 
+    ;;
+
+
+    "60" )
+    WB_ADC_TYPE=0
+    WB_GSM_POWER_TYPE=0
+
+    export WB_ADC_TYPE WB_GSM_POWER_TYPE;
     ;;
 
 
