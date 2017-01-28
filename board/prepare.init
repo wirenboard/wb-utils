@@ -99,7 +99,7 @@ wb_prepare_partitions()
     CURRENT_ROOTFS_BLOCK_COUNT=`tune2fs -l /dev/root  | grep "Block count" | awk '{print $3}'`
     CURRENT_ROOTFS_SIZE_BYTES=$[${CURRENT_ROOTFS_BLOCK_SIZE}*${CURRENT_ROOTFS_BLOCK_COUNT}]
 
-    [[ ${CURRENT_ROOTFS_SIZE_BYTES} -lt ${ROOTFS_SIZE_BYTES} ]] ||  {
+    [[ ${CURRENT_ROOTFS_SIZE_BYTES} -le ${ROOTFS_SIZE_BYTES} ]] ||  {
         log_failure_msg "Current rootfs size is greater than new partition size, aborting"
         return 1
     }
