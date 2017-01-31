@@ -1,7 +1,7 @@
 #!/bin/bash
 . /etc/wb_env.sh
 
-PORT=/dev/ttyAPP0
+PORT=/dev/ttyGSM
 DEFAULT_BAUDRATE=115200
 WB_GSM_HAS_STATUS_PIN=0
 

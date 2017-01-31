@@ -2,7 +2,7 @@
 . /etc/wb_env.sh
 . /usr/lib/wb-gsm-common.sh
 
-PORT=/dev/ttyAPP0
+PORT=/dev/ttyGSM
 
 function debug() {
     echo $1 1>&2
