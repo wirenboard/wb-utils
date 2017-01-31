@@ -321,9 +321,11 @@ wb_firstboot()
         mkdir -p $wb_dir
     }
 
-    log_action_begin_msg "Fixing GSM modem baudrate"
-    wb-gsm init_baud
-    log_end_msg $?
+    [[ -e "/dev/ttyGSM" ]] && {
+		log_action_begin_msg "Fixing GSM modem baudrate"
+		wb-gsm init_baud
+		log_end_msg $?
+    }
 
     local short_sn=`wb-gen-serial -s`
     local ssid="WirenBoard-$short_sn"
