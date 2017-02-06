@@ -25,7 +25,7 @@ if [ "x$FORCE_WB_VERSION" = "x" ]; then
                 WB_VERSION=58;
                 break;
             ;;
-            "contactless,imx6ul-wirenboard-evk" )
+            "contactless,imx6ul-wirenboard60" )
                 WB_VERSION=60;
                 break;
             ;;
