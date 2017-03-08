@@ -283,11 +283,20 @@ function ensure_on() {
     else
         sleep 2
     fi
+
     set_speed
+
+    # Set default baudrate, then try to make modem to detect
+    # baudrate by sending AAA bytes.
+
+    # This is needed for SIM5300E and other models that 
+    # reset to autobauding on each power on
+
+    echo  -e "AAAAAAAAAAAAAAAAAAAT\r\n" > $PORT
 }
 
 function test_connection() {
-    /usr/sbin/chat   TIMEOUT 5 ABORT "ERROR" ABORT "BUSY" "" ATZ OK "" > $PORT < $PORT
+    /usr/sbin/chat -v   TIMEOUT 5 ABORT "ERROR" ABORT "BUSY" "" ATZ OK "" > $PORT < $PORT
     RC=$?
     echo $RC
 }
@@ -312,13 +321,21 @@ function restart_if_broken() {
 
     if [[ $RC != 0 ]] ; then
         ensure_on
-        sleep 5
+        sleep 1
 
-        RC=$(test_connection)
-        if [[ $RC != 0 ]] ; then
-            debug "ERROR: modem restarted, still no answer"
-            exit $RC;
-        fi
+        local max_retries=10
+        for ((run=1;run<$max_retries;run++)); do
+            RC=$(test_connection)
+            if [[ $RC == 0 ]]; then
+                exit 0;
+            fi
+
+            debug "WARNING: modem restarted, still no answer ($run/${max_retries})"
+            sleep 1
+        done;
+        debug "ERROR: modem restarted, still no answer"
+        exit $RC
+
     fi
 }
 
