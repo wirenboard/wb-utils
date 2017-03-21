@@ -72,12 +72,17 @@ function is_neoway_m660a() {
 }
 
 function gsm_init() {
-    set_speed
-
     if [ "$WB_GSM_POWER_TYPE" = "0" ]; then
         debug "No GSM modem present, exiting"
         exit 1
     fi
+
+    if [[ ! -c "$PORT" || ! -r "$PORT" || ! -w "$PORT" ]]; then
+        debug "Cannot access GSM modem serial port, exiting"
+        exit 1
+    fi
+
+    set_speed
 
     gpio_export $WB_GPIO_GSM_PWRKEY
     gpio_set_dir $WB_GPIO_GSM_PWRKEY out

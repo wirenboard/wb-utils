@@ -311,6 +311,7 @@ wb_firstboot()
 
     log_action_msg "Preparing rootfs for the first boot"
     service watchdog stop
+    service wb-hwconf-manager start
 
     mkdir -p /mnt/data
 
@@ -321,7 +322,7 @@ wb_firstboot()
 
     log_action_begin_msg "Fixing GSM modem baudrate"
     wb-gsm init_baud
-    log_end_msg $? || return $?
+    log_end_msg $?
 
     local short_sn=`wb-gen-serial -s`
     local ssid="WirenBoard-$short_sn"
@@ -337,7 +338,7 @@ wb_firstboot()
             (wb-gen-serial -m > $serial) &&
             {
                 service networking restart
-                service hostapd restart
+                service hostapd restart || /bin/true
             }
         log_end_msg $? || return $?
     }
