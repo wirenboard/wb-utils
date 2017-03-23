@@ -1,3 +1,9 @@
+wb-utils (1.69.5) stable; urgency=medium
+
+  * Store short SN in /var/lib/wirenboard/short_sn.conf
+
+ -- Evgeny Boger <boger@contactless.ru>  Thu, 23 Mar 2017 21:06:24 +0300
+
 wb-utils (1.69.4) stable; urgency=medium
 
   * better handling of WB Zero and other limited configurations
