@@ -1,3 +1,9 @@
+wb-utils (1.69.6) stable; urgency=medium
+
+  * create short_sn.conf on update
+
+ -- Evgeny Boger <boger@contactless.ru>  Thu, 23 Mar 2017 21:51:53 +0300
+
 wb-utils (1.69.5) stable; urgency=medium
 
   * Store short SN in /var/lib/wirenboard/short_sn.conf
