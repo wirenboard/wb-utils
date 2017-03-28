@@ -1,3 +1,9 @@
+wb-utils (1.70) stable; urgency=medium
+
+  * initial support for WB6
+
+ -- Evgeny Boger <boger@contactless.ru>  Tue, 28 Mar 2017 20:49:52 +0300
+
 wb-utils (1.69.6) stable; urgency=medium
 
   * create short_sn.conf on update
