@@ -1,3 +1,9 @@
+wb-utils (1.70.1) stable; urgency=medium
+
+  * fix has_status_pin
+
+ -- Evgeny Boger <boger@contactless.ru>  Wed, 29 Mar 2017 22:23:58 +0300
+
 wb-utils (1.70) stable; urgency=medium
 
   * initial support for WB6

@@ -1,9 +1,12 @@
 #!/bin/bash
+
+# Defaults
+WB_GSM_HAS_STATUS_PIN=0
+
 . /etc/wb_env.sh
 
 PORT=/dev/ttyGSM
 DEFAULT_BAUDRATE=115200
-WB_GSM_HAS_STATUS_PIN=0
 
 PWRKEY_GPIO=/sys/class/gpio/gpio${WB_GPIO_GSM_PWRKEY}
 RESET_GPIO=/sys/class/gpio/gpio${WB_GPIO_GSM_RESET}
