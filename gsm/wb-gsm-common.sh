@@ -283,7 +283,7 @@ function ensure_on() {
         debug "Waiting for modem to start"
         max_tries=30
 
-        for ((i=0; i<=upperlim; i++)); do
+        for ((i=0; i<=max_tries; i++)); do
             if [ "`gpio_get_value ${WB_GPIO_GSM_STATUS}`" = "1" ]; then
                 break
             fi
