@@ -23,7 +23,16 @@ install|upgrade|configure)
         if [ -e "/mnt/data/$short_sn_fname" ]; then
             cp "/mnt/data/$short_sn_fname" "$short_sn_fname"
         else
-            short_sn=`wb-gen-serial -s`
+            short_sn=""
+            PPPD_PID=$(pgrep pppd)
+            if [ -n "$PPPD_PID" ]; then
+              PPPD_LINE=$(ps -p $PPPD_PID -o args=)
+              kill $PPPD_PID;
+              short_sn=`wb-gen-serial -s`
+              $PPPD_LINE
+            else
+              short_sn=`wb-gen-serial -s`
+            fi
             echo "$short_sn" > "$short_sn_fname"
         fi
     fi
