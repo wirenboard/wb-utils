@@ -327,6 +327,8 @@ wb_firstboot()
 		log_end_msg $?
     }
 
+    # This is needed for correct $short_sn generation. pppd will be restarted with networking.
+    kill $(pgrep pppd)
     local short_sn=`wb-gen-serial -s`
     local ssid="WirenBoard-$short_sn"
 
