@@ -91,6 +91,7 @@ do_start()
     esac
 
     fw_setenv bootcount 0
+    fw_setenv upgrade_available 0
 
     return 0
 }
