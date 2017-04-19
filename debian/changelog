@@ -1,3 +1,9 @@
+wb-utils (1.70.4) stable; urgency=medium
+
+  * do not reset uart speed to 9600 in wb-init
+
+ -- Evgeny Boger <boger@contactless.ru>  Tue, 18 Apr 2017 22:19:37 +0300
+
 wb-utils (1.70.3) stable; urgency=medium
 
   * Reset upgrade_available u-boot variable on succesful boot
