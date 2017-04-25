@@ -19,12 +19,7 @@ install|upgrade|configure)
     wb_dir="/var/lib/wirenboard"
     short_sn_fname="$wb_dir/short_sn.conf"
     if [ ! -f "$short_sn_fname" ]; then
-        echo "Storing short SN"
-        if [ -e "/mnt/data/$short_sn_fname" ]; then
-            cp "/mnt/data/$short_sn_fname" "$short_sn_fname"
-        else
-            short_sn=`wb-gen-serial -s`
-            echo "$short_sn" > "$short_sn_fname"
-        fi
+        rm /var/lib/firstboot_done.flag
+        echo "Reboot required for correct SN generation"
     fi
 esac

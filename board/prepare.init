@@ -327,8 +327,10 @@ wb_firstboot()
 		log_end_msg $?
     }
 
+    service networking stop # In case we have ppp configured
     local short_sn=`wb-gen-serial -s`
     local ssid="WirenBoard-$short_sn"
+    service networking start
 
     wb_fix_macs
 
