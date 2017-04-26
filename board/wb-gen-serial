@@ -19,7 +19,7 @@ FALLBACK_SEED_FILE = "/var/lib/wirenboard/serial-seed"
 MAC_PREFIX = "00:86"
 
 # Serial generator revision == fisrt symbol in serial number starting from A
-GEN_REVISION = 1
+GEN_REVISION = 0
 
 
 def _get_imei():
@@ -71,7 +71,7 @@ def _get_serial_2():
 
     mmc_serial = str(get_mmc_serial())
 
-    eeprom_serial = str(get_eeprom_serial())
+    eeprom_serial = get_eeprom_serial() or ""
 
     seed_string = str(imei) + cpuinfo_serial + mmc_serial + eeprom_serial
 
