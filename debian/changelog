@@ -1,3 +1,9 @@
+wb-utils (1.71) stable; urgency=medium
+
+  * add support for mac in eeprom
+
+ -- Alexey Ignatov <lexszero@gmail.com>  Sat, 22 Apr 2017 08:13:06 +0300
+
 wb-utils (1.70.5) stable; urgency=medium
 
   * fix gsm-rtc read/restore_time
