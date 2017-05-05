@@ -336,7 +336,7 @@ function restart_if_broken() {
         for ((run=1;run<$max_retries;run++)); do
             RC=$(test_connection)
             if [[ $RC == 0 ]]; then
-                exit 0;
+                return 0;
             fi
 
             debug "WARNING: modem restarted, still no answer ($run/${max_retries})"

@@ -9,7 +9,7 @@ import string
 
 sys.path.insert(0, "/usr/lib/wb-test-suite/common/")
 
-from wb_common.uid import get_cpuinfo_serial, get_mmc_serial
+from wb_common.uid import get_cpuinfo_serial, get_mmc_serial, get_eeprom_serial
 from wb_common import gsm, wifi
 
 # Filename for random generated serial number seed
@@ -71,7 +71,9 @@ def _get_serial_2():
 
     mmc_serial = str(get_mmc_serial())
 
-    seed_string = str(imei) + cpuinfo_serial + mmc_serial
+    eeprom_serial = get_eeprom_serial() or ""
+
+    seed_string = str(imei) + cpuinfo_serial + mmc_serial + eeprom_serial
 
     # Generate random serial number if no seed is presented
     if len(seed_string) == 0:
@@ -176,6 +178,13 @@ def _get_eth_mac_v2(iface = 0):
 
     return MAC_PREFIX + ":" + third_octet + mac_suffix
 
+def _get_mac_eeprom(iface = 0):
+    eeprom_mac = get_eeprom_serial(iface)
+
+    if eeprom_mac:
+        return ":".join([eeprom_mac[i:i+2] for i in xrange(0, len(eeprom_mac), 2)])
+    else:
+        return ""
 
 def _get_mac_1_wifi():
     wifi_mac = wifi.get_wlan_mac()
@@ -239,7 +248,7 @@ def _get_mac_1(mac_type):
 
 def get_mac(mac_type="best", version=2, iface=0):
     if version == 2:
-        return _get_eth_mac_v2(iface)
+        return _get_mac_eeprom(iface) or _get_eth_mac_v2(iface)
     else:
         return _get_mac_1(mac_type)
 

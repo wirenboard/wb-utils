@@ -72,13 +72,6 @@ do_start()
             echo 0 > /sys/class/leds/red/brightness
 
             gpio_set ${WB_GPIO_5V_ON} high
-
-            # reset RTS state on RS-485 transcievers
-            stty -F /dev/ttyAPP1 9600
-            stty -F /dev/ttyAPP2 9600
-            stty -F /dev/ttyAPP3 9600
-            stty -F /dev/ttyAPP4 9600
-
         ;;
 
         "KMON1" )
@@ -90,7 +83,21 @@ do_start()
         ;;
     esac
 
+    case "$WB_VERSION" in
+        "52" | "55" | "58" )
+            # reset RTS state on RS-485 transcievers
+            stty -F /dev/ttyAPP1 > /dev/null
+            stty -F /dev/ttyAPP2 > /dev/null
+            stty -F /dev/ttyAPP3 > /dev/null
+            stty -F /dev/ttyAPP4 > /dev/null
+        ;;
+
+        * )
+        ;;
+    esac
+
     fw_setenv bootcount 0
+    fw_setenv upgrade_available 0
 
     return 0
 }
