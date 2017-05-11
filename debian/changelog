@@ -1,3 +1,9 @@
+wb-utils (1.72) stable; urgency=medium
+
+  * adds support for WB6.1
+
+ -- Evgeny Boger <boger@contactless.ru>  Thu, 11 May 2017 22:54:59 +0300
+
 wb-utils (1.71) stable; urgency=medium
 
   * add support for mac in eeprom
