@@ -30,7 +30,10 @@ function gpio_set_dir() {
 
 function gpio_set_value() {
     echo $2 > /sys/class/gpio/gpio$1/value
+}
 
+function gpio_set_inverted() {
+    echo $2 > /sys/class/gpio/gpio$1/active_low
 }
 
 function gpio_get_value() {
@@ -105,6 +108,11 @@ function gsm_init() {
     if [ ${WB_GSM_HAS_STATUS_PIN} = "1" ]; then
         gpio_export $WB_GPIO_GSM_STATUS
         gpio_set_dir $WB_GPIO_GSM_STATUS in
+        if [ ${WB_GSM_STATUS_PIN_INVERTED} = "1" ]; then
+            gpio_set_inverted $WB_GPIO_GSM_STATUS 1
+        else
+            gpio_set_inverted $WB_GPIO_GSM_STATUS 0
+        fi
     fi
 
 }
