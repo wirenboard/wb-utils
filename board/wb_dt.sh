@@ -1,10 +1,18 @@
 #!/bin/bash
 
 DT="/proc/device-tree"
+ENV_CACHE="/var/lib/wirenboard/wb_env.cache"
 
 debug() { :; }
 [[ -n "$DEBUG" ]] && debug() {
 	>&2 echo "DEBUG: $@"
+}
+
+cache() {
+	echo "$@" >> "$ENV_CACHE"
+	[[ -n "$DEBUG" ]] && {
+		>&2 echo "CACHE: ${@}"
+	}
 }
 
 # Converts binary data to 32bit hex words
@@ -114,8 +122,6 @@ dt_get_compatible() {
 	dt_get_prop_str "$node" compatible
 }
 
-# Associative array for GPIO phandle to gpiochip resolving
-declare -A DT_GPIOCHIPS
 
 # Get GPIO(s) property resolving phandles, one GPIO per line.
 # Output line format: "/sys/class/gpio/gpiochip0 10"
@@ -157,12 +163,20 @@ dt_get_prop_gpionum() {
 }
 
 dt_parse() {
+	echo "Extracting hardware-specific environment settings from Device Tree"
+
+	echo > "$ENV_CACHE"
+
+	# Associative array for GPIO phandle to gpiochip resolving
+	cache declare -A DT_GPIOCHIPS
+
 	for gpiochip in /sys/class/gpio/gpiochip*; do
 		phandle=$(bin2hex < "$gpiochip/device/of_node/phandle")
-		DT_GPIOCHIPS[$phandle]="$gpiochip"
-		debug "$(basename $gpiochip) phandle: $phandle"
+		cache DT_GPIOCHIPS[\"$phandle\"]=\"$gpiochip\"
 	done
 	unset gpiochip phandle
 }
 
-[[ -n "$DEBUG" ]] && time dt_parse
+[[ -n "$NOCACHE" ]] && rm -f "$ENV_CACHE"
+[[ -e "$ENV_CACHE" ]] || time dt_parse
+source "$ENV_CACHE"
