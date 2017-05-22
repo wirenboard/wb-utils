@@ -24,20 +24,24 @@ done
 [[ -n "$FIT" ]] || die "FIT $FIT not found"
 
 # Some handy functions, usable in install script
-rm_fit() {
-	info "Removing FIT $FIT"
-	rm -f "$FIT"
-}
-
 flag_set() {
 	grep -- "--$1 " 2>&1 > /dev/null <<< "$FLAGS"
+}
+
+rm_fit() {
+	flag_set no-remove && return 0
+	info "Removing FIT $FIT"
+	rm -f "$FIT"
 }
 
 flag_set no-mqtt && {
 	mqtt_status() { :; }
 
 	mqtt_progress() {
-		cat >/dev/null
+		while read x; do
+			echo -en "\rPROGRESS: $x%"
+		done
+		echo
 	}
 } || {
 	mqtt_status() {
@@ -47,6 +51,12 @@ flag_set no-mqtt && {
 	mqtt_progress() {
 		mosquitto_pub -t /firmware/progress -l 2>&1 >/dev/null || true
 	}
+}
+
+to_hex() {
+	od -t x1 |
+	sed -r 's/^[^ ]+( |$)//; s/ //g; /^$/d' |
+	tr -d '\n'
 }
 
 die() {
@@ -86,7 +96,7 @@ fit_blob_data() {
 }
 
 fit_blob_hash() {
-	fit_prop "/images/$1/hash@1" value | xxd -ps
+	fit_prop "/images/$1/hash@1" value | to_hex
 }
 
 fit_blob_verify_hash() {
@@ -96,7 +106,7 @@ fit_blob_verify_hash() {
 	info "Checking SHA1 hash of $name"
 	
 	local blob_size=`fit_blob_size rootfs`
-	local tmp=`mktemp`
+	local tmp=`mktemp -p $TMPDIR`
 	(
 		echo 0
 		fit_blob_data $name | pv -n -s "$blob_size" | sha1sum | cut -f1 -d' ' > $tmp
@@ -120,7 +130,7 @@ Description:         $(fit_prop / description)
 Compatible device:   $(fit_prop / compatible)
 Firmware version:    $(fit_prop / firmware-version)
 Firmware compatible: $(fit_prop / firmware-compatible)
-Time of creation:    $(date -d @$[0x$(fit_prop / timestamp | xxd -ps)])
+Time of creation:    $(date -d @$[0x$(fit_prop / timestamp | to_hex)])
 ===============================================================================
 
 EOF
