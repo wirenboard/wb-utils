@@ -17,6 +17,7 @@ install: $(BIN_NAME)
 	$(MAKE) -C adc/injection install
 	install -m 0644 board/wb_env.sh $(DESTDIR)/etc/wb_env.sh
 	install -m 0755 board/wb-gen-serial $(DESTDIR)/$(prefix)/bin/wb-gen-serial
+	install -m 0755 board/wb-set-mac $(DESTDIR)/$(prefix)/bin/wb-set-mac
 
 	install -m 0755 adc/wb-adc-get-value $(DESTDIR)/$(prefix)/bin/wb-adc-get-value
 	install -m 0755 adc/wb-adc-read-channel $(DESTDIR)/$(prefix)/bin/wb-adc-read-channel

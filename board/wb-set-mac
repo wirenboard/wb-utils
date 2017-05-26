@@ -1,0 +1,28 @@
+#!/bin/bash
+IFACE=${IFACE:-$1}
+[[ -n "$IFACE" ]] || {
+	echo "IFACE is unset"
+	exit 1
+}
+
+[[ -z "$WB_VERSION" ]] && . /etc/wb_env.sh
+
+set_saved_mac() {
+	local saved_mac="/var/lib/wirenboard/${IFACE}_mac.conf"
+	[[ -e "$saved_mac" ]] &&
+		ifconfig $IFACE hw ether $(cat "$saved_mac") || true
+}
+
+case "$WB_VERSION" in
+	"60" | "61" )
+		# If random MAC is used (i.e. not set in DT by U-Boot or manually
+		# configured), fallback to the usual way. Otherwise, do nothing.
+		addr_type=$(cat "/sys/class/net/$IFACE/addr_assign_type")
+		[[ "$addr_type" == 1 ]] && set_saved_mac
+		;;
+
+	*)
+		set_saved_mac
+		;;
+esac
+
