@@ -1,4 +1,4 @@
-wb-utils (1.72.1) stable; urgency=medium
+wb-utils (1.72.2) stable; urgency=medium
 
   * Upon upgrade, short SN generation is postponed to the next boot
     in order to not disrupt PPP connection by querying modem
