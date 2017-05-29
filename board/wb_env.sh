@@ -2,11 +2,11 @@
 
 source "/usr/lib/wb-utils/common.sh"
 
-WB_ENV_CACHE="${WB_ENV_CACHE:-$WB_DATA_DIR/wb_env.cache}"
+WB_ENV_CACHE="${WB_ENV_CACHE:-/var/run/wb_env.cache}"
 
 WB_OF_ROOT="/wirenboard"
 
-if [[ -n "$NOCACHE" || ! -e "$WB_ENV_CACHE" ]]; then
+if [[ ! -e "$WB_ENV_CACHE" ]]; then
 	ENV_TMP=$(mktemp)
 
 	wb_source "of"
