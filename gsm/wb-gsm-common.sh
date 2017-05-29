@@ -49,24 +49,19 @@ function gsm_init() {
 
     set_speed
 
-    gpio_export $WB_GPIO_GSM_PWRKEY
-    gpio_set_dir $WB_GPIO_GSM_PWRKEY out
+    gpio_setup $WB_GPIO_GSM_PWRKEY out
 
 
     if [[ ${WB_GSM_POWER_TYPE} = "1" ]]; then
-        gpio_export $WB_GPIO_GSM_RESET
-        gpio_set_dir $WB_GPIO_GSM_RESET out
-        gpio_set_value $WB_GPIO_GSM_RESET 0
+        gpio_setup $WB_GPIO_GSM_RESET low
     fi
 
     if [[ ${WB_GSM_POWER_TYPE} = "2" ]]; then
-        gpio_export $WB_GPIO_GSM_POWER
-        gpio_set_dir $WB_GPIO_GSM_POWER out
+        gpio_setup $WB_GPIO_GSM_POWER out
     fi
 
     if [[ -n ${WB_GPIO_GSM_STATUS} ]]; then
-        gpio_export $WB_GPIO_GSM_STATUS
-        gpio_set_dir $WB_GPIO_GSM_STATUS in
+        gpio_setup $WB_GPIO_GSM_STATUS in
         if [[ ${WB_GPIO_GSM_STATUS_INVERTED} = "1" ]]; then
             gpio_set_inverted $WB_GPIO_GSM_STATUS 1
         else
