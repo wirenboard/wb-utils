@@ -11,34 +11,25 @@ endif
 all: inj
 	@echo Nothing to do
 
-SHELL_LIBS = $(addsuffix ".sh", \
-			 	$(addprefix "board/", \
-					common of wb_env_legacy wb_env_of) \
-			 	"gsm/wb-gsm-common" \
-				)
+BINDIR = $(DESTDIR)/$(prefix)/bin
+LIBDIR = $(DESTDIR)/$(prefix)/lib/wb-utils
+INITDIR = $(DESTDIR)/etc/init.d
 
 install:
-	install -d 0755 $(DESTDIR)/etc
+	install -m 0755 -d $(BINDIR) $(LIBDIR) $(INITDIR)
 	install -m 0644 board/wb_env.sh $(DESTDIR)/etc/wb_env.sh
-	install -d 0755 $(DESTDIR)/$(prefix)/bin
-	install -m 0755 board/wb-gen-serial $(DESTDIR)/$(prefix)/bin/wb-gen-serial
-	install -m 0755 board/wb-set-mac $(DESTDIR)/$(prefix)/bin/wb-set-mac
 
-	install -d 0755 $(DESTDIR)/$(prefix)/lib/wb-utils
-	install -m 0644 $(SHELL_LIBS) $(DESTDIR)/$(prefix)/lib/wb-utils
+	install -m 0644 -t $(LIBDIR) board/*.sh gsm/wb-gsm-common.sh
 
-	install -m 0755 gsm/wb-gsm $(DESTDIR)/$(prefix)/bin/wb-gsm
+	install -m 0755 -t $(BINDIR) board/wb-gen-serial board/wb-set-mac
+	install -m 0755 -t $(BINDIR) gsm/wb-gsm gsm/wb-gsm-rtc
 
-	install -m 0755 gsm/rtc.sh $(DESTDIR)/$(prefix)/bin/wb-gsm-rtc
+	install -m 0755 gsm/rtc.init $(INITDIR)/wb-gsm-rtc
+	install -m 0755 board/board.init $(INITDIR)/wb-init
+	install -m 0755 board/prepare.init $(INITDIR)/wb-prepare
 
-	install -d 0755 $(DESTDIR)/etc/init.d
-	install -m 0755 gsm/rtc.init $(DESTDIR)/etc/init.d/wb-gsm-rtc
-	install -m 0755 board/board.init $(DESTDIR)/etc/init.d/wb-init
-	install -m 0755 board/prepare.init $(DESTDIR)/etc/init.d/wb-prepare
-
-	install -m 0755 update/wb-run-update $(DESTDIR)/$(prefix)/bin/wb-run-update
-	install -m 0755 update/wb-watch-update $(DESTDIR)/$(prefix)/bin/wb-watch-update
-	install -m 0755 update/wb-watch-update.init $(DESTDIR)/etc/init.d/wb-watch-update
+	install -m 0755 -t $(BINDIR) update/wb-run-update update/wb-watch-update
+	install -m 0755 update/wb-watch-update.init $(INITDIR)/wb-watch-update
 
 
 clean:
