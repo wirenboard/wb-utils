@@ -16,6 +16,13 @@ gpio_set_dir() {
 	[[ "$(cat "$p")" == "$2" ]] || echo "$2" > "$p"
 }
 
+gpio_setup() {
+	[[ "$#" -lt 2 ]] || die "Bad invocation"
+	local gpio=$1 direction=$2
+	gpio_export "$gpio"
+	gpio_set_dir "$gpio" "$direction"
+}
+
 gpio_set_value() {
 	echo "$2" > "$(gpio_attr_path "$1" value)"
 }
