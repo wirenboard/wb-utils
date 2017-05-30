@@ -70,26 +70,14 @@ case "$WB_VERSION" in
 
 		WB_PWM_BUZZER=2
 
-		if [ -n "$BASH_VERSION" ]; then
-			# eval is for /bin/sh compatibility
-			eval "WB_MUX_NAMES_0=( A1 a1 ADC1 adc1)"
-			eval "WB_MUX_NAMES_1=( A2 a2 ADC2 adc2)"
-			eval "WB_MUX_NAMES_2=( A3 a3 ADC3 adc3)"
-			eval "WB_MUX_NAMES_3=( A4 a4 ADC4 adc4)"
-			eval "WB_MUX_NAMES_4=( R1 r1)"
-			eval "WB_MUX_NAMES_5=( R4 r4)"
-			eval "WB_MUX_NAMES_6=( R2 r2)"
-			eval "WB_MUX_NAMES_7=( R3 r3)"
-		else
-			WB_MUX_NAMES_0="A1 a1 ADC1 adc1"
-			WB_MUX_NAMES_1="A2 a2 ADC2 adc2"
-			WB_MUX_NAMES_2="A3 a3 ADC3 adc3"
-			WB_MUX_NAMES_3="A4 a4 ADC4 adc4"
-			WB_MUX_NAMES_4="R1 r1"
-			WB_MUX_NAMES_5="R4 r4"
-			WB_MUX_NAMES_6="R2 r2"
-			WB_MUX_NAMES_7="R3 r3"
-		fi
+		WB_MUX_NAMES_0=( A1 a1 ADC1 adc1)
+		WB_MUX_NAMES_1=( A2 a2 ADC2 adc2)
+		WB_MUX_NAMES_2=( A3 a3 ADC3 adc3)
+		WB_MUX_NAMES_3=( A4 a4 ADC4 adc4)
+		WB_MUX_NAMES_4=( R1 r1)
+		WB_MUX_NAMES_5=( R4 r4)
+		WB_MUX_NAMES_6=( R2 r2)
+		WB_MUX_NAMES_7=( R3 r3)
 
 		WB_GPIO_A1=${WB_GPIO_FET_1};
 		WB_GPIO_A2=${WB_GPIO_FET_2};
@@ -152,27 +140,15 @@ case "$WB_VERSION" in
 
 		WB_FET_COUNT=5;
 
-		if [ -n "$BASH_VERSION" ]; then
-			# eval is for /bin/sh compatibility
-			eval "WB_MUX_NAMES_0=( A4 a4 ADC4 adc4)"
-			eval "WB_MUX_NAMES_1=( A5 a5 ADC5 adc5)"
-			eval "WB_MUX_NAMES_2=( BAT bat)"
-			eval "WB_MUX_NAMES_3=( A1 a1 ADC1 adc1)"
-			eval "WB_MUX_NAMES_4=( A2 a2 ADC2 adc2)"
-			eval "WB_MUX_NAMES_5=( R2 r2)"
-			eval "WB_MUX_NAMES_6=( A3 a3 ADC3 adc3)"
-			eval "WB_MUX_NAMES_7=( R1 r1)"
-		else
-			WB_MUX_NAMES_0="A4 a4 ADC4 adc4"
-			WB_MUX_NAMES_1="A5 a5 ADC5 adc5"
-			WB_MUX_NAMES_2="BAT bat"
-			WB_MUX_NAMES_3="A1 a1 ADC1 adc1"
-			WB_MUX_NAMES_4="A2 a2 ADC2 adc2"
-			WB_MUX_NAMES_5="R2 r2"
-			WB_MUX_NAMES_6="A3 a3 ADC3 adc3"
-			WB_MUX_NAMES_7="R1 r1"
-		fi
-
+		WB_MUX_NAMES_0=( A4 a4 ADC4 adc4)
+		WB_MUX_NAMES_1=( A5 a5 ADC5 adc5)
+		WB_MUX_NAMES_2=( BAT bat)
+		WB_MUX_NAMES_3=( A1 a1 ADC1 adc1)
+		WB_MUX_NAMES_4=( A2 a2 ADC2 adc2)
+		WB_MUX_NAMES_5=( R2 r2)
+		WB_MUX_NAMES_6=( A3 a3 ADC3 adc3)
+		WB_MUX_NAMES_7=( R1 r1)
+		
 		WB_GPIO_A4_IN=123;
 		WB_GPIO_A5_IN=1;
 
@@ -309,26 +285,14 @@ case "$WB_VERSION" in
 		WB_FET_COUNT=7;
 
 
-		if [ -n "$BASH_VERSION" ]; then
-			# eval is for /bin/sh compatibility
-			eval "WB_MUX_NAMES_0=( tb3 )"
-			eval "WB_MUX_NAMES_1=( tb4 )"
-			eval "WB_MUX_NAMES_2=( tb5 )"
-			eval "WB_MUX_NAMES_3=( tb2 )"
-			eval "WB_MUX_NAMES_4=( tb6 )"
-			eval "WB_MUX_NAMES_5=( vin )"
-			eval "WB_MUX_NAMES_6=( tb7 )"
-			eval "WB_MUX_NAMES_7=( tb9 )"
-		else
-			WB_MUX_NAMES_0="tb3"
-			WB_MUX_NAMES_1="tb4"
-			WB_MUX_NAMES_2="tb5"
-			WB_MUX_NAMES_3="tb2"
-			WB_MUX_NAMES_4="tb6"
-			WB_MUX_NAMES_5="vin"
-			WB_MUX_NAMES_6="tb7"
-			WB_MUX_NAMES_7="tb9"
-		fi
+		WB_MUX_NAMES_0=( tb3 )
+		WB_MUX_NAMES_1=( tb4 )
+		WB_MUX_NAMES_2=( tb5 )
+		WB_MUX_NAMES_3=( tb2 )
+		WB_MUX_NAMES_4=( tb6 )
+		WB_MUX_NAMES_5=( vin )
+		WB_MUX_NAMES_6=( tb7 )
+		WB_MUX_NAMES_7=( tb9 )
 		;;
 
 	"KMON1" )
@@ -382,27 +346,15 @@ case "$WB_VERSION" in
 		WB_GPIO_PROG_BUTTON=137
 
 
-		if [ -n "$BASH_VERSION" ]; then
-			# eval is for /bin/sh compatibility
-			eval "WB_MUX_NAMES_0=( A2 a2 ADC2 adc2)"
-			eval "WB_MUX_NAMES_1=( A8 a8 ADC8 adc8)"
-			eval "WB_MUX_NAMES_2=( A3 a3 ADC3 adc3)"
-			eval "WB_MUX_NAMES_3=( A7 a7 ADC7 adc7)"
-			eval "WB_MUX_NAMES_4=( A4 a4 ADC4 adc4)"
-			eval "WB_MUX_NAMES_5=( A1 a1 ADC1 adc1)"
-			eval "WB_MUX_NAMES_6=( A5 a5 ADC5 adc5)"
-			eval "WB_MUX_NAMES_7=( A6 a6 ADC6 adc6)"
-		else
-			WB_MUX_NAMES_0="A2 a2 ADC2 adc2"
-			WB_MUX_NAMES_1="A8 a8 ADC8 adc8"
-			WB_MUX_NAMES_2="A3 a3 ADC3 adc3"
-			WB_MUX_NAMES_3="A7 a7 ADC7 adc7"
-			WB_MUX_NAMES_4="A4 a4 ADC4 adc4"
-			WB_MUX_NAMES_5="A1 a1 ADC1 adc1"
-			WB_MUX_NAMES_6="A5 a5 ADC5 adc5"
-			WB_MUX_NAMES_7="A6 a6 ADC6 adc6"
-		fi
-
+		WB_MUX_NAMES_0=( A2 a2 ADC2 adc2)
+		WB_MUX_NAMES_1=( A8 a8 ADC8 adc8)
+		WB_MUX_NAMES_2=( A3 a3 ADC3 adc3)
+		WB_MUX_NAMES_3=( A7 a7 ADC7 adc7)
+		WB_MUX_NAMES_4=( A4 a4 ADC4 adc4)
+		WB_MUX_NAMES_5=( A1 a1 ADC1 adc1)
+		WB_MUX_NAMES_6=( A5 a5 ADC5 adc5)
+		WB_MUX_NAMES_7=( A6 a6 ADC6 adc6)
+		
 		WB_GPIO_W1=92
 		;;
 
