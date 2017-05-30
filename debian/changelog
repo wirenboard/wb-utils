@@ -1,3 +1,9 @@
+wb-utils (1.73) stable; urgency=medium
+
+  * Move MXS LRADC tools to separate repo and package (wb-adc-tools-mxs)
+
+ -- Alexey Ignatov <lexszero@gmail.com>  Tue, 30 May 2017 14:33:41 +0300
+
 wb-utils (1.72.2) stable; urgency=medium
 
   * Upon upgrade, short SN generation is postponed to the next boot
