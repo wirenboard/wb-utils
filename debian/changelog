@@ -1,8 +1,16 @@
 wb-utils (1.73) stable; urgency=medium
 
   * update: support running update from initramfs
+  * Move MXS LRADC tools to separate repo and package (wb-adc-tools-mxs)
 
- -- Alexey Ignatov <lexszero@gmail.com>  Mon, 22 May 2017 18:37:05 +0300
+ -- Alexey Ignatov <lexszero@gmail.com>  Tue, 30 May 2017 14:33:41 +0300
+
+wb-utils (1.72.2) stable; urgency=medium
+
+  * Upon upgrade, short SN generation is postponed to the next boot
+    in order to not disrupt PPP connection by querying modem
+
+ -- Evgeny Boger <boger@contactless.ru>  Fri, 26 May 2017 11:36:02 +0300
 
 wb-utils (1.72.1) stable; urgency=medium
 

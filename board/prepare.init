@@ -5,6 +5,7 @@
 # Default-Stop:
 # Required-Start:    $local_fs
 # Required-Stop:
+# X-Start-Before:  networking
 # Short-Description:  prepare partitions & rootfs
 # Description:        prepare partitions & rootfs
 ### END INIT INFO
@@ -38,6 +39,10 @@ TOTAL_SECTORS=0
 ROOTFS_SIZE_MB=1024
 
 ROOTFS_SIZE_BYTES=$[${ROOTFS_SIZE_MB}*1024*1024]
+
+WB_DIR="/var/lib/wirenboard"
+SERIAL="$WB_DIR/serial.conf"
+SHORT_SN_FNAME="$WB_DIR/short_sn.conf"
 
 wb_check_mounted()
 {
@@ -256,10 +261,8 @@ wb_prepare_filesystems()
 
 wb_fix_macs()
 {
-    local wb_dir="/var/lib/wirenboard"
-    local serial="$wb_dir/serial.conf"
-    local eth0_mac="$wb_dir/eth0_mac.conf"
-    local eth1_mac="$wb_dir/eth1_mac.conf"
+    local eth0_mac="$WB_DIR/eth0_mac.conf"
+    local eth1_mac="$WB_DIR/eth1_mac.conf"
 
     local network_restart_needed=false
 
@@ -268,10 +271,10 @@ wb_fix_macs()
 
         if [[ -e "/mnt/data/${eth0_mac}" ]]; then
             cp "/mnt/data/${eth0_mac}" "${eth0_mac}"
-        elif [[ -e "$serial" ]]; then
-            cp "$serial" "${eth0_mac}"
-        elif [[ -e "/mnt/data/$serial" ]]; then
-            cp "/mnt/data/$serial" "${eth0_mac}"
+        elif [[ -e "$SERIAL" ]]; then
+            cp "$SERIAL" "${eth0_mac}"
+        elif [[ -e "/mnt/data/$SERIAL" ]]; then
+            cp "/mnt/data/$SERIAL" "${eth0_mac}"
         else
             wb-gen-serial -m 0 > ${eth0_mac}
         fi
@@ -300,13 +303,22 @@ wb_fix_macs()
     return 0
 }
 
+wb_fix_short_sn()
+{
+    [[ ! -f "$SHORT_SN_FNAME" ]] && {
+        log_action_msg "Storing short SN"
+        [[ -e "/mnt/data/$SHORT_SN_FNAME" ]] &&
+            cp "/mnt/data/$SHORT_SN_FNAME" "$SHORT_SN_FNAME" || {
+            local short_sn=`wb-gen-serial -s`
+            echo "$short_sn" > "$SHORT_SN_FNAME"
+        }
+    }
+}
+
 # This function should be called only on first boot of the rootfs
 wb_firstboot()
 {
     local flag="/var/lib/firstboot_done.flag"
-    local wb_dir="/var/lib/wirenboard"
-    local serial="$wb_dir/serial.conf"
-    local short_sn_fname="$wb_dir/short_sn.conf"
 
     [[ -f $flag ]] && return 0
 
@@ -316,9 +328,9 @@ wb_firstboot()
 
     mkdir -p /mnt/data
 
-    [[ ! -d "$wb_dir" ]] && {
-        rm -rf $wb_dir
-        mkdir -p $wb_dir
+    [[ ! -d "$WB_DIR" ]] && {
+        rm -rf $WB_DIR
+        mkdir -p $WB_DIR
     }
 
     [[ -e "/dev/ttyGSM" ]] && {
@@ -332,14 +344,14 @@ wb_firstboot()
 
     wb_fix_macs
 
-    [[ ! -f "$serial" ]] && {
+    [[ ! -f "$SERIAL" ]] && {
         log_action_begin_msg "Get WB serial number"
-        [[ -e "/mnt/data/$serial" ]] &&
-            cp "/mnt/data/$serial" "$serial" ||
+        [[ -e "/mnt/data/$SERIAL" ]] &&
+            cp "/mnt/data/$SERIAL" "$SERIAL" ||
             (echo "wirenboard-$short_sn" > "/etc/hostname.wb") &&
-            (echo "$short_sn" > "$short_sn_fname") &&
+            (echo "$short_sn" > "$SHORT_SN_FNAME") &&
             (sed -i.orig "s/^ssid=.*/ssid=$ssid/" "/etc/hostapd.conf.wb") &&
-            (wb-gen-serial -m > $serial) &&
+            (wb-gen-serial -m > $SERIAL) &&
             {
                 service networking restart
                 service hostapd restart || /bin/true
@@ -347,13 +359,7 @@ wb_firstboot()
         log_end_msg $? || return $?
     }
 
-    [[ ! -f "$short_sn_fname" ]] && {
-        log_action_msg "Storing short SN"
-        [[ -e "/mnt/data/$short_sn_fname" ]] &&
-            cp "/mnt/data/$short_sn_fname" "$short_sn_fname" ||
-            (echo "$short_sn" > "$short_sn_fname")
-    }
-
+    wb_fix_short_sn
 
     [[ ! -h /etc/ssh && -d /etc/ssh ]] && {
         log_action_msg "Generating SSH host keys"
@@ -389,6 +395,7 @@ wb_firstboot()
 do_start()
 {
     wb_firstboot || return $?
+    wb_fix_short_sn
 
     wb_prepare_partitions
     wb_prepare_filesystems

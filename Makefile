@@ -9,9 +9,7 @@ endif
 
 
 all: inj
-
-inj:
-	$(MAKE) -C adc/injection
+	@echo Nothing to do
 
 SHELL_LIBS = $(addsuffix ".sh", \
 			 	$(addprefix "board/", \
@@ -19,8 +17,7 @@ SHELL_LIBS = $(addsuffix ".sh", \
 			 	"gsm/wb-gsm-common" \
 				)
 
-install: $(BIN_NAME)
-	$(MAKE) -C adc/injection install
+install:
 	install -d 0755 $(DESTDIR)/etc
 	install -m 0644 board/wb_env.sh $(DESTDIR)/etc/wb_env.sh
 	install -d 0755 $(DESTDIR)/$(prefix)/bin
@@ -29,10 +26,6 @@ install: $(BIN_NAME)
 
 	install -d 0755 $(DESTDIR)/$(prefix)/lib/wb-utils
 	install -m 0644 $(SHELL_LIBS) $(DESTDIR)/$(prefix)/lib/wb-utils
-
-	install -m 0755 adc/wb-adc-get-value $(DESTDIR)/$(prefix)/bin/wb-adc-get-value
-	install -m 0755 adc/wb-adc-read-channel $(DESTDIR)/$(prefix)/bin/wb-adc-read-channel
-	install -m 0755 adc/wb-adc-set-mux $(DESTDIR)/$(prefix)/bin/wb-adc-set-mux
 
 	install -m 0755 gsm/wb-gsm $(DESTDIR)/$(prefix)/bin/wb-gsm
 
@@ -49,7 +42,7 @@ install: $(BIN_NAME)
 
 
 clean:
-	$(MAKE) -C adc/injection clean
+	@echo Nothing to do
 
 .PHONY: install clean all
 
