@@ -8,7 +8,7 @@ else
 endif
 
 
-all: inj
+all:
 	@echo Nothing to do
 
 BINDIR = $(DESTDIR)/$(prefix)/bin
