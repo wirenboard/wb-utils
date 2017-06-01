@@ -1,4 +1,6 @@
 #!/bin/sh
+rm -f "/var/run/wb_env.cache" || true
+
 update-rc.d wb-prepare start 10 S
 
 invoke-rc.d wb-prepare fix_macs
