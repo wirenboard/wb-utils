@@ -186,7 +186,9 @@ of_list_match() {
 		local val=${2:-}
 		debug "'$comp' -> '$val'"
 		if [[ -z "$comp" || "$list" =~ ( |^)${comp}( |$) ]]; then
-			echo "$val"
+			if [[ -n "$val" ]]; then
+				echo "$val"
+			fi
 			return 0
 		fi
 		shift 1; shift 1 || true
