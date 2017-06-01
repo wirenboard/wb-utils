@@ -10,6 +10,11 @@ gpio_export() {
 	[[ -e "$(gpio_attr_path "$1")" ]] || echo "$1" > "$SYSFS_GPIO/export"
 }
 
+gpio_unexport() {
+	[[ -e "$(gpio_attr_path "$1")" ]] || return 0
+	echo "$1" > "$SYSFS_GPIO/unexport"
+}
+
 gpio_set_dir() {
 	local p
     p=$(gpio_attr_path "$1" direction || die)

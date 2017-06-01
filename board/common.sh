@@ -45,3 +45,14 @@ to_upper() {
 to_upper_snake() {
 	tr 'a-z-' 'A-Z_' <<<"$1"
 }
+
+# Join array to string
+# Args:
+# - delimiter
+# - rest args are the array items
+# Example: `join , 1 2 3` == "1,2,3"
+join() {
+	local IFS="$1"
+	shift
+	echo "$*"
+}

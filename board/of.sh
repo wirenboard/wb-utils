@@ -87,6 +87,10 @@ of_node_props() {
 	find "$node" -maxdepth 1 -type f -printf '%f\n'
 }
 
+of_has_prop() {
+	[[ -e "$(__of_node_path "$1")/$2" ]]
+}
+
 # Get int value of property
 # Args:
 #	node
@@ -126,6 +130,10 @@ of_node_children() {
 
 of_node_exists() {
 	of_node_props "$1" >/dev/null
+}
+
+of_has_prop() {
+	fdtget "$DTB" "$1" "$2" >/dev/null 2>&1
 }
 
 of_get_prop_ulong() {
