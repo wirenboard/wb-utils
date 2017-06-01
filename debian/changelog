@@ -1,3 +1,11 @@
+wb-utils (2.0) stable; urgency=medium
+
+  * Add libs for working with DT and some common utils
+  * Obsoleting WB_VERSION in favour to DT machine compatible attribute
+  * wb_env.sh uses values from DT
+
+ -- Alexey Ignatov <lexszero@gmail.com>  Thu, 01 Jun 2017 17:28:57 +0300
+
 wb-utils (1.73) stable; urgency=medium
 
   * update: support running update from initramfs
