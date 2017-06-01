@@ -158,9 +158,50 @@ of_node_compatible() {
 	of_get_prop_str "$node" compatible
 }
 
-of_machine_is_compatible() {
-	local re="( |^)${1}( |$)"
-	[[ $(of_node_compatible /) =~ $re ]]
+# Find the most specific list element, if any.
+# Takes a list of pairs <compat> <result>, and prints <result> for
+# the first matching compat. If nothing is matched, returns an error.
+# If called with a just two args, don't prints anything, only return
+# value is set.
+#
+# For example:
+#	of_list_match "$list" \
+#		soc-board-foo	high \
+#		soc-board		mid \
+#		soc				low \
+#		""				default
+#
+# Will return:
+#	"soc-board1-foo soc-board1 soc" => high
+#	"soc-board1-bar soc-board1 soc" => mid
+#	"soc-board1 soc" => mid
+#	"soc-board2 soc" => low
+#	"othersoc" => default
+of_list_match() {
+	local list="$1"
+	shift
+
+	while [[ "$#" -ge 1 ]]; do
+		local comp=${1}
+		local val=${2:-}
+		debug "'$comp' -> '$val'"
+		if [[ -z "$comp" || "$list" =~ ( |^)${comp}( |$) ]]; then
+			echo "$val"
+			return 0
+		fi
+		shift 1; shift 1 || true
+	done
+	return 1
+}
+
+of_node_match() {
+	local compatible="$(of_node_compatible "$1")"
+	shift
+	of_list_match "$compatible" "$@"
+}
+
+of_machine_match() {
+	of_node_match / "$@"
 }
 
 # Args:
