@@ -70,10 +70,17 @@ do_stop()
 	#   2 if daemon could not be stopped
 	#   other if a failure occurred
 
-    $BIN_NAME save_time
-
-	RETVAL="$?"
-	[ "$RETVAL" != 0 ] && return 2
+    # save time only if it's already year 2001
+    if [ `date +%s` -ge 978307200 ]; then
+        $BIN_NAME save_time
+        RETVAL="$?"
+        [ "$RETVAL" != 0 ] && return 3
+        return 0
+    else
+        DATE="`date`"
+        echo -n ". '$DATE' doesn't look good, do nothing"
+        return 1
+    fi
 
 	return "$RETVAL"
 }

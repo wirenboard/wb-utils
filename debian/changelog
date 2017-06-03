@@ -1,3 +1,9 @@
+wb-utils (1.73.2) stable; urgency=medium
+
+  * doesn't save date on shutdown if it's in less than year 2001
+
+ -- Evgeny Boger <boger@contactless.ru>  Sat, 03 Jun 2017 22:11:35 +0300
+
 wb-utils (1.73.1) stable; urgency=medium
 
   * Alter boot order of GSM RTC restore/save time to avoid conflicts with PPP:
