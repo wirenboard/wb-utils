@@ -264,8 +264,6 @@ wb_fix_macs()
     local eth0_mac="$WB_DIR/eth0_mac.conf"
     local eth1_mac="$WB_DIR/eth1_mac.conf"
 
-    local network_restart_needed=false
-
     if [[ ! -f "${eth0_mac}" ]]; then
         log_action_begin_msg "Getting eth0 MAC address"
 
@@ -280,7 +278,6 @@ wb_fix_macs()
         fi
 
         log_end_msg $?
-        network_restart_needed=true
     fi
 
     if [[ ! -f "${eth1_mac}" ]]; then
@@ -293,11 +290,6 @@ wb_fix_macs()
         fi
 
         log_end_msg $?
-        network_restart_needed=true
-    fi
-
-    if [ "${network_restart_needed}" = true ]; then
-        service networking restart
     fi
 
     return 0
@@ -351,11 +343,8 @@ wb_firstboot()
             (echo "wirenboard-$short_sn" > "/etc/hostname.wb") &&
             (echo "$short_sn" > "$SHORT_SN_FNAME") &&
             (sed -i.orig "s/^ssid=.*/ssid=$ssid/" "/etc/hostapd.conf.wb") &&
-            (wb-gen-serial -m > $SERIAL) &&
-            {
-                service networking restart
-                service hostapd restart || /bin/true
-            }
+            (wb-gen-serial -m > $SERIAL)
+        
         log_end_msg $? || return $?
     }
 
