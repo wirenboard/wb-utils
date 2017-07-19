@@ -1,3 +1,9 @@
+wb-utils (1.73.3) stable; urgency=medium
+
+  * fix modem on wb6.0
+
+ -- Evgeny Boger <boger@contactless.ru>  Wed, 19 Jul 2017 20:58:24 +0300
+
 wb-utils (1.73.2) stable; urgency=medium
 
   * doesn't save date on shutdown if it's in less than year 2001
