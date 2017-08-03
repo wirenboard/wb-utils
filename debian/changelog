@@ -1,3 +1,9 @@
+wb-utils (1.74) stable; urgency=medium
+
+  * update: support running update from initramfs
+
+ -- Alexey Ignatov <lexszero@gmail.com>  Mon, 22 May 2017 18:37:05 +0300
+
 wb-utils (1.73.3) stable; urgency=medium
 
   * fix modem on wb6.0
