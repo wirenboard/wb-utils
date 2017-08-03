@@ -1,3 +1,9 @@
+wb-utils (1.74.1) stable; urgency=medium
+
+  * fix LED on wb6.1
+
+ -- Evgeny Boger <boger@contactless.ru>  Thu, 03 Aug 2017 21:44:38 +0300
+
 wb-utils (1.74) stable; urgency=medium
 
   * update: support running update from initramfs
