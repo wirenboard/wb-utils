@@ -1,3 +1,9 @@
+wb-utils (1.74.2) stable; urgency=medium
+
+  * removed cross dependency with wb-configs
+
+ -- Islam Boziev <i.boziev@wirenboard.ru>  Fri, 11 Aug 2017 19:41:34 +0300
+
 wb-utils (1.74.1) stable; urgency=medium
 
   * fix LED on wb6.1
