@@ -27,7 +27,11 @@ die() {
 		done
 	fi
 	echo "Exiting with status ${code}"
-	exit "${code}"
+	if [[ $- != *i* ]]; then
+		return "${code}"
+	else
+		exit "${code}"
+	fi
 }
 
 trap 'die' ERR
