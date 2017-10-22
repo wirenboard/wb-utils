@@ -1,3 +1,9 @@
+wb-utils (1.74.3) stable; urgency=medium
+
+  * wb6: select SIM1 at init
+
+ -- Evgeny Boger <boger@contactless.ru>  Sun, 22 Oct 2017 23:51:27 +0300
+
 wb-utils (1.74.2) stable; urgency=medium
 
   * removed cross dependency with wb-configs
