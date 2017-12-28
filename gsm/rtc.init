@@ -4,7 +4,9 @@
 # Default-Start:     S
 # Default-Stop:      0 6
 # Required-Start: $local_fs wb-prepare
+# Should-Start: wb-modules
 # Required-Stop: $local_fs
+# Should-Stop: wb-modules
 # X-Start-Before:  networking
 # X-Stop-After: networking
 # Short-Description:  initscript to use GSM modem integrated RTC
