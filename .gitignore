@@ -33,3 +33,5 @@ wb-configs_*.*
 *.pyc
 
 .tern-port
+debian/wb-utils/
+adc/injection/lradc-set-current
