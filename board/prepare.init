@@ -17,16 +17,25 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="prepare partitions & rootfs"
 NAME=wb-prepare
 SCRIPTNAME=/etc/init.d/$NAME
+ROOT_PARTITION=$(mount -l | grep " / " | cut -d " " -f1)
 
 # Load the VERBOSE setting and other rcS variables
 . /lib/init/vars.sh
+log_end_msg()
+{
+return 0
+}
+log_action_msg()
+{
+echo -n $@
+}
 
 VERBOSE="yes"
 
 # Define LSB log_* functions.
 # Depend on lsb-base (>= 3.2-14) to ensure that this file is present
 # and status_of_proc is working.
-. /lib/lsb/init-functions
+#. /lib/lsb/init-functions
 
 . /etc/wb_env.sh
 
@@ -61,7 +70,9 @@ wb_partition()
         local size=$[TOTAL_SECTORS-PART_START] ||
         local size=$[$1*MB/SECTOR_SIZE]
     local fstype=${2:-83}
+    [[ "$fstype" == 53 ]] && PART_START=2048
     echo "$PART_START $size $fstype"
+    [[ "$fstype" == 82 ]] && ((size+=2048))
     [[ "$fstype" == 5 ]] && ((PART_START+=2048)) || ((PART_START+=$size))
 }
 
@@ -76,7 +87,10 @@ wb_erase_partition()
 {
     local part=${STORAGE}p$1
     local start=`wb_get_partition_start $1`
-
+    if [ -z $start ]
+    then
+	return 0
+    fi
     log_action_begin_msg "Erasing partition $part"
     dd if=/dev/zero of=$STORAGE seek=$start bs=$SECTOR_SIZE count=$[1*MB/SECTOR_SIZE] 2>&1 >/dev/null
     log_end_msg $?
@@ -100,8 +114,8 @@ wb_prepare_partitions()
         return 1
     }
 
-    CURRENT_ROOTFS_BLOCK_SIZE=`tune2fs -l /dev/root  | grep "Block size" | awk '{print $3}'`
-    CURRENT_ROOTFS_BLOCK_COUNT=`tune2fs -l /dev/root  | grep "Block count" | awk '{print $3}'`
+    CURRENT_ROOTFS_BLOCK_SIZE=`tune2fs -l $ROOT_PARTITION  | grep "Block size" | awk '{print $3}'`
+    CURRENT_ROOTFS_BLOCK_COUNT=`tune2fs -l $ROOT_PARTITION | grep "Block count" | awk '{print $3}'`
     CURRENT_ROOTFS_SIZE_BYTES=$[${CURRENT_ROOTFS_BLOCK_SIZE}*${CURRENT_ROOTFS_BLOCK_COUNT}]
 
     [[ ${CURRENT_ROOTFS_SIZE_BYTES} -le ${ROOTFS_SIZE_BYTES} ]] ||  {
@@ -109,7 +123,7 @@ wb_prepare_partitions()
         return 1
     }
 
-    sfdisk --no-reread --Linux --in-order -u S --dump $STORAGE > /tmp/partitions_backup
+    sfdisk --no-reread -u S --dump $STORAGE > /tmp/partitions_backup
     dd if=/dev/zero of=$STORAGE bs=512 count=1 2>&1 >/dev/null
     local erase_sectors=''
     {
@@ -118,8 +132,8 @@ wb_prepare_partitions()
         wb_partition ${ROOTFS_SIZE_MB}     # rootfs1
         wb_partition '' 5     # <extended>
         wb_partition 256 82   # swap
-        wb_partition ''       # data
-    } | sfdisk --no-reread --Linux --in-order -u S $STORAGE || true
+        wb_partition ''      # data
+    } | sfdisk --no-reread $STORAGE || true
     # FIXME: sfdisk succesfully writes partition table, but returns error
     # because it can't reread partitions on mounted disk, so just bypass error
     # handling.
