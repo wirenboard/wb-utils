@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 ### BEGIN INIT INFO
-# Provides:          wb-prepare
+# Provides:          LSB" WB-Prepare
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Required-Start: $remote_fs
@@ -122,7 +122,8 @@ wb_prepare_partitions()
         wb_partition '' 5     # <extended>
         wb_partition 256 82   # swap
         wb_partition ''      # data
-    } | sfdisk --no-reread $STORAGE || true
+    } > /tmp/disk_partitions
+    cat /tmp/disk_partitions | sfdisk --no-reread $STORAGE || true
     # FIXME: sfdisk succesfully writes partition table, but returns error
     # because it can't reread partitions on mounted disk, so just bypass error
     # handling.
@@ -134,13 +135,20 @@ wb_prepare_partitions()
     #    die "Prepare partitions failed"
     #}
     rm -f /tmp/partitions_backup
-
-    wb_erase_partition 3
-    wb_erase_partition 6
+    cat /tmp/partitions_backup 
+    PART3_SIZE=$(sed -n '3p' /tmp/disk_partitions | cut -d ' ' -f2)
+    PART6_SIZE=$(sed -n '6p' /tmp/disk_partitions | cut -d ' ' -f2)
+    #rm /tmp/disk_partitions
+    mkfs.ext4 /dev/mmcblk0p3 $PART3_SIZE
+    mkfs.ext4 /dev/mmcblk0p6 $PART6_SIZE
+    mkfs.ext4 /dev/mmcblk0p3 -F
+    mkfs.ext4 /dev/mmcblk0p6 -F
+    #wb_erase_partition 3
+    #wb_erase_partition 6
 
     log_success_msg "Partition table changed, reboot needed"
-#    fw_setenv bootcount 0
-#    reboot
+    fw_setenv bootcount 0
+    reboot
 }
 
 # Run mkfs.ext4 with custom options
