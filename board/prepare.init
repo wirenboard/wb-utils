@@ -1,17 +1,15 @@
-#!/bin/bash
+#!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          wb-prepare
-# Default-Start:     S
-# Default-Stop:
-# Required-Start:    $local_fs
-# Required-Stop:
-# X-Start-Before:  networking
-# Short-Description:  prepare partitions & rootfs
-# Description:        prepare partitions & rootfs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Required-Start: $remote_fs
+# Required-Stop: $remote_fs
+# Short-Description: prepare partitions & rootfs 
+# Description:       prepare partitions & rootfs 
 ### END INIT INFO
-
+#set -x 
 # Do NOT "set -e"
-
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="prepare partitions & rootfs"
