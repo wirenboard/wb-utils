@@ -254,7 +254,7 @@ wb_prepare_filesystems()
     log_action_msg "Preparing filesystems"
 
     log_action_begin_msg "Resizing root filesystem"
-    resize2fs /dev/root >/dev/null
+    resize2fs $ROOT_PARTITION >/dev/null
     log_end_msg $?
 
     wb_check_swap
