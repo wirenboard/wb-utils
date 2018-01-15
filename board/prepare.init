@@ -1,12 +1,13 @@
 #!/bin/bash
 ### BEGIN INIT INFO
-# Provides:          LSB" WB-Prepare
-# Default-Start:     2 3 4 5
-# Default-Stop:      0 1 6
-# Required-Start: $remote_fs
-# Required-Stop: $remote_fs
-# Short-Description: prepare partitions & rootfs 
-# Description:       prepare partitions & rootfs 
+# Provides:          wb-prepare
+# Default-Start:     S
+# Default-Stop:
+# Required-Start:    $local_fs
+# Required-Stop:
+# X-Start-Before:  networking
+# Short-Description:  prepare partitions & rootfs
+# Description:        prepare partitions & rootfs
 ### END INIT INFO
 #set -x 
 # Do NOT "set -e"
