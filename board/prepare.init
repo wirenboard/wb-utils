@@ -24,7 +24,30 @@ VERBOSE="yes"
 # Define LSB log_* functions.
 # Depend on lsb-base (>= 3.2-14) to ensure that this file is present
 # and status_of_proc is working.
-. /lib/lsb/init-functions
+#. /lib/lsb/init-functions
+log_action_begin_msg()
+{
+        echo $@
+}
+
+log_end_msg()
+{
+        echo $@
+}
+
+log_action_cont_msg()
+{a
+        echo $@
+}
+log_action_msg()
+{
+        echo $@
+}
+
+log_action_end_msg()
+{
+        echo $@
+}
 
 . /etc/wb_env.sh
 
