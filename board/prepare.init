@@ -37,7 +37,7 @@ log_end_msg()
 }
 
 log_action_cont_msg()
-{a
+{
         echo $@
 }
 log_action_msg()
@@ -169,7 +169,8 @@ wb_prepare_partitions()
     mkfs.ext4 /dev/mmcblk0p6 -F
     #wb_erase_partition 3
     #wb_erase_partition 6
-
+    echo "/dev/mmcblk0p6   /mnt/data   auto   errors=remount-ro,noatime   0   2" >> /etc/fstab
+    
     log_success_msg "Partition table changed, reboot needed"
     fw_setenv bootcount 0
     reboot
