@@ -1,6 +1,6 @@
 #!/bin/sh
 update-rc.d wb-prepare start 10 S
-ln -n /etc/init.d/wb-prepare /etc/rc3.d/S01wb-prepare
+ln -s /etc/init.d/wb-prepare /etc/rc3.d/S01wb-prepare
 invoke-rc.d wb-prepare fix_macs
 
 if [ "$1" = "configure" ]; then
