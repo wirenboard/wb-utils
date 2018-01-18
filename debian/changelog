@@ -1,3 +1,12 @@
+wb-utils (1.75.0) stable; urgency=medium
+
+  * ext4 fs created in wb-prepare script
+  * data partition is added to fstab in wb-prepare script
+  * /dev/root is deprecated, replaced with actual root partition identifier in wb-prepare 
+  * init symlink is created to rc3.d at post install
+
+ -- Attila Door <a.door@contactless.ru>  Thu, 18 Jan 2018 11:40:40 +0300
+
 wb-utils (1.74.4) stable; urgency=medium
 
   * fixes for nogsm versions
