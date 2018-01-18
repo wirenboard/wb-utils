@@ -9,8 +9,9 @@
 # Short-Description:  prepare partitions & rootfs
 # Description:        prepare partitions & rootfs
 ### END INIT INFO
-#set -x 
+
 # Do NOT "set -e"
+
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="prepare partitions & rootfs"
@@ -20,6 +21,7 @@ ROOT_PARTITION=$(mount -l | grep " / " | cut -d " " -f1)
 
 # Load the VERBOSE setting and other rcS variables
 . /lib/init/vars.sh
+
 VERBOSE="yes"
 
 # Define LSB log_* functions.
@@ -71,19 +73,6 @@ wb_get_partition_start()
     local part=${STORAGE}p$1
     fdisk -u sectors -l $STORAGE |
         sed -rn "s#^${part}\\s+([0-9]+).*#\\1#p"
-}
-
-wb_erase_partition()
-{
-    local part=${STORAGE}p$1
-    local start=`wb_get_partition_start $1`
-    if [ -z $start ]
-    then
-	return 0
-    fi
-    log_action_begin_msg "Erasing partition $part"
-    dd if=/dev/zero of=$STORAGE seek=$start bs=$SECTOR_SIZE count=$[1*MB/SECTOR_SIZE] 2>&1 >/dev/null
-    log_end_msg $?
 }
 
 # Creates all the needed partitions
@@ -139,13 +128,11 @@ wb_prepare_partitions()
     cat /tmp/partitions_backup 
     PART3_SIZE=$(sed -n '3p' /tmp/disk_partitions | cut -d ' ' -f2)
     PART6_SIZE=$(sed -n '6p' /tmp/disk_partitions | cut -d ' ' -f2)
-    #rm /tmp/disk_partitions
+
     mkfs.ext4 /dev/mmcblk0p3 $PART3_SIZE
     mkfs.ext4 /dev/mmcblk0p6 $PART6_SIZE
     mkfs.ext4 /dev/mmcblk0p3 -F
     mkfs.ext4 /dev/mmcblk0p6 -F
-    #wb_erase_partition 3
-    #wb_erase_partition 6
     echo "/dev/mmcblk0p6   /mnt/data   auto   errors=remount-ro,noatime   0   2" >> /etc/fstab
     
     log_success_msg "Partition table changed, reboot needed"
