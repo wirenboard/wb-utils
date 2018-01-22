@@ -130,9 +130,13 @@ wb_prepare_partitions()
     PART6_SIZE=$(sed -n '6p' /tmp/disk_partitions | cut -d ' ' -f2)
 
     mkfs.ext4 /dev/mmcblk0p3 $PART3_SIZE
+    sleep 3
     mkfs.ext4 /dev/mmcblk0p6 $PART6_SIZE
+    sleep 3 
     mkfs.ext4 /dev/mmcblk0p3 -F
+    sleep 3
     mkfs.ext4 /dev/mmcblk0p6 -F
+    sleep 3
     echo "/dev/mmcblk0p6   /mnt/data   auto   errors=remount-ro,noatime   0   2" >> /etc/fstab
     
     log_success_msg "Partition table changed, reboot needed"
