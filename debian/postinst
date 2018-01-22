@@ -15,6 +15,7 @@ if [ "$1" = "configure" ]; then
 fi
 
 update-rc.d wb-gsm-rtc start 10 S stop 10 0 6
+ln -s /etc/init.d/wb-gsm-rtc /etc/rc3.d/S01wb-gsm-rtc 
 
 update-rc.d wb-init defaults
 invoke-rc.d wb-init start
