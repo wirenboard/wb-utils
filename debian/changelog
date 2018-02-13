@@ -1,3 +1,9 @@
+wb-utils (1.74.5) stable; urgency=medium
+
+  * fix wb-run-update failing on new FITs
+
+ -- Nikita Maslov <n.maslov@contactless.ru>  Tue, 13 Feb 2018 20:23:58 +0300
+
 wb-utils (1.74.4) stable; urgency=medium
 
   * fixes for nogsm versions

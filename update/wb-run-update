@@ -83,7 +83,7 @@ fit_prop() {
 	local off=`sed -rn 's#OFF: (.*)#\1#p' <<< "$tmp"`
 	[[ -n "$len" && -n "$off" ]] || return 1
 	#dd if=$FIT skip=$off count=$len iflag=skip_bytes,count_bytes 2>/dev/null
-	dd if=$FIT bs=$off skip=1 2>/dev/null | head -c $len 2>/dev/null
+    tail -c +$((off + 1)) $FIT 2>/dev/null | head -c $len 2>/dev/null
 }
 
 fit_blob_size() {
