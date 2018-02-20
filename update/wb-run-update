@@ -59,6 +59,99 @@ to_hex() {
 	tr -d '\n'
 }
 
+led() {
+    echo $2 > /sys/class/leds/$1/trigger || true
+
+    [[ "x$2" == "xtimer" ]] && {
+        echo $3 > /sys/class/leds/$1/delay_on
+        echo $4 > /sys/class/leds/$1/delay_off
+    }
+}
+
+led_process() {
+    led green timer 500 500
+    led red mmc0
+}
+
+led_success() {
+    led green default-on
+    led red default-off
+}
+
+led_failure() {
+    led green default-off
+    led red timer 500 500
+}
+
+led_prompt() {
+    led green default-off
+    led red timer 100 100
+}
+
+PLATFORM=`cat /proc/cpuinfo | grep Hardware | awk '{print $4}'`
+
+if [[ $PLATFORM == "i.MX6" ]]; then
+    button_read() {
+        local gpioid=138 # iMX6UL boot button GPIO
+        local expected=$1
+        [[ -d /sys/class/gpio/gpio$gpioid ]] || echo $gpioid > /sys/class/gpio/export
+
+        local value=`cat /sys/class/gpio/gpio$gpioid/value`
+        [[ "x$value" == "x$expected" ]]
+    }
+else
+    button_read() {
+        local exp=$1
+        local val=`memdump 0x800440c2 1 | busybox hexdump -e '"%x"' | head -c 1 | tr 13 01`
+        [[ "x$val" == "x$exp" ]]
+    }
+fi
+
+_button_wait_r() {
+    local invert=$1
+    local presstime=$2
+    presstime=${presstime:=1}
+
+    while [[ $presstime -gt 0 ]] && [[ $BUTTON_TIMEOUT -gt 0 ]]; do
+       sleep 0.2
+       BUTTON_TIMEOUT=$((BUTTON_TIMEOUT - 1))
+       button_read $invert || presstime=$((presstime - 1))
+    done
+
+    [[ $BUTTON_TIMEOUT -gt 0 ]]
+}
+
+button_wait() {
+    BUTTON_TIMEOUT=$1
+    BUTTON_TIMEOUT=$((BUTTON_TIMEOUT * 5))  # to be in sync with sleep 0.2
+
+    local presstime=$2
+    if [[ "x$presstime" == "x" ]]; then
+        presstime=1
+    else
+        presstime=$((presstime * 5))
+    fi
+
+    _button_wait_r 1 # wait for button to be released
+    _button_wait_r 0 $presstime
+}
+
+user_button_confirm() {
+    local message=$1
+    local timeout=$2
+    local presstime=$3
+
+    [[ "x$presstime" != "x" ]] && local infotime="for more than $presstime seconds "
+
+    info "Press the button ${infotime}${message}"
+    led_prompt
+    button_wait $timeout $presstime
+    local ret=$?
+    led_process
+
+    return $ret
+}
+
 die() {
 	local ret=$?
 	local msg=${*:-"Failed"}
@@ -119,8 +212,7 @@ fit_blob_verify_hash() {
 		die "SHA1 of $name doesn't match (expected $sha1_expected, got $sha1_calculated)"
 }
 
-echo trigger > /sys/class/leds/green/trigger || true
-echo mmc0 > /sys/class/leds/red/trigger || true
+led_process
 
 >&2 cat <<EOF
 ===============================================================================
