@@ -128,6 +128,7 @@ wb_prepare_partitions()
     cat /tmp/partitions_backup 
     PART3_SIZE=$(sed -n '3p' /tmp/disk_partitions | cut -d ' ' -f2)
     PART6_SIZE=$(sed -n '6p' /tmp/disk_partitions | cut -d ' ' -f2)
+    mkswap /dev/mmcblk0p5
 
     mkfs.ext4 /dev/mmcblk0p3 $PART3_SIZE
     sleep 3
@@ -317,6 +318,9 @@ wb_firstboot()
     local flag="/var/lib/firstboot_done.flag"
 
     [[ -f $flag ]] && return 0
+    
+    mount -a
+    [[ "$?" = "0" ]] && touch $flag
 
     log_action_msg "Preparing rootfs for the first boot"
     service watchdog stop
@@ -377,7 +381,7 @@ wb_firstboot()
         done
     }
 
-    touch $flag
+    #touch $flag
     return 0
 }
 
