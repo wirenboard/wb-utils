@@ -31,14 +31,10 @@ VERBOSE="yes"
 . /etc/wb_env.sh
 
 # some constants for convenience
-STORAGE=/dev/mmcblk0
-SECTOR_SIZE=512
-MB=1024*1024
-PART_START=0
-TOTAL_SECTORS=0
-ROOTFS_SIZE_MB=1024
+. /usr/lib/wb-prepare/vars.sh
+. /usr/lib/wb-prepare/partitions.sh
 
-ROOTFS_SIZE_BYTES=$[${ROOTFS_SIZE_MB}*1024*1024]
+MB=1024*1024
 
 WB_DIR="/var/lib/wirenboard"
 SERIAL="$WB_DIR/serial.conf"
@@ -49,67 +45,36 @@ wb_check_mounted()
     grep "$1" /proc/mounts 2>&1 >/dev/null
 }
 
-# Generates single partition definition line for sfdisk.
-# Increments PART_START variable to point to the start of the next partition
-# (special case is Extended (5) fstype, which increments PART_START by 2048 sectors)
-# Args:
-# - size in megabytes (or '' to use all remaining space to the end)
-# - filesystem type (looks like not really matters). when omitted, defaults to 83 (Linux)
-wb_partition()
-{
-    [[ -z "$1" ]] &&
-        local size=$[TOTAL_SECTORS-PART_START] ||
-        local size=$[$1*MB/SECTOR_SIZE]
-    local fstype=${2:-83}
-    echo "$PART_START $size $fstype"
-    [[ "$fstype" == 5 ]] && ((PART_START+=2048)) || ((PART_START+=$size))
-}
-
-wb_get_partition_start()
-{
-    local part=${STORAGE}p$1
-    fdisk -u sectors -l $STORAGE |
-        sed -rn "s#^${part}\\s+([0-9]+).*#\\1#p"
-}
-
 wb_erase_partition()
 {
-    local part=${STORAGE}p$1
+    local part=${WB_STORAGE}p$1
     local start=`wb_get_partition_start $1`
 
     log_action_begin_msg "Erasing partition $part"
-    dd if=/dev/zero of=$STORAGE seek=$start bs=$SECTOR_SIZE count=$[1*MB/SECTOR_SIZE] 2>&1 >/dev/null
+    dd if=/dev/zero of=$WB_STORAGE seek=$start bs=$WB_SECTOR_SIZE count=$[1*MB/WB_SECTOR_SIZE] 2>&1 >/dev/null
     log_end_msg $?
 }
 
 # Creates all the needed partitions
 wb_prepare_partitions()
 {
-    [[ -e ${STORAGE}p3 && -e ${STORAGE}p5 && -e ${STORAGE}p6 ]] && {
+    [[ -e ${WB_STORAGE}p3 && -e ${WB_STORAGE}p5 && -e ${WB_STORAGE}p6 ]] && {
         log_success_msg "Partition table is good"
         return 0
     }
 
     log_action_msg "Preparing partitions"
 
-    # mx23 and mx28 have different boot image search methods, so keep existing uboot
-    PART_START=`wb_get_partition_start 1`
-
-    TOTAL_SECTORS=$[`sfdisk -s $STORAGE`*2] || {
-        log_failure_msg "Unable to get total sectors count for $STORAGE"
-        return 1
-    }
-
     CURRENT_ROOTFS_BLOCK_SIZE=`tune2fs -l /dev/root  | grep "Block size" | awk '{print $3}'`
     CURRENT_ROOTFS_BLOCK_COUNT=`tune2fs -l /dev/root  | grep "Block count" | awk '{print $3}'`
     CURRENT_ROOTFS_SIZE_BYTES=$[${CURRENT_ROOTFS_BLOCK_SIZE}*${CURRENT_ROOTFS_BLOCK_COUNT}]
 
-    [[ ${CURRENT_ROOTFS_SIZE_BYTES} -le ${ROOTFS_SIZE_BYTES} ]] ||  {
+    [[ ${CURRENT_ROOTFS_SIZE_BYTES} -le ${WB_ROOTFS_SIZE_BYTES} ]] ||  {
         log_failure_msg "Current rootfs size is greater than new partition size, aborting"
         return 1
     }
 
-    . /usr/lib/wb-prepare/partitions.sh && wb_make_partitions $STORAGE $ROOTFS_SIZE_MB
+    wb_make_partitions ${WB_STORAGE} ${WB_ROOTFS_SIZE_MB}
 
     wb_erase_partition 3
     wb_erase_partition 6
@@ -159,8 +124,8 @@ wb_check_alt_rootfs()
             return 1
             ;;
     esac
-    active_part=${STORAGE}p${active_part}
-    alt_part=${STORAGE}p${alt_part}
+    active_part=${WB_STORAGE}p${active_part}
+    alt_part=${WB_STORAGE}p${alt_part}
 
     local mnt_rootfs_dst=`mktemp -d`
 
@@ -194,7 +159,7 @@ wb_check_alt_rootfs()
 
 wb_check_swap()
 {
-    local swap=${STORAGE}p5
+    local swap=${WB_STORAGE}p5
     grep ${swap} /proc/swaps 2>&1 >/dev/null && return 0
 
     [[ -e "${swap}" ]] || {
@@ -203,14 +168,14 @@ wb_check_swap()
     }
 
     log_action_begin_msg "Creating swap"
-    mkswap ${STORAGE}p5 &&
+    mkswap ${WB_STORAGE}p5 &&
     swapon -a
     log_end_msg $?
 }
 
 wb_check_data()
 {
-    local data=${STORAGE}p6
+    local data=${WB_STORAGE}p6
     wb_check_mounted ${data} && {
         return 0
     }

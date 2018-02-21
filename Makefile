@@ -21,6 +21,7 @@ install:
 	install -m 0755 board/board.init $(DESTDIR)/etc/init.d/wb-init
 	install -m 0755 board/prepare.init $(DESTDIR)/etc/init.d/wb-prepare
 	install -m 0644 board/partitions.sh $(DESTDIR)/usr/lib/wb-prepare/partitions.sh
+	install -m 0644 board/vars.sh $(DESTDIR)/usr/lib/wb-prepare/vars.sh
 
 	install -m 0755 update/wb-run-update $(DESTDIR)/$(prefix)/bin/wb-run-update
 	install -m 0755 update/wb-watch-update $(DESTDIR)/$(prefix)/bin/wb-watch-update
