@@ -2,7 +2,6 @@
 set -e
 
 if [ "$1" = "purge" ] ; then
-	rm /etc/rc3.d/S01wb-gsm-rtc
 	update-rc.d wb-prepare remove >/dev/null
 	update-rc.d wb-gsm-rtc remove >/dev/null
 	update-rc.d wb-init remove >/dev/null
