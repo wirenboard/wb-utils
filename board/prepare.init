@@ -102,7 +102,7 @@ wb_prepare_partitions()
         return 1
     }
 
-    sfdisk --no-reread -u S --dump $STORAGE > /tmp/partitions_backup
+    sfdisk --no-reread --Linux -u S --dump $STORAGE > /tmp/partitions_backup
     dd if=/dev/zero of=$STORAGE bs=512 count=1 2>&1 >/dev/null
     local erase_sectors=''
     {
@@ -113,7 +113,7 @@ wb_prepare_partitions()
         wb_partition 256 82   # swap
         wb_partition ''      # data
     } > /tmp/disk_partitions
-    cat /tmp/disk_partitions | sfdisk --no-reread $STORAGE || true
+    cat /tmp/disk_partitions | sfdisk --no-reread --Linux -u S $STORAGE || true
     # FIXME: sfdisk succesfully writes partition table, but returns error
     # because it can't reread partitions on mounted disk, so just bypass error
     # handling.
