@@ -8,7 +8,7 @@ WB_STORAGE=/dev/mmcblk0
 
 # rootfs partition size (in megabytes and in bytes)
 WB_ROOTFS_SIZE_MB=1024
-WB_ROOTFS_SIZE_BYTES=$[${ROOTFS_SIZE_MB}*1024*1024]
+WB_ROOTFS_SIZE_BYTES=$[${WB_ROOTFS_SIZE_MB}*1024*1024]
 
 # begginning of first partition in sectors (default value in case if 
 # partition table is broken)
