@@ -60,32 +60,41 @@ to_hex() {
 }
 
 led() {
-    echo $2 > /sys/class/leds/$1/trigger || true
-
-    [[ "x$2" == "xtimer" ]] && {
-        echo $3 > /sys/class/leds/$1/delay_on
-        echo $4 > /sys/class/leds/$1/delay_off
-    }
+    echo $3 > /sys/class/leds/$1/$2 || true
 }
 
 led_process() {
-    led green timer 500 500
-    led red mmc0
+    led green trigger timer
+    led green delay_on 500
+    led green delay_off 500
+
+    led red trigger mmc0
 }
 
 led_success() {
-    led green default-on
-    led red default-off
+    led green trigger none
+    led green brightness 255
+
+    led red trigger none
+    led red brightness 0
 }
 
 led_failure() {
-    led green default-off
-    led red timer 500 500
+    led green trigger none
+    led green brightness 0
+
+    led red trigger timer
+    led red delay_on 500
+    led red delay_off 500
 }
 
 led_prompt() {
-    led green default-off
-    led red timer 100 100
+    led green trigger none
+    led green brightness 0
+
+    led red trigger timer
+    led red delay_on 100
+    led red delay_off 100
 }
 
 PLATFORM=`cat /proc/cpuinfo | grep Hardware | awk '{print $4}'`
