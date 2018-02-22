@@ -1,17 +1,18 @@
-wb-utils (1.75.1) stable; urgency=medium
-
-  * wb-gsm-rtc init symlink is created for systemd support
-
- -- Attila Door <a.door@contactless.ru>  Thu, 22 Jan 2018 11:40:40 +0300
-
 wb-utils (1.75.0) stable; urgency=medium
 
   * ext4 fs created in wb-prepare script
   * data partition is added to fstab in wb-prepare script
   * /dev/root is deprecated, replaced with actual root partition identifier in wb-prepare 
   * init symlink is created to rc3.d at post install for wb-prepare
+  * wb-gsm-rtc init symlink is created for systemd support
 
- -- Attila Door <a.door@contactless.ru>  Thu, 18 Jan 2018 11:40:40 +0300
+ -- Attila Door <a.door@contactless.ru>  Thu, 22 Jan 2018 11:40:40 +0300
+
+wb-utils (1.74.5) stable; urgency=medium
+
+  * fix wb-run-update failing on new FITs
+
+ -- Nikita Maslov <n.maslov@contactless.ru>  Tue, 13 Feb 2018 20:23:58 +0300
 
 wb-utils (1.74.4) stable; urgency=medium
 
