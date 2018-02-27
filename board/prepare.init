@@ -240,10 +240,10 @@ wb_gen_mac()
 
     if [[ "${ethid}" == "0" ]]; then
         if [[ -e "${SERIAL}" ]]; then
-            log_action_cont_msg "found at ${SERIAL}"
+            log_action_cont_msg "found at ${SERIAL}" >&2
             cat ${SERIAL}
         elif [[ -e "/mnt/data/${SERIAL}" ]]; then
-            log_action_cont_msg "found at /mnt/data/${SERIAL}"
+            log_action_cont_msg "found at /mnt/data/${SERIAL}" >&2
             cat "/mnt/data/${SERIAL}"
         else
             wb-gen-serial -m ${ethid}
