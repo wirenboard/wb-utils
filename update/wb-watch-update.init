@@ -5,6 +5,7 @@
 # Required-Stop:	 
 # Default-Start:	 2 3 4 5
 # Default-Stop:	  0 1 6
+# Required-Start:	mosquitto
 # Short-Description: Firmware update monitor
 # Description:	   Monitors uploads for firmware update and executes it
 ### END INIT INFO
