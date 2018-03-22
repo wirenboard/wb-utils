@@ -1,3 +1,9 @@
+wb-utils (1.75.1) stable; urgency=medium
+
+  * adding fstab mount option for data partition is moved to wb-configs project
+
+ -- Attila Door <a.door@contactless.ru>  Thu, 22 Mar 2018 11:40:40 +0300
+
 wb-utils (1.75.0) stable; urgency=medium
 
   * ext4 fs created in wb-prepare script
