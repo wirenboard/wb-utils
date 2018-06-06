@@ -1,3 +1,9 @@
+wb-utils (1.75.3) stable; urgency=medium
+
+  * Remove reboot at wb-prepare
+
+ -- Nikita Maslov <n.maslov@contactless.ru>  Wed, 06 Jun 2018 13:57:03 +0300
+
 wb-utils (1.75.2) stable; urgency=medium
 
   * add wb6 rfm config variables to wb_env
