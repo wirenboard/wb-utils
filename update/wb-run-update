@@ -185,7 +185,11 @@ fit_prop() {
 	local off=`sed -rn 's#OFF: (.*)#\1#p' <<< "$tmp"`
 	[[ -n "$len" && -n "$off" ]] || return 1
 	#dd if=$FIT skip=$off count=$len iflag=skip_bytes,count_bytes 2>/dev/null
-    tail -c +$((off + 1)) $FIT 2>/dev/null | head -c $len 2>/dev/null
+	tail -c +$((off + 1)) $FIT 2>/dev/null | head -c $len 2>/dev/null
+}
+
+fit_prop_string() {
+	fit_prop "$@" | tr -d '\0'
 }
 
 fit_blob_size() {
@@ -227,10 +231,10 @@ led_process
 ===============================================================================
 `date`: started update from $FIT
 ===============================================================================
-Description:         $(fit_prop / description)
-Compatible device:   $(fit_prop / compatible)
-Firmware version:    $(fit_prop / firmware-version)
-Firmware compatible: $(fit_prop / firmware-compatible)
+Description:         $(fit_prop_string / description)
+Compatible device:   $(fit_prop_string / compatible)
+Firmware version:    $(fit_prop_string / firmware-version)
+Firmware compatible: $(fit_prop_string / firmware-compatible)
 Time of creation:    $(date -d @$[0x$(fit_prop / timestamp | to_hex)])
 ===============================================================================
 
