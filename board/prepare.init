@@ -278,7 +278,12 @@ wb_fix_short_sn()
     local hostname="wirenboard-${short_sn}"
 
     log_action_msg "Creating hostname file with ${hostname}"
-    echo $hostname > /etc/hostname.wb
+    if which hostnamectl >/dev/null; then
+        hostnamectl set-hostname --static $hostname
+        hostnamectl set-chassis embedded
+    else
+        echo $hostname > /etc/hostname.wb
+    fi
     log_end_msg $?
 
     log_action_msg "Setting internal Wi-Fi SSID to ${ssid}"
