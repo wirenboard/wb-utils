@@ -341,8 +341,6 @@ wb_firstboot()
     touch $FIRSTBOOT_FLAG
     sync
 
-    reboot
-
     return 0
 }
 
