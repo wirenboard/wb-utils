@@ -46,7 +46,10 @@ LAST_FIT=''
 ) | {
 trap cleanup EXIT
 
-mqtt_status "IDLE"
+# wait for mosquitto to open socket
+while ! mqtt_status "IDLE"; do
+    sleep 1
+done
 
 while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
 	FIT="${EVENT_DIR}${EVENT_FILE}"
