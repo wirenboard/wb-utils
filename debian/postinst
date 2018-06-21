@@ -1,10 +1,15 @@
 #!/bin/sh
-update-rc.d wb-prepare start 10 3 S
-invoke-rc.d wb-prepare fix_macs
 
 if [ "$1" = "configure" ]; then
     if [ ! "$2" = "" ]; then
-        if `dpkg --compare-versions $2 lt 1.73.1`; then
+        if `dpkg --compare-versions $2 lt 1.75.0`; then
+            # the runlevels for wb-prepare and wb-gsm were different
+            # prior to 1.75
+            # update-rc.d remove refuses to remove symlinks for wb-prepare
+            # because of dependencies, so let's help it using low-level insserv
+            insserv -f -r wb-prepare
+            insserv -f -r wb-gsm-rtc
+        elif `dpkg --compare-versions $2 lt 1.73.1`; then
             # the runlevels for wb-gsm-rtc prior to 1.73.1 were different
             # this is necessary to clear the old symlinks. 
             # The new ones will be installed by update-rc.d below
@@ -13,9 +18,12 @@ if [ "$1" = "configure" ]; then
     fi
 fi
 
-update-rc.d wb-gsm-rtc start 10 3 S stop 10 0 6
+update-rc.d wb-prepare start 11 3 S . >/dev/null
+invoke-rc.d wb-prepare fix_macs
 
-update-rc.d wb-init defaults
+update-rc.d wb-gsm-rtc start 10 3 S . stop 10 0 6 . >/dev/null
+
+update-rc.d wb-init defaults >/dev/null
 invoke-rc.d wb-init start
 
 [ -e /var/www/uploads ] || mkdir -p /var/www/uploads
