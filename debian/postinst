@@ -33,13 +33,23 @@ if [ "$1" = "configure" ]; then
     fi
 fi
 
+# FIXME: this is not in postinst style, but works without warning
+# in stretch
+setup_systemd_service() {
+    systemctl enable $1 2>/dev/null
+}
+
 if $OLD_UPDATE_RC_D; then
     update-rc.d wb-prepare start 11 3 S . >/dev/null
+else
+    setup_systemd_service wb-prepare
 fi
 invoke-rc.d wb-prepare fix_macs
 
 if $OLD_UPDATE_RC_D; then
     update-rc.d wb-gsm-rtc start 10 3 S . stop 10 0 6 . >/dev/null
+else
+    setup_systemd_service wb-gsm-rtc
 fi
 
 update-rc.d wb-init defaults >/dev/null
