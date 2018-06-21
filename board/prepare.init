@@ -3,7 +3,7 @@
 # Provides:          wb-prepare
 # Default-Start:     S 3
 # Default-Stop:
-# Required-Start:     $local_fs systemd-hostnamed.service
+# Required-Start:     $local_fs
 # Required-Stop:
 # X-Start-Before:     networking watchdog
 # Short-Description:  prepare partitions & rootfs
