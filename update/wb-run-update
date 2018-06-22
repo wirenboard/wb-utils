@@ -96,6 +96,7 @@ EOF
 
 	prompt_update_factoryreset() {
 		# TODO: upgrade with factory reset from Web interface
+		true
 	}
 }
 
