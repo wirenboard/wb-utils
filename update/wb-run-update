@@ -6,6 +6,10 @@ TMPDIR="/dev/shm"
 FIT=""
 FLAGS=""
 
+# for factory reset
+DATA_PART="/dev/mmcblk0p6"
+DATA_LABEL="data"
+
 [[ $EUID != 0 ]] && die "Need root privileges to install update"
 
 while [[ -n "$1" ]]; do
@@ -43,6 +47,44 @@ flag_set no-mqtt && {
 		done
 		echo
 	}
+
+	prompt_update_factoryreset() {
+		led_prompt
+		>&2 cat <<EOF
+##############################################################################
+
+                          FACTORY RESET REQUESTED
+
+           This WILL destroy ALL YOUR DATA: configuration, scripts,
+                           files in home directory!
+
+         If you are ABSOLUTELY SURE that you want to reset Wiren Board
+             to factory condition, hold the FW button for 4 seconds.
+
+        If you will not do it in 10 seconds, the controller will reboot
+                        without firmware update.
+
+
+           If you want to perform a regular firmware update, rename
+         FIT file to "wbX_update.fit" without "factory-reset" suffix.
+
+##############################################################################
+EOF
+		USE_BUZZER=y USE_ECHO=y WAIT_TIME=10 HOLD_TIME=4 wait_for button 1>&2
+		local result=$?
+		led_process
+		return $result
+	}
+
+	# check factory reset condition here and add flag in this case
+	case $FIT in
+		wb?_update_factory_reset)
+			prompt_update_factoryreset && {
+				FLAGS+="factory-reset "
+			}
+			;;
+	esac
+
 } || {
 	mqtt_status() {
 		mosquitto_pub -t /firmware/status -r -m "$*" 2>/dev/null >/dev/null || true
@@ -51,6 +93,17 @@ flag_set no-mqtt && {
 	mqtt_progress() {
 		mosquitto_pub -t /firmware/progress -l 2>/dev/null >/dev/null || true
 	}
+
+	prompt_update_factoryreset() {
+		# TODO: upgrade with factory reset from Web interface
+	}
+}
+
+mkfs_ext4() {
+	local part=$1
+	local label=$2
+
+	yes | mkfs.ext4 -L "$label" -E stride=2,stripe-width=1024 -b 4096 "$part"
 }
 
 to_hex() {
@@ -60,105 +113,41 @@ to_hex() {
 }
 
 led() {
-    echo $3 > /sys/class/leds/$1/$2 || true
+	echo $3 > /sys/class/leds/$1/$2 || true
 }
 
 led_process() {
-    led green trigger timer
-    led green delay_on 500
-    led green delay_off 500
+	led green trigger timer
+	led green delay_on 500
+	led green delay_off 500
 
-    led red trigger mmc0
+	led red trigger mmc0
 }
 
 led_success() {
-    led green trigger none
-    led green brightness 255
+	led green trigger none
+	led green brightness 255
 
-    led red trigger none
-    led red brightness 0
+	led red trigger none
+	led red brightness 0
 }
 
 led_failure() {
-    led green trigger none
-    led green brightness 0
+	led green trigger none
+	led green brightness 0
 
-    led red trigger timer
-    led red delay_on 500
-    led red delay_off 500
+	led red trigger timer
+	led red delay_on 500
+	led red delay_off 500
 }
 
 led_prompt() {
-    led green trigger none
-    led green brightness 0
+	led green trigger none
+	led green brightness 0
 
-    led red trigger timer
-    led red delay_on 100
-    led red delay_off 100
-}
-
-PLATFORM=`cat /proc/cpuinfo | grep Hardware | awk '{print $4}'`
-
-if [[ $PLATFORM == "i.MX6" ]]; then
-    button_read() {
-        local gpioid=138 # iMX6UL boot button GPIO
-        local expected=$1
-        [[ -d /sys/class/gpio/gpio$gpioid ]] || echo $gpioid > /sys/class/gpio/export
-
-        local value=`cat /sys/class/gpio/gpio$gpioid/value`
-        [[ "x$value" == "x$expected" ]]
-    }
-else
-    button_read() {
-        local exp=$1
-        local val=`memdump 0x800440c2 1 | busybox hexdump -e '"%x"' | head -c 1 | tr 13 01`
-        [[ "x$val" == "x$exp" ]]
-    }
-fi
-
-_button_wait_r() {
-    local invert=$1
-    local presstime=$2
-    presstime=${presstime:=1}
-
-    while [[ $presstime -gt 0 ]] && [[ $BUTTON_TIMEOUT -gt 0 ]]; do
-       sleep 0.2
-       BUTTON_TIMEOUT=$((BUTTON_TIMEOUT - 1))
-       button_read $invert || presstime=$((presstime - 1))
-    done
-
-    [[ $BUTTON_TIMEOUT -gt 0 ]]
-}
-
-button_wait() {
-    BUTTON_TIMEOUT=$1
-    BUTTON_TIMEOUT=$((BUTTON_TIMEOUT * 5))  # to be in sync with sleep 0.2
-
-    local presstime=$2
-    if [[ "x$presstime" == "x" ]]; then
-        presstime=1
-    else
-        presstime=$((presstime * 5))
-    fi
-
-    _button_wait_r 1 # wait for button to be released
-    _button_wait_r 0 $presstime
-}
-
-user_button_confirm() {
-    local message=$1
-    local timeout=$2
-    local presstime=$3
-
-    [[ "x$presstime" != "x" ]] && local infotime="for more than $presstime seconds "
-
-    info "Press the button ${infotime}${message}"
-    led_prompt
-    button_wait $timeout $presstime
-    local ret=$?
-    led_process
-
-    return $ret
+	led red trigger timer
+	led red delay_on 100
+	led red delay_off 100
 }
 
 die() {
@@ -241,6 +230,17 @@ Time of creation:    $(date -d @$[0x$(fit_prop / timestamp | to_hex)])
 EOF
 
 fit_blob_verify_hash install
+
+flag_set factory-reset && {
+	if flag_set from-initramfs; then
+		info "Wiping data partition (factory reset)"
+		mkfs_ext4 $DATA_PART $DATA_LABEL || {
+			die "Failed to format data partition"
+		}
+	else
+		info "Factory reset is now supported only from initramfs environment"
+	fi
+}
 
 info "Extracting install script"
 INSTALL_SCRIPT=`mktemp -p $TMPDIR`
