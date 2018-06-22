@@ -38,81 +38,6 @@ rm_fit() {
 	rm -f "$FIT"
 }
 
-flag_set no-mqtt && {
-	mqtt_status() { :; }
-
-	mqtt_progress() {
-		while read x; do
-			echo -en "\rPROGRESS: $x%"
-		done
-		echo
-	}
-
-	prompt_update_factoryreset() {
-		led_prompt
-		>&2 cat <<EOF
-##############################################################################
-
-                          FACTORY RESET REQUESTED
-
-           This WILL destroy ALL YOUR DATA: configuration, scripts,
-                           files in home directory!
-
-         If you are ABSOLUTELY SURE that you want to reset Wiren Board
-             to factory condition, hold the FW button for 4 seconds.
-
-        If you will not do it in 10 seconds, the controller will reboot
-                        without firmware update.
-
-
-           If you want to perform a regular firmware update, rename
-         FIT file to "wbX_update.fit" without "factory-reset" suffix.
-
-##############################################################################
-EOF
-		USE_BUZZER=y USE_ECHO=y WAIT_TIME=10 HOLD_TIME=4 wait_for button 1>&2
-		local result=$?
-		led_process
-		return $result
-	}
-
-	# check factory reset condition here and add flag in this case
-	case $FIT in
-		*FACTORYRESET*|*factoryreset*)
-			prompt_update_factoryreset && {
-				FLAGS+="factoryreset "
-			}
-			;;
-	esac
-
-} || {
-	mqtt_status() {
-		mosquitto_pub -t /firmware/status -r -m "$*" 2>/dev/null >/dev/null || true
-	}
-
-	mqtt_progress() {
-		mosquitto_pub -t /firmware/progress -l 2>/dev/null >/dev/null || true
-	}
-
-	prompt_update_factoryreset() {
-		# TODO: upgrade with factory reset from Web interface
-		true
-	}
-}
-
-mkfs_ext4() {
-	local part=$1
-	local label=$2
-
-	yes | mkfs.ext4 -L "$label" -E stride=2,stripe-width=1024 -b 4096 "$part"
-}
-
-to_hex() {
-	od -t x1 |
-	sed -r 's/^[^ ]+( |$)//; s/ //g; /^$/d' |
-	tr -d '\n'
-}
-
 led() {
 	echo $3 > /sys/class/leds/$1/$2 || true
 }
@@ -149,6 +74,82 @@ led_prompt() {
 	led red trigger timer
 	led red delay_on 100
 	led red delay_off 100
+}
+
+flag_set no-mqtt && {
+	mqtt_status() { :; }
+
+	mqtt_progress() {
+		while read x; do
+			echo -en "\rPROGRESS: $x%"
+		done
+		echo
+	}
+
+	prompt_update_factoryreset() {
+		led_prompt
+		>&2 cat <<EOF
+##############################################################################
+
+                          FACTORY RESET REQUESTED
+
+           This WILL destroy ALL YOUR DATA: configuration, scripts,
+                           files in home directory!
+
+         If you are ABSOLUTELY SURE that you want to reset Wiren Board
+             to factory condition, hold the FW button for 4 seconds.
+
+        If you will not do it in 10 seconds, the controller will reboot
+                        without firmware update.
+
+
+           If you want to perform a regular firmware update, rename
+         FIT file to "wbX_update.fit" without "factory-reset" suffix.
+
+##############################################################################
+EOF
+		USE_BUZZER=y USE_ECHO=y WAIT_TIME=10 HOLD_TIME=4 wait_for_button 1>&2
+		local result=$?
+		led_process
+		return $result
+	}
+
+	# check factory reset condition here and add flag in this case
+	case $FIT in
+		*FACTORYRESET*|*factoryreset*)
+			prompt_update_factoryreset && {
+				echo -e "\nFactory reset is confirmed!\n"
+				FLAGS+="--factoryreset "
+			}
+			;;
+	esac
+
+} || {
+	mqtt_status() {
+		mosquitto_pub -t /firmware/status -r -m "$*" 2>/dev/null >/dev/null || true
+	}
+
+	mqtt_progress() {
+		mosquitto_pub -t /firmware/progress -l 2>/dev/null >/dev/null || true
+	}
+
+	prompt_update_factoryreset() {
+		# TODO: upgrade with factory reset from Web interface
+		true
+	}
+}
+
+mkfs_ext4() {
+	local part=$1
+	local label=$2
+
+	yes | mkfs.ext4 -L "$label" -E stride=2,stripe-width=1024 -b 4096 "$part"
+}
+
+to_hex() {
+	od -t x1 |
+	sed -r 's/^[^ ]+( |$)//; s/ //g; /^$/d' |
+	tr -d '\n'
 }
 
 die() {
