@@ -78,7 +78,7 @@ EOF
 
 	# check factory reset condition here and add flag in this case
 	case $FIT in
-		wb?_update_factory_reset)
+		wb?_update_FACTORYRESET)
 			prompt_update_factoryreset && {
 				FLAGS+="factory-reset "
 			}
