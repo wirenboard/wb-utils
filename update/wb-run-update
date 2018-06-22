@@ -78,9 +78,9 @@ EOF
 
 	# check factory reset condition here and add flag in this case
 	case $FIT in
-		wb?_update_FACTORYRESET)
+		*FACTORYRESET*|*factoryreset*)
 			prompt_update_factoryreset && {
-				FLAGS+="factory-reset "
+				FLAGS+="factoryreset "
 			}
 			;;
 	esac
@@ -232,7 +232,7 @@ EOF
 
 fit_blob_verify_hash install
 
-flag_set factory-reset && {
+flag_set factoryreset && {
 	if flag_set from-initramfs; then
 		info "Wiping data partition (factory reset)"
 		mkfs_ext4 $DATA_PART $DATA_LABEL || {
