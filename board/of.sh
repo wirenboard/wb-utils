@@ -37,6 +37,19 @@ split_each() {
 	sed -r 's/((\w+\s+){'"$1"'})/\1\n/g'
 }
 
+# Autodetect the type of data in prop (string or int)
+# Now is based on 'file' utility which can distinguish
+# ASCII from raw data.
+# TODO: there is a better solution to use native dtc
+# heuristics and not to confuse user
+guess_data_type() {
+	which file >/dev/null || echo "int"
+	local guess=`cat | file -e apptype -e compress -e elf -e encoding \
+	        -e soft -e tar -`
+	case $guess in *ASCII*) echo "string" ;; *) echo "int" ;; esac
+}
+
+
 if [[ -z "$DTB" ]]; then  ######################################################
 # Get data from live device tree
 
@@ -107,6 +120,22 @@ of_get_prop_str() {
 	__of_get_prop "$1" "$2" | tr '\000' ' '
 }
 
+# Get string or int value of property based on
+# guessed type from guess_prop_type
+# Args:
+#   node
+#   property
+of_get_prop_auto() {
+	case `__of_get_prop "$1" "$2" | guess_data_type` in
+	  int)
+	    of_get_prop_ulong "$1" "$2"
+	    ;;
+	  string)
+	    of_get_prop_str "$1" "$2"
+	    ;;
+	esac
+}
+
 # If running on a live system, get gpiochip phandles directly from sysfs
 # There can be gpiochips added on top of base DTB with overlays
 
@@ -142,6 +171,14 @@ of_get_prop_ulong() {
 
 of_get_prop_str() {
 	fdtget -t s "$DTB" "$1" "$2"
+}
+
+# TODO: implement this for FDT files
+# Args:
+#   node
+#   property
+of_get_prop_auto() {
+	of_get_prop_ulong "$1" "$2"
 }
 
 of_find_gpiochips() {
