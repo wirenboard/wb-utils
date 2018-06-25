@@ -97,7 +97,7 @@ of_node_children() {
 of_node_props() {
 	local node="$(__of_node_path "$1")"
 	
-	find "$node" -maxdepth 1 -type f -printf '%f\n'
+	find "$node" -maxdepth 1 -type f \( ! -iname "name" \) -printf '%f\n'
 }
 
 of_has_prop() {
