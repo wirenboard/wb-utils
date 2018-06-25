@@ -1,11 +1,11 @@
 #!/bin/bash
 ### BEGIN INIT INFO
 # Provides:          wb-prepare
-# Default-Start:     S
+# Default-Start:     S 3
 # Default-Stop:
-# Required-Start:    $local_fs
+# Required-Start:     $local_fs
 # Required-Stop:
-# X-Start-Before:  networking
+# X-Start-Before:     networking watchdog
 # Short-Description:  prepare partitions & rootfs
 # Description:        prepare partitions & rootfs
 ### END INIT INFO
@@ -17,6 +17,7 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="prepare partitions & rootfs"
 NAME=wb-prepare
 SCRIPTNAME=/etc/init.d/$NAME
+ROOT_PARTITION=$(mount -l | grep " / " | cut -d " " -f1)
 
 # Load the VERBOSE setting and other rcS variables
 . /lib/init/vars.sh
@@ -31,109 +32,64 @@ VERBOSE="yes"
 . /etc/wb_env.sh
 
 # some constants for convenience
-STORAGE=/dev/mmcblk0
-SECTOR_SIZE=512
-MB=1024*1024
-PART_START=0
-TOTAL_SECTORS=0
-ROOTFS_SIZE_MB=1024
+. /usr/lib/wb-prepare/vars.sh
+. /usr/lib/wb-prepare/partitions.sh
 
-ROOTFS_SIZE_BYTES=$[${ROOTFS_SIZE_MB}*1024*1024]
+MB=1024*1024
 
 WB_DIR="/var/lib/wirenboard"
 SERIAL="$WB_DIR/serial.conf"
 SHORT_SN_FNAME="$WB_DIR/short_sn.conf"
+
+FIRSTBOOT_FLAG="/var/lib/firstboot_done.flag"
+
+FIRSTBOOT_NEED_REBOOT=false
 
 wb_check_mounted()
 {
     grep "$1" /proc/mounts 2>&1 >/dev/null
 }
 
-# Generates single partition definition line for sfdisk.
-# Increments PART_START variable to point to the start of the next partition
-# (special case is Extended (5) fstype, which increments PART_START by 2048 sectors)
-# Args:
-# - size in megabytes (or '' to use all remaining space to the end)
-# - filesystem type (looks like not really matters). when omitted, defaults to 83 (Linux)
-wb_partition()
-{
-    [[ -z "$1" ]] &&
-        local size=$[TOTAL_SECTORS-PART_START] ||
-        local size=$[$1*MB/SECTOR_SIZE]
-    local fstype=${2:-83}
-    echo "$PART_START $size $fstype"
-    [[ "$fstype" == 5 ]] && ((PART_START+=2048)) || ((PART_START+=$size))
-}
-
-wb_get_partition_start()
-{
-    local part=${STORAGE}p$1
-    fdisk -u sectors -l $STORAGE |
-        sed -rn "s#^${part}\\s+([0-9]+).*#\\1#p"
-}
-
 wb_erase_partition()
 {
-    local part=${STORAGE}p$1
+    local part=${WB_STORAGE}p$1
     local start=`wb_get_partition_start $1`
 
     log_action_begin_msg "Erasing partition $part"
-    dd if=/dev/zero of=$STORAGE seek=$start bs=$SECTOR_SIZE count=$[1*MB/SECTOR_SIZE] 2>&1 >/dev/null
+    dd if=/dev/zero of=$WB_STORAGE seek=$start bs=$WB_SECTOR_SIZE count=$[1*MB/WB_SECTOR_SIZE] 2>&1 >/dev/null
     log_end_msg $?
 }
 
 # Creates all the needed partitions
 wb_prepare_partitions()
 {
-    [[ -e ${STORAGE}p3 && -e ${STORAGE}p5 && -e ${STORAGE}p6 ]] && {
+    [[ -e ${WB_STORAGE}p3 && -e ${WB_STORAGE}p5 && -e ${WB_STORAGE}p6 ]] && {
         log_success_msg "Partition table is good"
         return 0
     }
 
     log_action_msg "Preparing partitions"
 
-    # mx23 and mx28 have different boot image search methods, so keep existing uboot
-    PART_START=`wb_get_partition_start 1`
-
-    TOTAL_SECTORS=$[`sfdisk -s $STORAGE`*2] || {
-        log_failure_msg "Unable to get total sectors count for $STORAGE"
-        return 1
-    }
-
-    CURRENT_ROOTFS_BLOCK_SIZE=`tune2fs -l /dev/root  | grep "Block size" | awk '{print $3}'`
-    CURRENT_ROOTFS_BLOCK_COUNT=`tune2fs -l /dev/root  | grep "Block count" | awk '{print $3}'`
+    CURRENT_ROOTFS_BLOCK_SIZE=`tune2fs -l $ROOT_PARTITION  | grep "Block size" | awk '{print $3}'`
+    CURRENT_ROOTFS_BLOCK_COUNT=`tune2fs -l $ROOT_PARTITION | grep "Block count" | awk '{print $3}'`
     CURRENT_ROOTFS_SIZE_BYTES=$[${CURRENT_ROOTFS_BLOCK_SIZE}*${CURRENT_ROOTFS_BLOCK_COUNT}]
 
-    [[ ${CURRENT_ROOTFS_SIZE_BYTES} -le ${ROOTFS_SIZE_BYTES} ]] ||  {
+    [[ ${CURRENT_ROOTFS_SIZE_BYTES} -le ${WB_ROOTFS_SIZE_BYTES} ]] ||  {
         log_failure_msg "Current rootfs size is greater than new partition size, aborting"
         return 1
     }
 
-    sfdisk --no-reread --Linux --in-order -u S --dump $STORAGE > /tmp/partitions_backup
-    dd if=/dev/zero of=$STORAGE bs=512 count=1 2>&1 >/dev/null
-    local erase_sectors=''
-    {
-        wb_partition 16 53    # uboot
-        wb_partition ${ROOTFS_SIZE_MB}     # rootfs0
-        wb_partition ${ROOTFS_SIZE_MB}     # rootfs1
-        wb_partition '' 5     # <extended>
-        wb_partition 256 82   # swap
-        wb_partition ''       # data
-    } | sfdisk --no-reread --Linux --in-order -u S $STORAGE || true
-    # FIXME: sfdisk succesfully writes partition table, but returns error
-    # because it can't reread partitions on mounted disk, so just bypass error
-    # handling.
-    #{
-    #    info "Failed, sfdisk returned $?"
-    #    info "Restoring old partition table"
-    #    sfdisk --no-reread --Linux --in-order -u S $STORAGE < /tmp/partitions_backup
-    #    rm -f /tmp/partitions_backup
-    #    die "Prepare partitions failed"
-    #}
-    rm -f /tmp/partitions_backup
+    wb_make_partitions ${WB_STORAGE} ${WB_ROOTFS_SIZE_MB}
 
-    wb_erase_partition 3
-    wb_erase_partition 6
+    mkswap /dev/mmcblk0p5
+
+    mkfs.ext4 /dev/mmcblk0p3 
+    mkfs.ext4 /dev/mmcblk0p6 
+    
+    mount /dev/mmcblk0p6 /mnt/data
+    if [[ $? = "0" ]]; then
+        touch $flag    
+    fi
 
     log_success_msg "Partition table changed, reboot needed"
     fw_setenv bootcount 0
@@ -180,8 +136,8 @@ wb_check_alt_rootfs()
             return 1
             ;;
     esac
-    active_part=${STORAGE}p${active_part}
-    alt_part=${STORAGE}p${alt_part}
+    active_part=${WB_STORAGE}p${active_part}
+    alt_part=${WB_STORAGE}p${alt_part}
 
     local mnt_rootfs_dst=`mktemp -d`
 
@@ -215,7 +171,7 @@ wb_check_alt_rootfs()
 
 wb_check_swap()
 {
-    local swap=${STORAGE}p5
+    local swap=${WB_STORAGE}p5
     grep ${swap} /proc/swaps 2>&1 >/dev/null && return 0
 
     [[ -e "${swap}" ]] || {
@@ -224,14 +180,14 @@ wb_check_swap()
     }
 
     log_action_begin_msg "Creating swap"
-    mkswap ${STORAGE}p5 &&
+    mkswap ${WB_STORAGE}p5 &&
     swapon -a
     log_end_msg $?
 }
 
 wb_check_data()
 {
-    local data=${STORAGE}p6
+    local data=${WB_STORAGE}p6
     wb_check_mounted ${data} && {
         return 0
     }
@@ -251,7 +207,7 @@ wb_prepare_filesystems()
     log_action_msg "Preparing filesystems"
 
     log_action_begin_msg "Resizing root filesystem"
-    resize2fs /dev/root >/dev/null
+    resize2fs $ROOT_PARTITION >/dev/null
     log_end_msg $?
 
     wb_check_swap
@@ -259,74 +215,97 @@ wb_prepare_filesystems()
     wb_check_alt_rootfs
 }
 
+wb_fix_file()
+{
+    local file=$1
+    local descr=$2
+    local cmd=$3
+
+    if [[ ! -f ${file} ]]; then
+        log_action_begin_msg "Creating ${descr}"
+
+        if [[ -e "/mnt/data/${file}" ]]; then
+            log_action_cont_msg "found at /mnt/data"
+            cp "/mnt/data/${file}" "${file}"
+        else
+            $cmd ${@:4} > $1
+        fi
+
+        log_end_msg $?
+    fi
+}
+
+wb_gen_mac()
+{
+    local ethid=$1
+
+    if [[ "${ethid}" == "0" ]]; then
+        if [[ -e "${SERIAL}" ]]; then
+            log_action_cont_msg "found at ${SERIAL}" >&2
+            cat ${SERIAL}
+        elif [[ -e "/mnt/data/${SERIAL}" ]]; then
+            log_action_cont_msg "found at /mnt/data/${SERIAL}" >&2
+            cat "/mnt/data/${SERIAL}"
+        else
+            wb-gen-serial -m ${ethid}
+        fi
+    else
+        wb-gen-serial -m ${ethid}
+    fi
+}
+
 wb_fix_macs()
 {
     local eth0_mac="$WB_DIR/eth0_mac.conf"
     local eth1_mac="$WB_DIR/eth1_mac.conf"
 
-    local network_restart_needed=false
-
-    if [[ ! -f "${eth0_mac}" ]]; then
-        log_action_begin_msg "Getting eth0 MAC address"
-
-        if [[ -e "/mnt/data/${eth0_mac}" ]]; then
-            cp "/mnt/data/${eth0_mac}" "${eth0_mac}"
-        elif [[ -e "$SERIAL" ]]; then
-            cp "$SERIAL" "${eth0_mac}"
-        elif [[ -e "/mnt/data/$SERIAL" ]]; then
-            cp "/mnt/data/$SERIAL" "${eth0_mac}"
-        else
-            wb-gen-serial -m 0 > ${eth0_mac}
-        fi
-
-        log_end_msg $?
-        network_restart_needed=true
-    fi
-
-    if [[ ! -f "${eth1_mac}" ]]; then
-        log_action_begin_msg "Getting eth1 MAC address"
-
-        if [[ -e "/mnt/data/${eth1_mac}" ]]; then
-            cp "/mnt/data/${eth1_mac}" "${eth1_mac}"
-        else
-            wb-gen-serial -m 1 > ${eth1_mac}
-        fi
-
-        log_end_msg $?
-        network_restart_needed=true
-    fi
-
-    if [ "${network_restart_needed}" = true ]; then
-        service networking restart
-    fi
+    wb_fix_file ${eth0_mac} "eth0 MAC address" wb_gen_mac 0
+    wb_fix_file ${eth1_mac} "eth1 MAC address" wb_gen_mac 1
 
     return 0
 }
 
+wb_fix_serial()
+{
+    wb_fix_file ${SERIAL} "old eth0 MAC aka serial.conf" wb-gen-serial -m
+}
+
 wb_fix_short_sn()
 {
-    [[ ! -f "$SHORT_SN_FNAME" ]] && {
-        log_action_msg "Storing short SN"
-        [[ -e "/mnt/data/$SHORT_SN_FNAME" ]] &&
-            cp "/mnt/data/$SHORT_SN_FNAME" "$SHORT_SN_FNAME" || {
-            local short_sn=`wb-gen-serial -s`
-            echo "$short_sn" > "$SHORT_SN_FNAME"
-        }
-    }
+    wb_fix_file ${SHORT_SN_FNAME} "short serial number" wb-gen-serial -s
+
+    # also fill everything containing this short serial number
+    local short_sn=`cat ${SHORT_SN_FNAME}`
+    local ssid="WirenBoard-${short_sn}"
+    local hostname="wirenboard-${short_sn}"
+
+    log_action_msg "Creating hostname file with ${hostname}"
+    if which hostnamectl >/dev/null; then
+        hostnamectl set-hostname --static $hostname
+        hostnamectl set-chassis embedded
+    else
+        echo $hostname > /etc/hostname.wb
+        FIRSTBOOT_NEED_REBOOT=true
+    fi
+    log_end_msg $?
+
+    log_action_msg "Setting internal Wi-Fi SSID to ${ssid}"
+    sed -i "s/^ssid=.*/ssid=${ssid}/" `readlink -f "/etc/hostapd.conf"`
+    log_end_msg $?
+}
+
+# returns 0 if this boot is first and 1 if it is not
+wb_is_firstboot()
+{
+    [[ ! -f $FIRSTBOOT_FLAG ]]
 }
 
 # This function should be called only on first boot of the rootfs
 wb_firstboot()
 {
-    local flag="/var/lib/firstboot_done.flag"
-
-    [[ -f $flag ]] && return 0
-
     log_action_msg "Preparing rootfs for the first boot"
-    service watchdog stop
-    service wb-hwconf-manager start
 
-    mkdir -p /mnt/data
+    wb_check_data && local data_mounted=1
 
     [[ ! -d "$WB_DIR" ]] && {
         rm -rf $WB_DIR
@@ -339,31 +318,12 @@ wb_firstboot()
 		log_end_msg $?
     }
 
-    local short_sn=`wb-gen-serial -s`
-    local ssid="WirenBoard-$short_sn"
-
+    wb_fix_serial
     wb_fix_macs
-
-    [[ ! -f "$SERIAL" ]] && {
-        log_action_begin_msg "Get WB serial number"
-        [[ -e "/mnt/data/$SERIAL" ]] &&
-            cp "/mnt/data/$SERIAL" "$SERIAL" ||
-            (echo "wirenboard-$short_sn" > "/etc/hostname.wb") &&
-            (echo "$short_sn" > "$SHORT_SN_FNAME") &&
-            (sed -i.orig "s/^ssid=.*/ssid=$ssid/" "/etc/hostapd.conf.wb") &&
-            (wb-gen-serial -m > $SERIAL) &&
-            {
-                service networking restart
-                service hostapd restart || /bin/true
-            }
-        log_end_msg $? || return $?
-    }
-
     wb_fix_short_sn
 
     [[ ! -h /etc/ssh && -d /etc/ssh ]] && {
         log_action_msg "Generating SSH host keys"
-        wb_check_data && local data_mounted=1
         for keytype in ecdsa dsa rsa; do
             log_action_begin_msg "  $keytype"
             local keyfile=/etc/ssh_host_${keytype}_key
@@ -384,7 +344,13 @@ wb_firstboot()
         done
     }
 
-    touch $flag
+    touch $FIRSTBOOT_FLAG
+    sync
+
+    if $FIRSTBOOT_NEED_REBOOT; then
+        reboot
+    fi
+
     return 0
 }
 
@@ -394,11 +360,12 @@ wb_firstboot()
 
 do_start()
 {
-    wb_firstboot || return $?
-    wb_fix_short_sn
+    wb_is_firstboot || return 1
 
     wb_prepare_partitions
     wb_prepare_filesystems
+
+    wb_firstboot
 
     return 0
 }
@@ -439,11 +406,13 @@ case "$1" in
 	 exit 0;
 	;;
   fix_macs)
-    wb_fix_macs
-    exit 0
-  ;;
-
-
+	wb_fix_macs
+	exit 0
+	;;
+  fix_short_sn)
+	wb_fix_short_sn
+	exit 0
+	;;
   *)
 	echo "Usage: $SCRIPTNAME {start|stop|status|fix_macs}" >&2
 	exit 3

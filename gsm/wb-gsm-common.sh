@@ -69,6 +69,12 @@ function gsm_init() {
         fi
     fi
 
+    if [[ ! -z $WB_GPIO_GSM_SIMSELECT ]]; then
+        gpio_export $WB_GPIO_GSM_SIMSELECT
+        gpio_set_dir $WB_GPIO_GSM_SIMSELECT out
+        # select SIM1 at startup
+        gpio_set_value $WB_GPIO_GSM_SIMSELECT 0
+    fi
 }
 
 

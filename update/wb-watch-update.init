@@ -1,7 +1,7 @@
 #!/bin/sh
 ### BEGIN INIT INFO
 # Provides:		  wb-watch-update
-# Required-Start:	$local_fs
+# Required-Start:	$local_fs mosquitto
 # Required-Stop:	 
 # Default-Start:	 2 3 4 5
 # Default-Stop:	  0 1 6

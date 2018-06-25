@@ -57,7 +57,7 @@ do_start()
 
         ;;
 
-        "52" | "55" | "58" | "60" )
+        "52" | "55" | "58" | "60" | "61")
             #  blink green led
             led_blink green
             led_off red
@@ -112,7 +112,7 @@ do_stop()
             led_off green
         ;;
 
-        "52" | "55" | "58" | "60")
+        "52" | "55" | "58" | "60" | "61")
             #  blink red led
             led_blink red
             led_off green

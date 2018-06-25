@@ -1,10 +1,14 @@
 #!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          wb-gsm-rtc
-# Default-Start:     2 3 4 5
-# Default-Stop:      0 1 6
-# Required-Start: $remote_fs ntp
-# Required-Stop:
+# Default-Start:     S 3
+# Default-Stop:      0 6
+# Required-Start: $local_fs wb-prepare
+# Should-Start: wb-modules
+# Required-Stop: $local_fs
+# Should-Stop: wb-modules
+# X-Start-Before:  networking
+# X-Stop-After: networking
 # Short-Description:  initscript to use GSM modem integrated RTC
 # Description:        initscript to use GSM modem integrated RTC
 ### END INIT INFO
@@ -68,10 +72,17 @@ do_stop()
 	#   2 if daemon could not be stopped
 	#   other if a failure occurred
 
-    $BIN_NAME save_time
-
-	RETVAL="$?"
-	[ "$RETVAL" != 0 ] && return 2
+    # save time only if it's already year 2001
+    if [ `date +%s` -ge 978307200 ]; then
+        $BIN_NAME save_time
+        RETVAL="$?"
+        [ "$RETVAL" != 0 ] && return 3
+        return 0
+    else
+        DATE="`date`"
+        echo -n ". '$DATE' doesn't look good, do nothing"
+        return 1
+    fi
 
 	return "$RETVAL"
 }

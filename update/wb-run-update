@@ -6,6 +6,10 @@ TMPDIR="/dev/shm"
 FIT=""
 FLAGS=""
 
+# for factory reset
+DATA_PART="/dev/mmcblk0p6"
+DATA_LABEL="data"
+
 [[ $EUID != 0 ]] && die "Need root privileges to install update"
 
 while [[ -n "$1" ]]; do
@@ -34,6 +38,44 @@ rm_fit() {
 	rm -f "$FIT"
 }
 
+led() {
+	echo $3 > /sys/class/leds/$1/$2 || true
+}
+
+led_process() {
+	led green trigger timer
+	led green delay_on 500
+	led green delay_off 500
+
+	led red trigger mmc0
+}
+
+led_success() {
+	led green trigger none
+	led green brightness 255
+
+	led red trigger none
+	led red brightness 0
+}
+
+led_failure() {
+	led green trigger none
+	led green brightness 0
+
+	led red trigger timer
+	led red delay_on 500
+	led red delay_off 500
+}
+
+led_prompt() {
+	led green trigger none
+	led green brightness 0
+
+	led red trigger timer
+	led red delay_on 100
+	led red delay_off 100
+}
+
 flag_set no-mqtt && {
 	mqtt_status() { :; }
 
@@ -43,14 +85,68 @@ flag_set no-mqtt && {
 		done
 		echo
 	}
+
+	prompt_update_factoryreset() {
+		led_prompt
+		>&2 cat <<EOF
+##############################################################################
+
+                          FACTORY RESET REQUESTED
+
+           This WILL destroy ALL YOUR DATA: configuration, scripts,
+                           files in home directory!
+
+         If you are ABSOLUTELY SURE that you want to reset Wiren Board
+             to factory condition, hold the FW button for 4 seconds.
+
+        If you will not do it in 10 seconds, the controller will reboot
+                        without firmware update.
+
+
+           If you want to perform a regular firmware update, rename
+         FIT file to "wbX_update.fit" without "factory-reset" suffix.
+
+##############################################################################
+EOF
+		USE_BUZZER=y USE_ECHO=y WAIT_TIME=10 HOLD_TIME=4 wait_for_button 1>&2
+		local result=$?
+		led_process
+		return $result
+	}
+
+	# check factory reset condition here and add flag in this case
+	case $FIT in
+		*FACTORYRESET*|*factoryreset*)
+			if prompt_update_factoryreset; then
+				echo -e "\nFactory reset is confirmed!\n"
+				FLAGS+="--factoryreset "
+			else
+				echo -e "\nFactory reset is NOT confirmed, reboot"
+				reboot -f
+			fi
+			;;
+	esac
+
 } || {
 	mqtt_status() {
-		mosquitto_pub -t /firmware/status -r -m "$*" 2>&1 >/dev/null || true
+		mosquitto_pub -t /firmware/status -r -m "$*" 2>/dev/null >/dev/null || true
 	}
 
 	mqtt_progress() {
-		mosquitto_pub -t /firmware/progress -l 2>&1 >/dev/null || true
+		mosquitto_pub -t /firmware/progress -l 2>/dev/null >/dev/null || true
 	}
+
+	prompt_update_factoryreset() {
+		# TODO: upgrade with factory reset from Web interface
+		true
+	}
+}
+
+mkfs_ext4() {
+	local part=$1
+	local label=$2
+
+	yes | mkfs.ext4 -L "$label" -E stride=2,stripe-width=1024 -b 4096 "$part"
 }
 
 to_hex() {
@@ -83,7 +179,11 @@ fit_prop() {
 	local off=`sed -rn 's#OFF: (.*)#\1#p' <<< "$tmp"`
 	[[ -n "$len" && -n "$off" ]] || return 1
 	#dd if=$FIT skip=$off count=$len iflag=skip_bytes,count_bytes 2>/dev/null
-	dd if=$FIT bs=$off skip=1 2>/dev/null | head -c $len 2>/dev/null
+	tail -c +$((off + 1)) $FIT 2>/dev/null | head -c $len 2>/dev/null
+}
+
+fit_prop_string() {
+	fit_prop "$@" | tr -d '\0'
 }
 
 fit_blob_size() {
@@ -119,23 +219,33 @@ fit_blob_verify_hash() {
 		die "SHA1 of $name doesn't match (expected $sha1_expected, got $sha1_calculated)"
 }
 
-echo trigger > /sys/class/leds/green/trigger || true
-echo mmc0 > /sys/class/leds/red/trigger || true
+led_process
 
 >&2 cat <<EOF
 ===============================================================================
 `date`: started update from $FIT
 ===============================================================================
-Description:         $(fit_prop / description)
-Compatible device:   $(fit_prop / compatible)
-Firmware version:    $(fit_prop / firmware-version)
-Firmware compatible: $(fit_prop / firmware-compatible)
+Description:         $(fit_prop_string / description)
+Compatible device:   $(fit_prop_string / compatible)
+Firmware version:    $(fit_prop_string / firmware-version)
+Firmware compatible: $(fit_prop_string / firmware-compatible)
 Time of creation:    $(date -d @$[0x$(fit_prop / timestamp | to_hex)])
 ===============================================================================
 
 EOF
 
 fit_blob_verify_hash install
+
+flag_set factoryreset && {
+	if flag_set from-initramfs; then
+		info "Wiping data partition (factory reset)"
+		mkfs_ext4 $DATA_PART $DATA_LABEL || {
+			die "Failed to format data partition"
+		}
+	else
+		info "Factory reset is now supported only from initramfs environment"
+	fi
+}
 
 info "Extracting install script"
 INSTALL_SCRIPT=`mktemp -p $TMPDIR`
