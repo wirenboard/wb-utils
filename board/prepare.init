@@ -43,6 +43,8 @@ SHORT_SN_FNAME="$WB_DIR/short_sn.conf"
 
 FIRSTBOOT_FLAG="/var/lib/firstboot_done.flag"
 
+FIRSTBOOT_NEED_REBOOT=false
+
 wb_check_mounted()
 {
     grep "$1" /proc/mounts 2>&1 >/dev/null
@@ -283,6 +285,7 @@ wb_fix_short_sn()
         hostnamectl set-chassis embedded
     else
         echo $hostname > /etc/hostname.wb
+        FIRSTBOOT_NEED_REBOOT=true
     fi
     log_end_msg $?
 
@@ -343,6 +346,10 @@ wb_firstboot()
 
     touch $FIRSTBOOT_FLAG
     sync
+
+    if $FIRSTBOOT_NEED_REBOOT; then
+        reboot
+    fi
 
     return 0
 }
