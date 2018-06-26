@@ -13,8 +13,10 @@ if [[ ! -e "$WB_ENV_CACHE" ]]; then
 
 	{
 		if [[ -z "$FORCE_WB_VERSION" ]] && of_node_exists "${WB_OF_ROOT}"; then
-			wb_source "wb_env_of" &&
-			wb_of_parse
+			wb_source "wb_env_of" && {
+				wb_of_parse_version
+				wb_of_parse
+			}
 		else
 			wb_source "wb_env_legacy"
 		fi

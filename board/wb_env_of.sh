@@ -2,6 +2,22 @@
 # This module performs conversion from DT values to Wirenboard's
 # backward-compatible (ehh, almost) environment vars set.
 
+wb_of_parse_version() {
+	local version
+	local varname="WB_VERSION"
+
+	for compat in $(of_node_compatible /); do
+		case "$compat" in
+		contactless,*wirenboard*)
+			version=`echo "$compat" | sed 's/contactless,.*wirenboard-\?\(.*\)$/\1/'`
+			break
+			;;
+		esac
+	done
+
+	[[ -n "$version" ]] && echo "export ${varname}=$(to_upper_snake "$version")"
+}
+
 wb_gpio_to_vars() {
 	[[ "$#" != 3 ]] && die "Wrong invocation"
 	local prefix=$1
