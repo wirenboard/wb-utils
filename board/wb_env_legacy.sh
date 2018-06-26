@@ -50,8 +50,6 @@ else
 	WB_VERSION=$FORCE_WB_VERSION
 fi;
 
-export WB_VERSION
-
 case "$WB_VERSION" in
 	"32" )
 		WB_ADC_TYPE=1
