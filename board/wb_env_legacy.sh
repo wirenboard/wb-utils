@@ -6,39 +6,51 @@ if [[ -z "$FORCE_WB_VERSION" ]]; then
 		case "$compat" in
 		"contactless,imx23-wirenboard41" )
 			WB_VERSION=41;
+			break
 			;;
 		"contactless,imx28-wirenboard50" )
 			WB_VERSION=50;
+			break
 			;;
 		"contactless,imx28-wirenboard52" )
 			WB_VERSION=52;
+			break
 			;;
 		"contactless,imx28-wirenboard55" )
 			WB_VERSION=55;
+			break
 			;;
 		"contactless,imx28-wirenboard58" )
 			WB_VERSION=58;
+			break
 			;;
 		"contactless,imx23-wirenboard32" )
 			WB_VERSION=32;
+			break
 			;;
 		"contactless,imx23-wirenboard28" )
 			WB_VERSION=28;
+			break
 			;;
 		"contactless,imx23-wirenboard-kmon1" )
 			WB_VERSION="KMON1";
+			break
 			;;
 		"contactless,imx23-wirenboard-rcterm1" )
 			WB_VERSION="RCTERM1";
+			break
 			;;
 		"contactless,imx23-wirenboard-cqc10" )
 			WB_VERSION="CQC10";
+			break
 			;;
 		esac
 	done;
 else
 	WB_VERSION=$FORCE_WB_VERSION
 fi;
+
+export WB_VERSION
 
 case "$WB_VERSION" in
 	"32" )
