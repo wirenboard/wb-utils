@@ -34,8 +34,10 @@ die() {
 	fi
 }
 
-trap 'die' ERR
-set -o errtrace
+if [[ -n "$DEBUG" ]]; then
+	trap 'die' ERR
+	set -o errtrace
+fi
 
 
 wb_source() {
