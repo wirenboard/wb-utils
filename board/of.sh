@@ -87,7 +87,7 @@ of_node_exists() {
 of_node_children() {
 	local node="$(__of_node_path "$1")"
 
-	find "$node" -maxdepth 1 -type d -printf '%f\n'
+	find "$node" -maxdepth 1 -mindepth 1 -type d -printf '%f\n'
 }
 
 # Get list of node properties matching specified glob pattern

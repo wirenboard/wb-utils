@@ -31,6 +31,19 @@ wb_gpio_to_vars() {
 }
 
 wb_of_parse_gpios() {
+	local subnode=$1
+	local node="${WB_OF_ROOT}/$subnode"
+	local prefix="WB_GPIO"
+	[[ "$subnode" != "gpios" ]] && prefix+="_$(to_upper_snake "$subnode")"
+
+	for gpioname in  $(of_node_children "$node"); do
+		wb_gpio_to_vars "$prefix" "$gpioname" \
+			"$(of_get_prop_gpio "$node/$gpioname" "gpios")"
+		# TODO: export boolean properties like 'input', 'output-low' etc.
+	done
+}
+
+wb_of_parse_gpios_props() {
 	local subnode="$1"
 	local node="${WB_OF_ROOT}/$subnode"
 	local prefix="WB_GPIO"
@@ -68,13 +81,13 @@ wb_of_parse() {
 
 	of_node_exists "${WB_OF_ROOT}/gsm" && {
 		echo "export WB_GSM_POWER_TYPE=$(of_get_prop_ulong ${WB_OF_ROOT}/gsm power-type)"
-		wb_of_parse_gpios gsm
+		wb_of_parse_gpios_props gsm
 	}
 
 	of_node_exists "${WB_OF_ROOT}/rfm" && {
 		tmp="$(of_get_prop_ulong ${WB_OF_ROOT}/rfm spi-major-minor | split_each 1)"
 		echo "export WB_RFM_SPI_MAJOR=$(index 0 <<< "$tmp")"
 		echo "export WB_RFM_SPI_MINOR=$(index 1 <<< "$tmp")"
-		wb_of_parse_gpios rfm
+		wb_of_parse_gpios_props rfm
 	}
 }
