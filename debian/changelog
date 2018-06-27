@@ -1,3 +1,9 @@
+wb-utils (1.75.4) stable; urgency=critical
+
+  * Fix: disable /mnt/data formatting on hard reboot
+
+ -- Nikita Maslov <n.maslov@contactless.ru>  Tue, 26 Jun 2018 16:37:58 +0300
+
 wb-utils (1.75.3) stable; urgency=medium
 
   * Remove reboot at wb-prepare
