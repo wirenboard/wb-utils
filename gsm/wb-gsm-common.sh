@@ -37,7 +37,7 @@ function is_neoway_m660a() {
 }
 
 function gsm_init() {
-    if [[ "$WB_GSM_POWER_TYPE" = "0" ]]; then
+    if [[ -z "${WB_GSM_POWER_TYPE}" ]] || [[ "$WB_GSM_POWER_TYPE" = "0" ]]; then
         debug "No GSM modem present, exiting"
         exit 1
     fi
@@ -231,7 +231,7 @@ function switch_off() {
 
 
 function ensure_on() {
-    if [[ ${WB_GSM_HAS_STATUS_PIN} = "1" ]]; then
+    if [[ -n "${WB_GPIO_GSM_STATUS}" ]]; then
         if [[ "`gpio_get_value ${WB_GPIO_GSM_STATUS}`" = "1" ]]; then
             debug "Modem is already switched on"
             return
@@ -247,7 +247,7 @@ function ensure_on() {
 
     toggle
 
-    if [[ ${WB_GSM_HAS_STATUS_PIN} = "1" ]]; then
+    if [[ -n "${WB_GPIO_GSM_STATUS}" ]]; then
         debug "Waiting for modem to start"
         max_tries=30
 
