@@ -3,7 +3,7 @@
 # GPIO functions
 SYSFS_GPIO="/sys/class/gpio"
 gpio_attr_path() {
-	echo "${SYSFS_GPIO}/${1}${2:+/${2}}"
+	echo "${SYSFS_GPIO}/gpio${1}${2:+/${2}}"
 }
 
 gpio_export() {
@@ -22,7 +22,7 @@ gpio_set_dir() {
 }
 
 gpio_setup() {
-	[[ "$#" -lt 2 ]] || die "Bad invocation"
+	[[ "$#" -eq 2 ]] || die "Bad invocation"
 	local gpio=$1 direction=$2
 	gpio_export "$gpio"
 	gpio_set_dir "$gpio" "$direction"
