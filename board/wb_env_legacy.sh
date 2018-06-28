@@ -24,6 +24,14 @@ if [[ -z "$FORCE_WB_VERSION" ]]; then
 			WB_VERSION=58;
 			break
 			;;
+		"contactless,imx6ul-wirenboard60" )
+			WB_VERSION=60;
+			break;
+			;;
+		"contactless,imx6ul-wirenboard61" )
+			WB_VERSION=61;
+			break;
+			;;
 		"contactless,imx23-wirenboard32" )
 			WB_VERSION=32;
 			break
