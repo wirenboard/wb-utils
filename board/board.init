@@ -62,7 +62,7 @@ do_start()
             led_blink green
             led_off red
             
-            gpio_setup "${WB_GPIO_5V_ON}" high
+            gpio_setup "${WB_GPIO_5V_OUT}" high
         ;;
 
         "KMON1" )
