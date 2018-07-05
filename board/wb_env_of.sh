@@ -84,10 +84,10 @@ wb_of_parse() {
 		wb_of_parse_gpios_props gsm
 	}
 
-	of_node_exists "${WB_OF_ROOT}/rfm" && {
-		tmp="$(of_get_prop_ulong ${WB_OF_ROOT}/rfm spi-major-minor | split_each 1)"
+	of_node_exists "${WB_OF_ROOT}/radio" && {
+		tmp="$(of_get_prop_ulong ${WB_OF_ROOT}/radio spi-major-minor | split_each 1)"
 		echo "export WB_RFM_SPI_MAJOR=$(index 0 <<< "$tmp")"
 		echo "export WB_RFM_SPI_MINOR=$(index 1 <<< "$tmp")"
-		wb_of_parse_gpios_props rfm
+		wb_of_parse_gpios_props radio
 	}
 }
