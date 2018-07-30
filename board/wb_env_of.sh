@@ -38,7 +38,7 @@ wb_of_parse_gpios() {
 
 	for gpioname in  $(of_node_children "$node"); do
 		wb_gpio_to_vars "$prefix" "$gpioname" \
-			"$(of_get_prop_gpio "$node/$gpioname" "gpios")"
+			"$(of_get_prop_gpio "$node/$gpioname" "io-gpios")"
 		# TODO: export boolean properties like 'input', 'output-low' etc.
 	done
 }
@@ -49,9 +49,9 @@ wb_of_parse_gpios_props() {
 	local prefix="WB_GPIO"
 	[[ "$subnode" != "gpios" ]] && prefix+="_$(to_upper_snake "$subnode")"
 	
-	for gpioname in $(of_node_props "$node" | sed -n 's/^gpio-//p'); do
+	for gpioname in $(of_node_props "$node" | sed -n 's/-gpios$//p'); do
 		wb_gpio_to_vars "$prefix" "$gpioname" \
-			"$(of_get_prop_gpio "$node" "gpio-$gpioname")"
+			"$(of_get_prop_gpio "$node" "$gpioname-gpios")"
 	done
 }
 
