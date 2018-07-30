@@ -63,7 +63,7 @@ wb_of_parse_props() {
 
 	for prop in $(of_node_props "$node"); do
 		name="$(to_upper_snake "$prop")"
-		echo "export ${prefix}_${name}=$(of_get_prop_auto "$node" "$prop")"
+		echo "export ${prefix}_${name}=\"$(of_get_prop_auto "$node" "$prop")\""
 	done
 }
 
