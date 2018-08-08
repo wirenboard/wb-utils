@@ -89,5 +89,8 @@ wb_of_parse() {
 		echo "export WB_RFM_SPI_MAJOR=$(index 0 <<< "$tmp")"
 		echo "export WB_RFM_SPI_MINOR=$(index 1 <<< "$tmp")"
 		wb_of_parse_gpios_props radio
+
+		#For compatibility with legacy variable name
+		echo "export WB_GPIO_RFM_IRQ=\$WB_GPIO_RADIO_IRQ"
 	}
 }
