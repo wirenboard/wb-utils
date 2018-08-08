@@ -6,6 +6,12 @@ wb-utils (2.0) stable; urgency=medium
 
  -- Alexey Ignatov <lexszero@gmail.com>  Mon, 25 Jun 2018 17:38:39 +0300
 
+wb-utils (1.75.6) stable; urgency=medium
+
+  * fixes RFM69 IRQ GPIO number on WB6
+
+ -- Evgeny Boger <boger@contactless.ru>  Wed, 08 Aug 2018 20:48:48 +0300
+
 wb-utils (1.75.5) stable; urgency=critical
 
   * Fix: generate SSH keys even if the directory is symlinked

@@ -17,12 +17,12 @@ if [[ ! -e "$WB_ENV_CACHE" ]]; then
 				wb_of_parse_version
 				wb_of_parse
 			}
-		else
+else
 			wb_source "wb_env_legacy"
-		fi
+    fi
 	} > "$ENV_TMP" &&
 		mv "$ENV_TMP" "$WB_ENV_CACHE"
-fi
+    fi
 
 set -a
 source "$WB_ENV_CACHE"
