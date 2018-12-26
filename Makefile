@@ -1,31 +1,40 @@
 DESTDIR=/
 prefix=usr
 
-all: 
+ifeq ($(DEB_BUILD_GNU_TYPE),$(DEB_HOST_GNU_TYPE))
+       CC=gcc
+else
+       CC=$(DEB_HOST_GNU_TYPE)-gcc
+endif
+
+
+all:
 	@echo Nothing to do
 
+BINDIR = $(DESTDIR)/$(prefix)/bin
+LIBDIR = $(DESTDIR)/$(prefix)/lib/wb-utils
+PREPARE_LIBDIR = $(DESTDIR)/$(prefix)/lib/wb-prepare
+INITDIR = $(DESTDIR)/etc/init.d
 
 install:
-	mkdir -p $(DESTDIR)/usr/lib/wb-prepare
+	install -m 0755 -d $(BINDIR) $(LIBDIR) $(INITDIR) $(PREPARE_LIBDIR)
 
 	install -m 0644 board/wb_env.sh $(DESTDIR)/etc/wb_env.sh
-	install -m 0755 board/wb-gen-serial $(DESTDIR)/$(prefix)/bin/wb-gen-serial
-	install -m 0755 board/wb-set-mac $(DESTDIR)/$(prefix)/bin/wb-set-mac
+	install -m 0644 -t $(LIBDIR) board/common.sh board/hardware.sh \
+				  board/json.sh board/of.sh board/wb_env_legacy.sh \
+				  board/wb_env_of.sh  gsm/wb-gsm-common.sh
 
-	install -m 0755 gsm/wb-gsm $(DESTDIR)/$(prefix)/bin/wb-gsm
-	install -m 0755 gsm/wb-gsm-common.sh $(DESTDIR)/$(prefix)/lib/wb-gsm-common.sh
+	install -m 0755 -t $(BINDIR) board/wb-gen-serial board/wb-set-mac
+	install -m 0755 -t $(BINDIR) gsm/wb-gsm gsm/wb-gsm-rtc
 
-	install -m 0755 gsm/rtc.sh $(DESTDIR)/$(prefix)/bin/wb-gsm-rtc
+	install -m 0755 gsm/rtc.init $(INITDIR)/wb-gsm-rtc
+	install -m 0755 board/board.init $(INITDIR)/wb-init
+	install -m 0755 board/prepare.init $(INITDIR)/wb-prepare
+	install -m 0644 board/partitions.sh $(PREPARE_LIBDIR)/partitions.sh
+	install -m 0644 board/vars.sh $(PREPARE_LIBDIR)/vars.sh
 
-	install -m 0755 gsm/rtc.init $(DESTDIR)/etc/init.d/wb-gsm-rtc
-	install -m 0755 board/board.init $(DESTDIR)/etc/init.d/wb-init
-	install -m 0755 board/prepare.init $(DESTDIR)/etc/init.d/wb-prepare
-	install -m 0644 board/partitions.sh $(DESTDIR)/usr/lib/wb-prepare/partitions.sh
-	install -m 0644 board/vars.sh $(DESTDIR)/usr/lib/wb-prepare/vars.sh
-
-	install -m 0755 update/wb-run-update $(DESTDIR)/$(prefix)/bin/wb-run-update
-	install -m 0755 update/wb-watch-update $(DESTDIR)/$(prefix)/bin/wb-watch-update
-	install -m 0755 update/wb-watch-update.init $(DESTDIR)/etc/init.d/wb-watch-update
+	install -m 0755 -t $(BINDIR) update/wb-run-update update/wb-watch-update
+	install -m 0755 update/wb-watch-update.init $(INITDIR)/wb-watch-update
 
 
 clean:

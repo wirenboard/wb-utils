@@ -1,5 +1,7 @@
 #!/bin/sh
 
+rm -f "/var/run/wb_env.cache" || true
+
 # The newer versions of init-system-helpers don't support
 # update-rc.d start/stop and don't have insserv.
 # In our case, this version info allows us to determine

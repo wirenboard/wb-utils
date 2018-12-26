@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 ### BEGIN INIT INFO
 # Provides:          wb-init
 # Default-Start:     2 3 4 5
@@ -40,16 +40,7 @@ VERBOSE="yes"
 #
 
 . /etc/wb_env.sh
-
-gpio_set() {
-	local gpio="/sys/class/gpio/gpio${1}"
-	if [ ! -d "$gpio" ]; then
-	    echo "${1}" > /sys/class/gpio/export || return $?
-	fi
-	
-	echo "$2" > "$gpio/direction"
-	echo "$2" > "$gpio/direction"
-}
+wb_source "hardware"
 
 do_start()
 {
@@ -61,21 +52,21 @@ do_start()
     case "$WB_VERSION" in
         "41"  )
             #  switch on green led
-            echo 0 > /sys/class/leds/red/brightness
-            echo 255 > /sys/class/leds/green/brightness
+            led_off red
+            led_on green
 
         ;;
 
         "52" | "55" | "58" | "60" | "61")
             #  blink green led
-            echo timer > /sys/class/leds/green/trigger
-            echo 0 > /sys/class/leds/red/brightness
-
-            gpio_set ${WB_GPIO_5V_ON} high
+            led_blink green
+            led_off red
+            
+            gpio_setup "${WB_GPIO_5V_OUT}" high
         ;;
 
         "KMON1" )
-            gpio_set ${WB_GPIO_5V_ISOLATED_ON} high
+            gpio_setup "${WB_GPIO_5V_ISOLATED_ON}" high
         ;;
 
 
@@ -117,14 +108,14 @@ do_stop()
     case "$WB_VERSION" in
         "41" )
             #  switch on red led
-            echo 255 > /sys/class/leds/red/brightness
-            echo 0 > /sys/class/leds/green/brightness
+            led_on red
+            led_off green
         ;;
 
         "52" | "55" | "58" | "60" | "61")
             #  blink red led
-            echo timer > /sys/class/leds/red/trigger
-            echo 0 > /sys/class/leds/green/brightness
+            led_blink red
+            led_off green
         ;;
 
         * )

@@ -1,3 +1,18 @@
+wb-utils (2.0.1) stable; urgency=medium
+
+  * add iio_dev_links function for analog-inputs auto configuration
+  * minor fix in of_get_prop_str
+
+ -- Evgeny Boger <boger@contactless.ru>  Mon, 24 Dec 2018 20:21:00 +0300
+
+wb-utils (2.0) stable; urgency=medium
+
+  * Add libs for working with DT and some common utils
+  * Obsoleting WB_VERSION in favour to DT machine compatible attribute
+  * wb_env.sh uses values from DT
+
+ -- Alexey Ignatov <lexszero@gmail.com>  Mon, 25 Jun 2018 17:38:39 +0300
+
 wb-utils (1.75.6) stable; urgency=medium
 
   * fixes RFM69 IRQ GPIO number on WB6
