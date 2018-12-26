@@ -147,6 +147,13 @@ of_find_gpiochips() {
 	done
 }
 
+of_find_iio_dev_links() {
+	for iiodevice in /sys/bus/iio/devices/iio\:device*; do
+		phandle=$(bin2ulong < "$iiodevice/of_node/phandle")
+		OF_IIODEV_LINKS[$phandle]="$(readlink "$iiodevice")"
+	done
+}
+
 else  ##########################################################################
 # Get data from specified DTB file
 
