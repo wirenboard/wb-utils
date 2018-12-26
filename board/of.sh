@@ -117,7 +117,8 @@ of_get_prop_ulong() {
 #	node
 #	property
 of_get_prop_str() {
-	__of_get_prop "$1" "$2" | tr '\000' ' '
+	# remove trailing null-character, replace other with space
+	__of_get_prop "$1" "$2" | sed 's/\x0$//g' | tr '\000' ' '
 }
 
 # Get string or int value of property based on
