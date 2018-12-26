@@ -1,3 +1,10 @@
+wb-utils (2.0.1) stable; urgency=medium
+
+  * add iio_dev_links function for analog-inputs auto configuration
+  * minor fix in of_get_prop_str
+
+ -- Evgeny Boger <boger@contactless.ru>  Mon, 24 Dec 2018 20:21:00 +0300
+
 wb-utils (2.0) stable; urgency=medium
 
   * Add libs for working with DT and some common utils
