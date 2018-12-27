@@ -41,6 +41,7 @@ VERBOSE="yes"
 
 . /etc/wb_env.sh
 wb_source "hardware"
+wb_source "of"
 
 do_start()
 {
@@ -49,44 +50,29 @@ do_start()
 	#   1 if daemon was already running
 	#   2 if daemon could not be started
 
-    case "$WB_VERSION" in
-        "41"  )
-            #  switch on green led
-            led_off red
-            led_on green
+    if of_machine_match "contactless,imx6ul-wirenboard60" || of_machine_match "contactless,imx28-wirenboard50"; then
+        #  blink green led
+        led_blink green
+        led_off red
+        
+        gpio_setup "${WB_GPIO_5V_OUT}" high
 
-        ;;
+    elif of_machine_match "contactless,imx28-wirenboard50"; then
+        # reset RTS state on RS-485 transcievers
+        stty -F /dev/ttyAPP1 > /dev/null
+        stty -F /dev/ttyAPP2 > /dev/null
+        stty -F /dev/ttyAPP3 > /dev/null
+        stty -F /dev/ttyAPP4 > /dev/null
 
-        "52" | "55" | "58" | "60" | "61")
-            #  blink green led
-            led_blink green
-            led_off red
-            
-            gpio_setup "${WB_GPIO_5V_OUT}" high
-        ;;
+    elif of_machine_match "contactless,imx23-wirenboard41"; then
+        #  switch on green led
+        led_off red
+        led_on green
 
-        "KMON1" )
-            gpio_setup "${WB_GPIO_5V_ISOLATED_ON}" high
-        ;;
-
-
-        * )
-        ;;
-    esac
-
-    case "$WB_VERSION" in
-        "52" | "55" | "58" )
-            # reset RTS state on RS-485 transcievers
-            stty -F /dev/ttyAPP1 > /dev/null
-            stty -F /dev/ttyAPP2 > /dev/null
-            stty -F /dev/ttyAPP3 > /dev/null
-            stty -F /dev/ttyAPP4 > /dev/null
-        ;;
-
-        * )
-        ;;
-    esac
-
+    elif of_machine_match "contactless,imx23-wirenboard-kmon1"; then
+        gpio_setup "${WB_GPIO_5V_ISOLATED_ON}" high
+    fi
+    
     fw_setenv bootcount 0
     fw_setenv upgrade_available 0
 
@@ -104,23 +90,16 @@ do_stop()
 	#   2 if daemon could not be stopped
 	#   other if a failure occurred
 
+    if of_machine_match "contactless,imx6ul-wirenboard60" || of_machine_match "contactless,imx28-wirenboard50"; then
+        #  blink red led
+        led_blink red
+        led_off green
 
-    case "$WB_VERSION" in
-        "41" )
-            #  switch on red led
-            led_on red
-            led_off green
-        ;;
-
-        "52" | "55" | "58" | "60" | "61")
-            #  blink red led
-            led_blink red
-            led_off green
-        ;;
-
-        * )
-        ;;
-    esac
+    elif of_machine_match "contactless,imx23-wirenboard41"; then
+        #  switch on red led
+        led_on red
+        led_off green
+    fi
 
     return 0;
 
