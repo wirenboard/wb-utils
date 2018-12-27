@@ -1,6 +1,6 @@
 wb-utils (2.0.3) stable; urgency=medium
 
-  * add old wb-mqtt-serial  to breaks
+  * add old wb-mqtt-serial and wb-mqtt-homeui to breaks
 
  -- Evgeny Boger <boger@contactless.ru>  Thu, 27 Dec 2018 19:12:06 +0300
 
