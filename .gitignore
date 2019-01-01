@@ -35,3 +35,4 @@ wb-configs_*.*
 .tern-port
 debian/wb-utils/
 adc/injection/lradc-set-current
+debian/debhelper-build-stamp
