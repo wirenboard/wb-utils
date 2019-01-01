@@ -19,10 +19,10 @@ INITDIR = $(DESTDIR)/etc/init.d
 install:
 	install -m 0755 -d $(BINDIR) $(LIBDIR) $(INITDIR) $(PREPARE_LIBDIR)
 
-	install -m 0644 board/wb_env.sh $(DESTDIR)/etc/wb_env.sh
+	install -m 0644 board/etc_wb_env.sh $(DESTDIR)/etc/wb_env.sh
 	install -m 0644 -t $(LIBDIR) board/common.sh board/hardware.sh \
 				  board/json.sh board/of.sh board/wb_env_legacy.sh \
-				  board/wb_env_of.sh  gsm/wb-gsm-common.sh
+				  board/wb_env.sh board/wb_env_of.sh  gsm/wb-gsm-common.sh
 
 	install -m 0755 -t $(BINDIR) board/wb-gen-serial board/wb-set-mac
 	install -m 0755 -t $(BINDIR) gsm/wb-gsm gsm/wb-gsm-rtc
