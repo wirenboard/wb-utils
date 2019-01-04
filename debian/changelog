@@ -1,3 +1,9 @@
+wb-utils (2.1.1) stable; urgency=medium
+
+  * change u-boot-tools package name in depends
+
+ -- Evgeny Boger <boger@contactless.ru>  Fri, 04 Jan 2019 21:44:02 +0300
+
 wb-utils (2.1) stable; urgency=medium
 
   * update version to follow semver as wb_env location is a part of API
