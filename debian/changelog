@@ -1,3 +1,9 @@
+wb-utils (2.1.2) stable; urgency=medium
+
+  * fix crash in gpiochip discovery when there are gpiochips added by hwconf-manager
+
+ -- Evgeny Boger <boger@contactless.ru>  Tue, 08 Jan 2019 17:40:08 +0300
+
 wb-utils (2.1.1) stable; urgency=medium
 
   * change u-boot-tools package name in depends

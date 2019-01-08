@@ -142,15 +142,19 @@ of_get_prop_auto() {
 
 of_find_gpiochips() {
 	for gpiochip in /sys/class/gpio/gpiochip*; do
-		phandle=$(bin2ulong < "$gpiochip/device/of_node/phandle")
-		OF_GPIOCHIPS[$phandle]="$(cat "$gpiochip/base")"
+		if [[ -f "$gpiochip/device/of_node/phandle" ]]; then
+			phandle=$(bin2ulong < "$gpiochip/device/of_node/phandle")
+			OF_GPIOCHIPS[$phandle]="$(cat "$gpiochip/base")"
+		fi
 	done
 }
 
 of_find_iio_dev_links() {
 	for iiodevice in /sys/bus/iio/devices/iio\:device*; do
-		phandle=$(bin2ulong < "$iiodevice/of_node/phandle")
-		OF_IIODEV_LINKS[$phandle]="$(readlink "$iiodevice")"
+		if [[ -f "$iiodevice/of_node/phandle" ]]; then
+			phandle=$(bin2ulong < "$iiodevice/of_node/phandle")
+			OF_IIODEV_LINKS[$phandle]="$(readlink "$iiodevice")"
+		fi
 	done
 }
 
