@@ -31,6 +31,16 @@ function get_model() {
     echo "$REPORT"
 }
 
+
+function synchronize_bd() {
+    tries=10
+    for (( i=0; i<=$tries; i++ ))
+    do
+    	echo -e "AT\r\n" > $PORT
+    done
+}
+
+
 function is_neoway_m660a() {
     MODEL=`get_model`
     [[ "$MODEL" == "M660A" ]]
@@ -120,7 +130,7 @@ function set_speed() {
         BAUDRATE=$1
     fi
 
-    stty -F $PORT  ${BAUDRATE} -icrnl
+    stty -F $PORT ${BAUDRATE} cs8 -cstopb -parenb -icrnl
 }
 
 function _try_set_baud() {
@@ -145,7 +155,8 @@ function init_baud() {
     # baudrate by sending AAA bytes
 
     set_speed
-    echo  -e "AAAAAAAAAAAAAAAAAAAT\r\n" > $PORT
+    synchronize_bd
+
     sleep 1
     if [[ $(_try_set_baud) == 0 ]] ; then
         return
@@ -156,7 +167,6 @@ function init_baud() {
     set_speed 9600
     if [[ $(_try_set_baud) == 0 ]] ; then
         # connection at the lower baud rate succeded, not set the default baudrate
-        set_speed
         return
     fi
     debug "ERROR: couldn't establish connection with modem"
@@ -229,7 +239,6 @@ function switch_off() {
 
 }
 
-
 function ensure_on() {
     if [[ -n "${WB_GPIO_GSM_STATUS}" ]]; then
         if [[ "`gpio_get_value ${WB_GPIO_GSM_STATUS}`" = "1" ]]; then
@@ -269,7 +278,7 @@ function ensure_on() {
     # This is needed for SIM5300E and other models that 
     # reset to autobauding on each power on
 
-    echo  -e "AAAAAAAAAAAAAAAAAAAT\r\n" > $PORT
+    synchronize_bd
 }
 
 function test_connection() {
