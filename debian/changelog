@@ -1,6 +1,6 @@
 wb-utils (2.1.3) stable; urgency=medium
 
-  * handle auto bd synchronization in sim7300e modems
+  * handle auto bd synchronization in sim7000e modems
 
  -- Vladimir Romanov <v.romanov@contactless.ru>  Tue, 28 Feb 2019 20:43:08 +0300
 

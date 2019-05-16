@@ -32,12 +32,25 @@ function get_model() {
 }
 
 
+function is_7000e() {
+    #NB-IOT modem
+    OVERLAY_FNAME='/proc/device-tree/wirenboard/overlays'
+    SEARCH_PATTERN='sim7000e'
+    ret="grep -i $SEARCH_PATTERN $OVERLAY_FNAME"
+    [[ $ret ]]
+}
+
+
 function synchronize_bd() {
-    tries=10
-    for (( i=0; i<=$tries; i++ ))
-    do
-    	echo -e "AT\r\n" > $PORT
-    done
+    if is_7000e; then
+        tries=10
+        for (( i=0; i<=$tries; i++ ))
+        do
+    	    echo -e "AT\r\n" > $PORT
+        done
+    else
+        echo  -e "AAAAAAAAAAAAAAAAAAAT\r\n" > $PORT
+    fi
 }
 
 
@@ -45,6 +58,7 @@ function is_neoway_m660a() {
     MODEL=`get_model`
     [[ "$MODEL" == "M660A" ]]
 }
+
 
 function gsm_init() {
     if [[ -z "${WB_GSM_POWER_TYPE}" ]] || [[ "$WB_GSM_POWER_TYPE" = "0" ]]; then
@@ -167,6 +181,7 @@ function init_baud() {
     set_speed 9600
     if [[ $(_try_set_baud) == 0 ]] ; then
         # connection at the lower baud rate succeded, not set the default baudrate
+        set_speed
         return
     fi
     debug "ERROR: couldn't establish connection with modem"
