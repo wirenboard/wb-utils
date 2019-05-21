@@ -2,6 +2,7 @@
 
 . /etc/wb_env.sh
 wb_source "hardware"
+wb_source "of"
 
 PORT=/dev/ttyGSM
 DEFAULT_BAUDRATE=115200
@@ -32,17 +33,21 @@ function get_model() {
 }
 
 
-function is_7000e() {
+function is_simcom_7000e() {
     #NB-IOT modem
-    OVERLAY_FNAME='/proc/device-tree/wirenboard/overlays'
-    SEARCH_PATTERN='sim7000e'
-    ret="grep -i $SEARCH_PATTERN $OVERLAY_FNAME"
-    [[ $ret ]]
+    local model_to_search="sim7000e"
+    local nodename="wirenboard/gsm"
+    
+    if of_has_prop $nodename "model"; then
+        ret=$(of_get_prop_str $nodename "model")
+    fi
+
+    [[ $ret == $model_to_search ]]
 }
 
 
-function synchronize_bd() {
-    if is_7000e; then
+function synchronize_baudrate() {
+    if is_simcom_7000e; then
         tries=10
         for (( i=0; i<=$tries; i++ ))
         do
@@ -169,7 +174,7 @@ function init_baud() {
     # baudrate by sending AAA bytes
 
     set_speed
-    synchronize_bd
+    synchronize_baudrate
 
     sleep 1
     if [[ $(_try_set_baud) == 0 ]] ; then
@@ -293,7 +298,7 @@ function ensure_on() {
     # This is needed for SIM5300E and other models that 
     # reset to autobauding on each power on
 
-    synchronize_bd
+    synchronize_baudrate
 }
 
 function test_connection() {
