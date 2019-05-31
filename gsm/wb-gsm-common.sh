@@ -2,6 +2,7 @@
 
 . /etc/wb_env.sh
 wb_source "hardware"
+wb_source "of"
 
 PORT=/dev/ttyGSM
 DEFAULT_BAUDRATE=115200
@@ -31,10 +32,38 @@ function get_model() {
     echo "$REPORT"
 }
 
+
+function is_simcom_7000e() {
+    #NB-IOT modem
+    local model_to_search="sim7000e"
+    local nodename="wirenboard/gsm"
+    
+    if of_has_prop $nodename "model"; then
+        ret=$(of_get_prop_str $nodename "model")
+    fi
+
+    [[ $ret == $model_to_search ]]
+}
+
+
+function synchronize_baudrate() {
+    if is_simcom_7000e; then
+        tries=10
+        for (( i=0; i<=$tries; i++ ))
+        do
+    	    echo -e "AT\r\n" > $PORT
+        done
+    else
+        echo  -e "AAAAAAAAAAAAAAAAAAAT\r\n" > $PORT
+    fi
+}
+
+
 function is_neoway_m660a() {
     MODEL=`get_model`
     [[ "$MODEL" == "M660A" ]]
 }
+
 
 function gsm_init() {
     if [[ -z "${WB_GSM_POWER_TYPE}" ]] || [[ "$WB_GSM_POWER_TYPE" = "0" ]]; then
@@ -120,7 +149,7 @@ function set_speed() {
         BAUDRATE=$1
     fi
 
-    stty -F $PORT  ${BAUDRATE} -icrnl
+    stty -F $PORT ${BAUDRATE} cs8 -cstopb -parenb -icrnl
 }
 
 function _try_set_baud() {
@@ -145,7 +174,8 @@ function init_baud() {
     # baudrate by sending AAA bytes
 
     set_speed
-    echo  -e "AAAAAAAAAAAAAAAAAAAT\r\n" > $PORT
+    synchronize_baudrate
+
     sleep 1
     if [[ $(_try_set_baud) == 0 ]] ; then
         return
@@ -229,7 +259,6 @@ function switch_off() {
 
 }
 
-
 function ensure_on() {
     if [[ -n "${WB_GPIO_GSM_STATUS}" ]]; then
         if [[ "`gpio_get_value ${WB_GPIO_GSM_STATUS}`" = "1" ]]; then
@@ -269,7 +298,7 @@ function ensure_on() {
     # This is needed for SIM5300E and other models that 
     # reset to autobauding on each power on
 
-    echo  -e "AAAAAAAAAAAAAAAAAAAT\r\n" > $PORT
+    synchronize_baudrate
 }
 
 function test_connection() {
