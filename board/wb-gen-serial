@@ -21,6 +21,9 @@ MAC_PREFIX = "00:86"
 # Serial generator revision == fisrt symbol in serial number starting from A
 GEN_REVISION = 0
 
+# A workaround to remove modem IMEI from generating SN on specific boards
+DT_MODEM_IS_MODULE = 'contactless,imx6ul-wirenboard670'
+
 
 def _get_imei():
     try:
@@ -64,8 +67,21 @@ def random_word(length):
     return ''.join(random.choice(string.lowercase) for i in range(length))
 
 
+def dt_is_compatible(compatible_str):
+    node_fname = '/proc/device-tree/compatible'
+    try:
+        compatible_with = open(node_fname).read()
+        return True if compatible_str in compatible_with else False
+    except IOError:
+        return False
+
+
 def _get_serial_2():
-    imei = _get_imei()
+    """
+    Since WB 6.7, a gsm modem has become a module => one board could have different modems
+    Modem's IMEI shouldn't be involved into WB's SN-generating process
+    """
+    imei = '' if dt_is_compatible(DT_MODEM_IS_MODULE) else _get_imei()
 
     cpuinfo_serial = str(get_cpuinfo_serial())
 
@@ -114,16 +130,23 @@ def reduce_hash(digest_str, modulo):
 
 
 def _get_serial_1():
-    wifi_mac = wifi.get_wlan_mac()
-
-    try:
-        gsm.init_gsm()
-    except RuntimeError:
-        # print "No GSM modem detected"
+    """
+    Since WB 6.7, a gsm modem has become a module => one board could have different modems
+    Modem's IMEI shouldn't be involved into WB's SN-generating process
+    """
+    if dt_is_compatible(DT_MODEM_IS_MODULE):
         imei = None
     else:
-        imei = gsm.gsm_get_imei()
-        # print "imei=%s" % imei
+        try:
+            gsm.init_gsm()
+        except RuntimeError:
+            # print "No GSM modem detected"
+            imei = None
+        else:
+            imei = gsm.gsm_get_imei()
+            # print "imei=%s" % imei
+    
+    wifi_mac = wifi.get_wlan_mac()
 
     cpuinfo_serial = str(get_cpuinfo_serial())
     # print "cpuinfo serial: ", cpuinfo_serial
