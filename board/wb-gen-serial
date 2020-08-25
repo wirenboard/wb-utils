@@ -69,11 +69,8 @@ def random_word(length):
 
 def dt_is_compatible(compatible_str):
     node_fname = '/proc/device-tree/compatible'
-    try:
-        compatible_with = open(node_fname).read()
-        return True if compatible_str in compatible_with else False
-    except IOError:
-        return False
+    compatible_with = open(node_fname).read()
+    return (compatible_str in compatible_with)
 
 
 def _get_serial_2():
@@ -145,7 +142,7 @@ def _get_serial_1():
         else:
             imei = gsm.gsm_get_imei()
             # print "imei=%s" % imei
-    
+
     wifi_mac = wifi.get_wlan_mac()
 
     cpuinfo_serial = str(get_cpuinfo_serial())
@@ -286,7 +283,7 @@ def main():
                        action="store", type=int, nargs="?",
                        choices=[0,1],
                        dest="mode_eth_mac", const=0, default=0)
-    
+
     parser.add_argument("-v", "--version", help="Select version of serial number (1 - old, 2 - new), default - 2",
                         type=int, default=2, choices=[1, 2])
 
