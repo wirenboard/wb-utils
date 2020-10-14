@@ -16,7 +16,7 @@ function get_model() {
         TIMEOUT 2 \
         ABORT "ERROR" \
         REPORT "\r\n" \
-        "" "AT+CGMM" OK ""  > $PORT < $PORT 
+        "" "AT+CGMM" OK ""  > $PORT < $PORT
     RC=$?
 
 
@@ -37,7 +37,7 @@ function is_simcom_7000e() {
     #NB-IOT modem
     local model_to_search="sim7000e"
     local nodename="wirenboard/gsm"
-    
+
     if of_has_prop $nodename "model"; then
         ret=$(of_get_prop_str $nodename "model")
     fi
@@ -295,14 +295,14 @@ function ensure_on() {
     # Set default baudrate, then try to make modem to detect
     # baudrate by sending AAA bytes.
 
-    # This is needed for SIM5300E and other models that 
+    # This is needed for SIM5300E and other models that
     # reset to autobauding on each power on
 
     synchronize_baudrate
 }
 
 function test_connection() {
-    /usr/sbin/chat -v   TIMEOUT 5 ABORT "ERROR" ABORT "BUSY" "" ATZ OK "" > $PORT < $PORT
+    /usr/sbin/chat -v   TIMEOUT 5 ABORT "ERROR" ABORT "BUSY" "" AT OK "" > $PORT < $PORT
     RC=$?
     echo $RC
 }
@@ -384,10 +384,3 @@ function gsm_set_time() {
         exit $RC;
     fi
 }
-
-
-
-
-
-
-
