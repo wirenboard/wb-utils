@@ -1,3 +1,9 @@
+wb-utils (2.1.5) stable; urgency=medium
+
+  * Changed at-cmd for testing connection with modem in wb-gsm
+
+ -- Vladimir Romanov <v.romanov@contactless.ru>  Wed, 14 Oct 2020 15:09:11 +0300
+
 wb-utils (2.1.4) stable; urgency=medium
 
   * Modem's IMEI has removed from generating SN in WB6.7+
@@ -30,7 +36,7 @@ wb-utils (2.1) stable; urgency=medium
 
 wb-utils (2.0.4) stable; urgency=medium
 
-  * move wb_env to /usr/lib to make it usable even when the package is 
+  * move wb_env to /usr/lib to make it usable even when the package is
     not yet configured.
 
  -- Evgeny Boger <boger@contactless.ru>  Mon, 31 Dec 2018 19:29:25 +0300
@@ -102,7 +108,7 @@ wb-utils (1.75.0) stable; urgency=medium
 
   * ext4 fs created in wb-prepare script
   * data partition is added to fstab in wb-prepare script
-  * /dev/root is deprecated, replaced with actual root partition identifier in wb-prepare 
+  * /dev/root is deprecated, replaced with actual root partition identifier in wb-prepare
   * init symlink is created to rc3.d at post install for wb-prepare
   * wb-gsm-rtc init symlink is created for systemd support
 
@@ -484,7 +490,7 @@ wb-utils (1.042) stable; urgency=medium
 wb-utils (1.041) stable; urgency=medium
 
   * restore sh compatibility
- 
+
 
  -- Evgeny Boger <boger@contactless.ru>  Sat, 25 Oct 2014 04:58:37 +0400
 
@@ -498,7 +504,7 @@ wb-utils (1.04) stable; urgency=medium
 wb-utils (1.03) stable; urgency=medium
 
   * Add restart_if_broken command line argument to wb-gsm:
-  *  test if modem answers to AT command and if it doesn't then 
+  *  test if modem answers to AT command and if it doesn't then
   *  perform power restart cycle
 
  -- Evgeny Boger <boger@contactless.ru>  Tue, 05 Aug 2014 21:28:36 +0400
@@ -510,7 +516,7 @@ wb-utils (1.02) stable; urgency=medium
 
 wb-utils (1.01) stable; urgency=medium
 
-  * Fix ADC mux gpios, add new aliases for a1-a4 channels 
+  * Fix ADC mux gpios, add new aliases for a1-a4 channels
 
  -- Evgeny Boger <boger@contactless.ru>  Sun, 25 May 2014 17:06:00 +0400
 
@@ -519,5 +525,3 @@ wb-utils (1.0) wheezy; urgency=low
   * Initial debianization
 
  -- Evgeny Boger <boger@contactless.ru>  Tue, 20 May 2014 01:59:04 +0400
-
-
