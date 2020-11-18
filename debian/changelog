@@ -1,3 +1,9 @@
+wb-utils (2.1.6) unstable; urgency=medium
+
+  * Fix error on reload of partition table. (Closes: 29846) 
+
+ -- Ivan Zaentsev <ivan.zaentsev@wirenboard.ru>  Wed, 18 Nov 2020 20:00:00 +0300
+
 wb-utils (2.1.5) stable; urgency=medium
 
   * Changed at-cmd for testing connection with modem in wb-gsm
