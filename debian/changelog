@@ -1,4 +1,4 @@
-wb-utils (2.1.6) unstable; urgency=medium
+wb-utils (2.1.6) stable; urgency=medium
 
   * Fix error on reload of partition table. (Closes: 29846) 
 
