@@ -81,6 +81,8 @@ wb_prepare_partitions()
 
     wb_make_partitions ${WB_STORAGE} ${WB_ROOTFS_SIZE_MB}
 
+    partprobe ${WB_STORAGE}
+
     mkswap /dev/mmcblk0p5
 
     mkfs.ext4 /dev/mmcblk0p3 
