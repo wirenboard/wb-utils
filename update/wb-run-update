@@ -229,6 +229,10 @@ Description:         $(fit_prop_string / description)
 Compatible device:   $(fit_prop_string / compatible)
 Firmware version:    $(fit_prop_string / firmware-version)
 Firmware compatible: $(fit_prop_string / firmware-compatible)
+Release name:        $(fit_prop_string / release-name)
+Release suite:       $(fit_prop_string / release-suite)
+Release target:      $(fit_prop_string / release-target)
+Release repo prefix: $(fit_prop_string / release-repo-prefix)
 Time of creation:    $(date -d @$[0x$(fit_prop / timestamp | to_hex)])
 ===============================================================================
 
