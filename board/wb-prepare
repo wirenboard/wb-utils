@@ -1,35 +1,10 @@
-#!/bin/bash
-### BEGIN INIT INFO
-# Provides:          wb-prepare
-# Default-Start:     S 3
-# Default-Stop:
-# Required-Start:     $local_fs
-# Required-Stop:
-# X-Start-Before:     networking watchdog
-# Short-Description:  prepare partitions & rootfs
-# Description:        prepare partitions & rootfs
-### END INIT INFO
+#!/bin/bash -e
 
-# Do NOT "set -e"
-
-# PATH should only include /usr/* if it runs after the mountnfs.sh script
-PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC="prepare partitions & rootfs"
-NAME=wb-prepare
-SCRIPTNAME=/etc/init.d/$NAME
 ROOT_PARTITION=$(mount -l | grep " / " | cut -d " " -f1)
 
-# Load the VERBOSE setting and other rcS variables
-. /lib/init/vars.sh
-
-VERBOSE="yes"
-
-# Define LSB log_* functions.
-# Depend on lsb-base (>= 3.2-14) to ensure that this file is present
-# and status_of_proc is working.
+# legacy: load log_*_msg functions
+# once upon a time this script was an init.d script
 . /lib/lsb/init-functions
-
-. /etc/wb_env.sh
 
 # some constants for convenience
 . /usr/lib/wb-prepare/vars.sh
@@ -81,18 +56,16 @@ wb_prepare_partitions()
 
     wb_make_partitions ${WB_STORAGE} ${WB_ROOTFS_SIZE_MB}
 
+    partprobe
+
     mkswap /dev/mmcblk0p5
 
     mkfs.ext4 /dev/mmcblk0p3 
-    mkfs.ext4 /dev/mmcblk0p6 
+    mkfs.ext4 /dev/mmcblk0p6
     
-    mount /dev/mmcblk0p6 /mnt/data
-    if [[ $? = "0" ]]; then
-        touch $flag    
-    fi
-
     log_success_msg "Partition table changed, reboot needed"
     fw_setenv bootcount 0
+    sync
     reboot
 }
 
@@ -361,57 +334,27 @@ wb_firstboot()
     return 0
 }
 
-#
-# Function that starts the daemon/service
-#
-
-do_start()
+do_check_prepare()
 {
-    wb_is_firstboot || return 1
+    wb_is_firstboot || return 0
 
-    wb_prepare_partitions
     wb_prepare_filesystems
-
     wb_firstboot
-
-    return 0
 }
 
-#
-# Function that stops the daemon/service
-#
-do_stop()
-{
-	# Return
-	#   0 if daemon has been stopped
-	#   1 if daemon was already stopped
-	#   2 if daemon could not be stopped
-	#   other if a failure occurred
-
-    return 0;
-
+do_make_partitions() {
+    wb_prepare_partitions
 }
 
 case "$1" in
-  start)
-	[ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME" && echo
-	do_start
-	case "$?" in
-		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
-	esac
-	;;
-  stop)
-	[ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
-	do_stop
-	case "$?" in
-		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
-	esac
-	;;
-  status)
-	 exit 0;
-	;;
+  prepare)
+    do_check_prepare
+    exit $?
+    ;;
+  make-partitions)
+    do_make_partitions
+    exit $?
+    ;;
   fix_macs)
 	wb_fix_macs
 	exit 0
@@ -421,9 +364,7 @@ case "$1" in
 	exit 0
 	;;
   *)
-	echo "Usage: $SCRIPTNAME {start|stop|status|fix_macs}" >&2
+	echo "Usage: $0 {prepare|fix_macs|fix_short_sn}" >&2
 	exit 3
 	;;
 esac
-
-:
