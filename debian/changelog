@@ -1,3 +1,9 @@
+wb-utils (2.2) stable; urgency=medium
+
+  * wb-run-update: show release information from release file
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Wed, 14 Apr 2021 13:07:19 +0300
+
 wb-utils (2.1.5) stable; urgency=medium
 
   * Changed at-cmd for testing connection with modem in wb-gsm
