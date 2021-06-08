@@ -1,3 +1,10 @@
+wb-utils (2.3) stable; urgency=medium
+
+  * switch to systemd services from initscript
+  * fix WB5 firstboot
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Tue, 08 Jun 2021 15:18:58 +0300
+
 wb-utils (2.2) stable; urgency=medium
 
   * wb-run-update: show release information from release file
