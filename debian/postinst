@@ -23,7 +23,6 @@ if [ "$1" = "configure" ]; then
             # update-rc.d remove refuses to remove symlinks for wb-prepare
             # because of dependencies, so let's help it using low-level insserv
             if $OLD_UPDATE_RC_D; then
-                insserv -f -r wb-prepare
                 insserv -f -r wb-gsm-rtc
             fi
         elif `dpkg --compare-versions $2 lt 1.73.1`; then
@@ -41,12 +40,7 @@ setup_systemd_service() {
     systemctl enable $1 2>/dev/null
 }
 
-if $OLD_UPDATE_RC_D; then
-    update-rc.d wb-prepare start 11 3 S . >/dev/null
-else
-    setup_systemd_service wb-prepare
-fi
-invoke-rc.d wb-prepare fix_macs
+wb-prepare fix_macs
 
 if $OLD_UPDATE_RC_D; then
     update-rc.d wb-gsm-rtc start 10 3 S . stop 10 0 6 . >/dev/null
@@ -71,3 +65,6 @@ install|upgrade|configure)
     fi
 esac
 
+#DEBHELPER#
+
+exit 0

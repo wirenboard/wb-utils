@@ -1,0 +1,13 @@
+[Unit]
+Description=initialize filesystems at first boot
+Conflicts=shutdown.target
+Before=network.target watchdog.service shutdown.target
+RefuseManualStop=true
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/wb-prepare prepare
+
+[Install]
+WantedBy=sysinit.target
