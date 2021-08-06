@@ -115,6 +115,7 @@ function toggle() {
     fi
 
 
+    sleep 1
     gpio_set_value $WB_GPIO_GSM_PWRKEY 0
     sleep 1
     gpio_set_value $WB_GPIO_GSM_PWRKEY 1
