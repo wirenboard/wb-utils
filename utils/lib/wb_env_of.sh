@@ -12,6 +12,10 @@ wb_of_parse_version() {
 			version=`echo "$compat" | sed 's/contactless,.*wirenboard-\?\(.*\)$/\1/'`
 			break
 			;;
+		wirenboard,*wirenboard*)
+			version=`echo "$compat" | sed 's/wirenboard,.*wirenboard-\?\(.*\)$/\1/'`
+			break
+			;;
 		esac
 	done
 
@@ -71,6 +75,7 @@ wb_of_parse() {
 	debug "Parsing hardware-specific environment from OF"
 	# Associative array for GPIO phandle to gpiochip resolving
 	declare -A OF_GPIOCHIPS
+	declare -A OF_GPIOCHIPS_NCELLS
 	of_find_gpiochips
 
 	declare -p OF_GPIOCHIPS
