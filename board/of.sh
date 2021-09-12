@@ -145,6 +145,10 @@ of_find_gpiochips() {
 		if [[ -f "$gpiochip/device/of_node/phandle" ]]; then
 			phandle=$(bin2ulong < "$gpiochip/device/of_node/phandle")
 			OF_GPIOCHIPS[$phandle]="$(cat "$gpiochip/base")"
+			if [[ -f "$gpiochip/device/of_node/#gpio-cells" ]]; then
+				ncells=$(bin2ulong < "$gpiochip/device/of_node/#gpio-cells")
+				OF_GPIOCHIPS_NCELLS[$phandle]="$ncells"
+			fi
 		fi
 	done
 }
@@ -198,10 +202,12 @@ of_find_gpiochips() {
 	for gpiochip in $(of_node_props /aliases | grep gpio); do
 		node="$(of_get_prop_str /aliases "$gpiochip")"
 		phandle=$(of_get_prop_ulong "$node" phandle)
+		ncells=$(of_get_prop_ulong "$node" "#gpio-cells")
 		base=$((n*32))
-		((n++))
+		((n++)) || true
 		debug "Found gpiochip node $node phandle $phandle (base $base)"
 		OF_GPIOCHIPS[$phandle]="$base"
+		OF_GPIOCHIPS_NCELLS[$phandle]="$ncells"
 	done
 }
 fi #############################################################################
@@ -275,22 +281,43 @@ of_gpio_unpack() {
 	eval "read $vbase $vpin $vattr <<< \"\$gpio\""
 }
 
-# Get GPIO(s) property resolving phandles to gpiochip base, one GPIO per line.
+# Get single GPIO property resolving phandles to gpiochip base.
 # Output line format: "<base>:<pin>:<flags>"
 # Args:
 #	node
 #	[optional] property, default is "gpios"
-#	[optional] words per gpio, default is 3
 of_get_prop_gpio() {
 	debug "$@"
 	local node="$1"
 	local prop="${2:-gpios}"
-	local cells="${3:-3}"
+	local xlate_type="offset"
 
-	of_get_prop_ulong "$node" "$prop" | split_each "$cells" |
-	while read -r phandle pin attr; do
+	if of_has_prop "$node" "gpio-xlate-type"; then
+		xlate_type=$(of_get_prop_str "$node" "gpio-xlate-type")
+	fi
+
+	of_get_prop_ulong "$node" "$prop" | split_each "4" |
+	while read -r phandle arg0 arg1 arg2; do
+		case "$xlate_type" in
+			"bank_pin")
+				local pins_per_bank=$(of_get_prop_ulong "$node" "gpio-pins-per-bank")
+				local bank="$arg0"
+				local bank_pin="$arg1"
+				local attr="$arg2"
+				local pin=$((bank*32+bank_pin))
+				;;
+			"offset")
+				local attr="$arg1"
+				local pin="$arg0"
+				;;
+			*)
+				die "Unknown xlate type $xlate_type"
+				;;
+		esac
+
 		echo "${OF_GPIOCHIPS[$phandle]}:${pin}:${attr}"
 		debug "gpio $phandle $pin $attr"
+		return
 	done
 }
 
@@ -324,4 +351,3 @@ of_get_prop_gpionum() {
 
 	of_gpio_to_num $(of_get_prop_gpio "$1" "$2" | index "$index")
 }
-

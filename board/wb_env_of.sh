@@ -12,6 +12,10 @@ wb_of_parse_version() {
 			version=`echo "$compat" | sed 's/contactless,.*wirenboard-\?\(.*\)$/\1/'`
 			break
 			;;
+		wirenboard,*wirenboard*)
+			version=`echo "$compat" | sed 's/wirenboard,.*wirenboard-\?\(.*\)$/\1/'`
+			break
+			;;
 		esac
 	done
 
@@ -71,18 +75,19 @@ wb_of_parse() {
 	debug "Parsing hardware-specific environment from OF"
 	# Associative array for GPIO phandle to gpiochip resolving
 	declare -A OF_GPIOCHIPS
+	declare -A OF_GPIOCHIPS_NCELLS
 	of_find_gpiochips
 
 	declare -p OF_GPIOCHIPS
 
 	wb_of_parse_props
-	
-	of_node_exists "${WB_OF_ROOT}/gpios" && wb_of_parse_gpios gpios
+
+	of_node_exists "${WB_OF_ROOT}/gpios" && wb_of_parse_gpios gpios || true
 
 	of_node_exists "${WB_OF_ROOT}/gsm" && {
 		echo "export WB_GSM_POWER_TYPE=$(of_get_prop_ulong ${WB_OF_ROOT}/gsm power-type)"
 		wb_of_parse_gpios_props gsm
-	}
+	} || true
 
 	of_node_exists "${WB_OF_ROOT}/radio" && {
 		tmp="$(of_get_prop_ulong ${WB_OF_ROOT}/radio spi-major-minor | split_each 1)"
@@ -92,5 +97,5 @@ wb_of_parse() {
 
 		#For compatibility with legacy variable name
 		echo "export WB_GPIO_RFM_IRQ=\$WB_GPIO_RADIO_IRQ"
-	}
+	} || true
 }
