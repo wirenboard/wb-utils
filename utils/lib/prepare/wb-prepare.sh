@@ -266,13 +266,13 @@ wb_fix_short_sn()
         hostnamectl set-hostname --static $hostname
         hostnamectl set-chassis embedded
     else
-        echo $hostname > /etc/hostname.wb
+        echo "$hostname" > /etc/hostname.wb
         FIRSTBOOT_NEED_REBOOT=true
     fi
     log_end_msg $?
 
     log_action_msg "Setting internal Wi-Fi SSID to ${ssid}"
-    sed -i "s/^ssid=.*/ssid=${ssid}/" `readlink -f "/etc/hostapd.conf"`
+    sed -i "s/^ssid=.*/ssid=${ssid}/" $(readlink -f "/etc/hostapd.conf")
     log_end_msg $?
 }
 
