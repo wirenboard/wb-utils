@@ -1,0 +1,11 @@
+[Unit]
+Description=Restore local date from Wiren Board GSM RTC
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/wb-utils/wb-gsm-rtc/restore-wrapper.sh
+
+[Install]
+WantedBy=multi-user.target

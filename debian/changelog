@@ -1,3 +1,11 @@
+wb-utils (3.0.0) stable; urgency=medium
+
+  * switch all services to systemd (wb-init, wb-watch-update, wb-gsm-rtc)
+  * update repository layout
+  * wb-gsm-rtc: add 'present' command to check if modem RTC is present
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Fri, 08 Oct 2021 00:48:33 +0300
+
 wb-utils (2.3.1) stable; urgency=medium
 
   * Added timeout between toggling power and pwrkey in wb-gsm

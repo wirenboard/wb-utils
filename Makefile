@@ -1,12 +1,6 @@
 DESTDIR=/
 prefix=usr
 
-ifeq ($(DEB_BUILD_GNU_TYPE),$(DEB_HOST_GNU_TYPE))
-       CC=gcc
-else
-       CC=$(DEB_HOST_GNU_TYPE)-gcc
-endif
-
 
 all:
 	@echo Nothing to do
@@ -14,9 +8,10 @@ all:
 BINDIR = $(DESTDIR)/$(prefix)/bin
 LIBDIR = $(DESTDIR)/$(prefix)/lib/wb-utils
 PREPARE_LIBDIR = $(LIBDIR)/prepare
+RTC_LIBDIR = $(LIBDIR)/wb-gsm-rtc
 
 install:
-	install -m 0755 -d $(BINDIR) $(LIBDIR) $(PREPARE_LIBDIR)
+	install -m 0755 -d $(BINDIR) $(LIBDIR) $(PREPARE_LIBDIR) $(RTC_LIBDIR)
 
 	install -m 0644 utils/etc_wb_env.sh $(DESTDIR)/etc/wb_env.sh
 
@@ -31,7 +26,8 @@ install:
 		utils/lib/wb-gsm-common.sh
 
 	install -m 0755 -t $(LIBDIR) \
-		utils/lib/wb-init.sh
+		utils/lib/wb-init.sh \
+		utils/lib/ensure-env-cache.sh
 
 	install -m 0655 -t $(PREPARE_LIBDIR) \
 		utils/lib/prepare/partitions.sh \
@@ -39,6 +35,10 @@ install:
 
 	install -m 0755 -t $(PREPARE_LIBDIR) \
 		utils/lib/prepare/wb-prepare.sh
+
+	install -m 0755 -t $(RTC_LIBDIR) \
+		utils/lib/wb-gsm-rtc/restore-wrapper.sh \
+		utils/lib/wb-gsm-rtc/save-wrapper.sh
 
 	install -m 0755 -t $(BINDIR) \
 		utils/bin/wb-gen-serial \

@@ -1,13 +1,13 @@
 [Unit]
 Description=initialize filesystems at first boot
 Conflicts=shutdown.target
-Before=network.target watchdog.service shutdown.target
+Before=network.target avahi-daemon.service watchdog.service shutdown.target
 RefuseManualStop=true
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/bin/wb-prepare prepare
+ExecStart=/usr/lib/wb-utils/prepare/wb-prepare.sh prepare
 
 [Install]
 WantedBy=sysinit.target

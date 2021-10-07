@@ -1,4 +1,4 @@
-. /usr/lib/wb-prepare/vars.sh
+. /usr/lib/wb-utils/prepare/vars.sh
 
 # static vars for this part
 _TOTAL_SECTORS=0
