@@ -7,8 +7,8 @@ ROOT_PARTITION=$(mount -l | grep " / " | cut -d " " -f1)
 . /lib/lsb/init-functions
 
 # some constants for convenience
-. /usr/lib/wb-prepare/vars.sh
-. /usr/lib/wb-prepare/partitions.sh
+. /usr/lib/wb-utils/prepare/vars.sh
+. /usr/lib/wb-utils/prepare/partitions.sh
 
 MB=1024*1024
 
@@ -203,10 +203,10 @@ wb_fix_file()
     local descr=$2
     local cmd=$3
 
-    if [[ ! -f ${file} ]]; then
+    if [[ ! -f ${file} ]] || [[ ! -s ${file} ]]; then
         log_action_begin_msg "Creating ${descr}"
 
-        if [[ -e "/mnt/data/${file}" ]]; then
+        if [[ -e "/mnt/data/${file}" ]] && [[ ! "/mnt/data/${file}" -ef "${file}" ]] ; then
             log_action_cont_msg "found at /mnt/data"
             cp "/mnt/data/${file}" "${file}"
         else
@@ -266,13 +266,13 @@ wb_fix_short_sn()
         hostnamectl set-hostname --static $hostname
         hostnamectl set-chassis embedded
     else
-        echo $hostname > /etc/hostname.wb
+        echo "$hostname" > /etc/hostname.wb
         FIRSTBOOT_NEED_REBOOT=true
     fi
     log_end_msg $?
 
     log_action_msg "Setting internal Wi-Fi SSID to ${ssid}"
-    sed -i "s/^ssid=.*/ssid=${ssid}/" `readlink -f "/etc/hostapd.conf"`
+    sed -i "s/^ssid=.*/ssid=${ssid}/" $(readlink -f "/etc/hostapd.conf")
     log_end_msg $?
 }
 

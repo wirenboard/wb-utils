@@ -1,0 +1,12 @@
+[Unit]
+Description=Initialize Wiren Board on successful boot
+After=ntp.service remote-fs.target ssh.service nginx.service mosquitto.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/wb-utils/wb-init.sh start
+ExecStop=/usr/lib/wb-utils/wb-init.sh stop
+
+[Install]
+WantedBy=multi-user.target

@@ -77,12 +77,13 @@ wb_of_parse() {
 
 	wb_of_parse_props
 	
-	of_node_exists "${WB_OF_ROOT}/gpios" && wb_of_parse_gpios gpios
+	of_node_exists "${WB_OF_ROOT}/gpios" && wb_of_parse_gpios gpios || \
+        echo "# No enabled GPIOs node found"
 
 	of_node_exists "${WB_OF_ROOT}/gsm" && {
 		echo "export WB_GSM_POWER_TYPE=$(of_get_prop_ulong ${WB_OF_ROOT}/gsm power-type)"
 		wb_of_parse_gpios_props gsm
-	}
+	} || echo "# No enabled GSM node found"
 
 	of_node_exists "${WB_OF_ROOT}/radio" && {
 		tmp="$(of_get_prop_ulong ${WB_OF_ROOT}/radio spi-major-minor | split_each 1)"
@@ -92,5 +93,5 @@ wb_of_parse() {
 
 		#For compatibility with legacy variable name
 		echo "export WB_GPIO_RFM_IRQ=\$WB_GPIO_RADIO_IRQ"
-	}
+	} || echo "# No enabled radio node found"
 }

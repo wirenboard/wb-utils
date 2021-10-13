@@ -5,12 +5,12 @@ IFACE=${IFACE:-$1}
 	exit 1
 }
 
-[[ -z "$WB_VERSION" ]] && . /etc/wb_env.sh
+[[ -z "$WB_VERSION" ]] && . /usr/lib/wb-utils/wb_env.sh
 
 set_saved_mac() {
 	local saved_mac="/var/lib/wirenboard/${IFACE}_mac.conf"
-	[[ -e "$saved_mac" ]] &&
-		ifconfig $IFACE hw ether $(cat "$saved_mac") || true
+	[[ -e "$saved_mac" ]] && [[ -s "$saved_mac" ]] &&
+		ip link set "$IFACE" address "$(cat "$saved_mac")" || true
 }
 
 case "$WB_VERSION" in

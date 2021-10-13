@@ -35,8 +35,13 @@ case "$1" in
 		gsm_get_time
 	;;
 
+    "present" )
+        gsm_present
+        exit $?
+        ;;
+
 	* )
-		echo "USAGE: $0 [save_time|restore_time|read]";
+		echo "USAGE: $0 [save_time|restore_time|read|present]";
 	;;
 esac
 

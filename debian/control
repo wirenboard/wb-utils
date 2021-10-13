@@ -9,7 +9,7 @@ Homepage: https://github.com/wirenboard/wb-utils
 Package: wb-utils
 Architecture: all
 Depends: ${shlibs:Depends}, ${misc:Depends}, lsb-base (>= 4.1), u-boot-tools-wb (>= 2015.07+wb-3), inotify-tools, pv, jq,
-         nginx-extras, python-wb-common (>= 1.3.2), wb-configs (>= 1.69.4),
+         nginx-extras, python-wb-common (>= 1.3.2), wb-configs (>= 1.69.4), util-linux,
          linux-image-wb2 (>= 4.9+wb20180808183130) | linux-image-wb6 (>= 4.9+wb20180808183130), device-tree-compiler, parted
 Conflicts: wb-configs (<< 1.69.4)
 Breaks: wb-homa-ism-radio (<< 1.17.2), wb-rules-system (<< 1.6.1), wb-mqtt-serial (<< 1.47.2), wb-mqtt-homeui (<< 1.7.1)

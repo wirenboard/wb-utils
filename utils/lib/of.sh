@@ -74,11 +74,16 @@ __of_get_prop() {
 	cat "$node/$prop"
 }
 
-# Checks if a given node is existing
+# Checks if a given node exists.
+# Node with 'status: disabled' is treated as non-existing.
 # Args:
 #	node
 of_node_exists() {
-	[[ -e "$(__of_node_path "$1")" ]]
+    local node="$(__of_node_path "$1")"
+    [[ -e "$node" ]] && ( \
+        ( ! of_has_prop "$1" "status" ) || \
+        [[ "$(of_get_prop_str "$1" "status")" != "disabled" ]] \
+    )
 }
 
 # Get list of node's direct children
@@ -170,7 +175,10 @@ of_node_children() {
 }
 
 of_node_exists() {
-	of_node_props "$1" >/dev/null
+    of_node_props "$1" >/dev/null && ( \
+        ( ! of_has_prop "$1" "status" ) || \
+        [[ "$(of_get_prop_str "$1" "status")" != "disabled" ]]
+    )
 }
 
 of_has_prop() {

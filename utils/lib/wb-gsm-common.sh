@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. /etc/wb_env.sh
+. /usr/lib/wb-utils/wb_env.sh
 wb_source "hardware"
 wb_source "of"
 
@@ -65,8 +65,12 @@ function is_neoway_m660a() {
 }
 
 
+function gsm_present() {
+    [[ -n "${WB_GSM_POWER_TYPE}" ]] && [[ "$WB_GSM_POWER_TYPE" != "0" ]]
+}
+
 function gsm_init() {
-    if [[ -z "${WB_GSM_POWER_TYPE}" ]] || [[ "$WB_GSM_POWER_TYPE" = "0" ]]; then
+    if ! gsm_present; then
         debug "No GSM modem present, exiting"
         exit 1
     fi

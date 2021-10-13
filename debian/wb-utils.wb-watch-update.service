@@ -1,0 +1,10 @@
+[Unit]
+Description=Wiren Board firmware update service
+After=mosquitto.service local-fs.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/wb-watch-update
+
+[Install]
+WantedBy=multi-user.target

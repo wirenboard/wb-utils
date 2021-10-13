@@ -9,7 +9,7 @@ RefuseManualStop=true
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/bin/wb-prepare make-partitions
+ExecStart=/usr/lib/wb-utils/prepare/wb-prepare.sh make-partitions
 
 [Install]
 WantedBy=sysinit.target
