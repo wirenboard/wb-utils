@@ -21,8 +21,11 @@ wb_init()
 
     elif of_machine_match "contactless,imx23-wirenboard-kmon1"; then
         gpio_setup "${WB_GPIO_5V_ISOLATED_ON}" high
+    else
+        led_blink green || echo "# No green LED found"
+        led_off red || echo "# No red LED found"
     fi
-    
+
     # reset RTS state on RS-485 transcievers on Wiren Board 5
     if of_machine_match "contactless,imx28-wirenboard50"; then
         stty -F /dev/ttyAPP1 > /dev/null
