@@ -1,4 +1,4 @@
-wb-utils (3.0.1) stable; urgency=medium
+wb-utils (3.1.0) stable; urgency=medium
 
   * Support for WB7
   * Workaround for parsing sunxi-style gpio descriptors
