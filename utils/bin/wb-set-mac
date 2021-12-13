@@ -1,11 +1,13 @@
 #!/bin/bash
+
+. /usr/lib/wb-utils/wb_env.sh
+wb_source "of"
+
 IFACE=${IFACE:-$1}
 [[ -n "$IFACE" ]] || {
 	echo "IFACE is unset"
 	exit 1
 }
-
-[[ -z "$WB_VERSION" ]] && . /usr/lib/wb-utils/wb_env.sh
 
 set_saved_mac() {
 	local saved_mac="/var/lib/wirenboard/${IFACE}_mac.conf"
@@ -13,16 +15,14 @@ set_saved_mac() {
 		ip link set "$IFACE" address "$(cat "$saved_mac")" || true
 }
 
-case "$WB_VERSION" in
-	"60" | "61" )
-		# If random MAC is used (i.e. not set in DT by U-Boot or manually
-		# configured), fallback to the usual way. Otherwise, do nothing.
-		addr_type=$(cat "/sys/class/net/$IFACE/addr_assign_type")
-		[[ "$addr_type" == 1 ]] && set_saved_mac || true
-		;;
-
-	*)
-		set_saved_mac
-		;;
-esac
-
+if of_machine_match "fsl,imx23" || of_machine_match "fsl,imx28" ; then
+	# set mac from saved location for Wiren Board 5 or older
+	set_saved_mac
+elif of_machine_match "contactless,imx6ul-wirenboard61" && \
+	 ! of_machine_match "contactless,imx6ul-wirenboard65" ; then
+	# set mac from saved location for Wiren Board 6.0 and 6.1 (fallback behavior)
+	# If random MAC is used (i.e. not set in DT by U-Boot or manually
+	# configured), fallback to the usual way. Otherwise, do nothing.
+	addr_type=$(cat "/sys/class/net/$IFACE/addr_assign_type")
+	[[ "$addr_type" == 1 ]] && set_saved_mac || true
+fi
