@@ -18,11 +18,4 @@ set_saved_mac() {
 if of_machine_match "fsl,imx23" || of_machine_match "fsl,imx28" ; then
 	# set mac from saved location for Wiren Board 5 or older
 	set_saved_mac
-elif of_machine_match "contactless,imx6ul-wirenboard61" && \
-	 ! of_machine_match "contactless,imx6ul-wirenboard65" ; then
-	# set mac from saved location for Wiren Board 6.0 and 6.1 (fallback behavior)
-	# If random MAC is used (i.e. not set in DT by U-Boot or manually
-	# configured), fallback to the usual way. Otherwise, do nothing.
-	addr_type=$(cat "/sys/class/net/$IFACE/addr_assign_type")
-	[[ "$addr_type" == 1 ]] && set_saved_mac || true
 fi
