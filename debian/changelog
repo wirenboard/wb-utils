@@ -1,9 +1,15 @@
-wb-utils (3.1.0) stable; urgency=medium
+wb-utils (3.2.0) stable; urgency=medium
 
   * Support for WB7
   * Workaround for parsing sunxi-style gpio descriptors
 
  -- Evgeny Boger <boger@contactless.ru>  Fri, 10 Sep 2021 22:27:12 +0300
+
+wb-utils (3.1.0) stable; urgency=medium
+
+  * wb-set-mac: disable MAC setting for wb6 and newer
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Mon, 13 Dec 2021 17:40:50 +0300
 
 wb-utils (3.0.0) stable; urgency=medium
 
