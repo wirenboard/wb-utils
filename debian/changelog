@@ -1,3 +1,9 @@
+wb-utils (3.3.0) stable; urgency=medium
+
+  * support for factory restore fit on eMMC and new update mode in bootloader
+
+ -- Evgeny Boger <boger@contactless.ru>  Thu, 13 Jan 2022 10:25:47 +0300
+
 wb-utils (3.2.0) stable; urgency=medium
 
   * Support for WB7
