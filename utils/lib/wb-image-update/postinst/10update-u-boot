@@ -5,6 +5,9 @@
 #
 # This script may run in Busybox initramfs environment,
 # so if you need some special tools or features, use ones from rootfs.
+#
+# /dev, /proc and /sys are already bind-mounted
+# from host system to rootfs tree.
 
 if [ $# -lt 1 ]; then
     echo "Usage: $0 path/to/rootfs [flag1 [flag2 ...]]"
@@ -26,27 +29,6 @@ fi
 
 if [ -e "$ROOTFS/usr/bin/u-boot-install-wb" ] ; then
     echo "Trying to install u-boot using u-boot-install-wb from new rootfs"
-
-    CHROOT_MOUNTS=""
-    cleanup_mounts() {
-        for m in $CHROOT_MOUNTS; do
-            umount "$m" || true
-        done
-    }
-    trap cleanup_mounts EXIT
-
-    if [ ! -e "$ROOTFS/dev/null" ] ; then
-        echo "Mount /dev to rootfs"
-        mount -o bind /dev "$ROOTFS/dev"
-        CHROOT_MOUNTS="$CHROOT_MOUNTS $ROOTFS/dev"
-    fi
-
-    if [ ! -e "$ROOTFS/proc/device-tree" ] ; then
-        echo "Mount /proc to rootfs"
-        mount -o bind /proc "$ROOTFS/proc"
-        CHROOT_MOUNTS="$CHROOT_MOUNTS $ROOTFS/proc"
-    fi
-
     chroot "$ROOTFS" /usr/bin/u-boot-install-wb --force
 else
     echo "No u-boot installer found in new rootfs, skipping step"

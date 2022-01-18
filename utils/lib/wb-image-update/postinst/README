@@ -8,8 +8,8 @@ Scripts from NEW rootfs are used.
 
 Scripts are called NOT from this rootfs environment. They may be even
 called from Busybox minimal environment (initramfs in FIT images).
-If you need some tools from rootfs, use chroot (don't forget to mount
-all required directories such as /dev, /proc etc.)
+If you need some tools from rootfs, use chroot.
+/dev, /proc and /sys are already mounted to rootfs here.
 
 Scripts are called in alphabetic order; you can use it by adding numeric
 prefixes to script names (e.g. 99-install-uboot.sh).
