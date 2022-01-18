@@ -27,13 +27,24 @@ fi
 if [ -e "$ROOTFS/usr/bin/u-boot-install-wb" ] ; then
     echo "Trying to install u-boot using u-boot-install-wb from new rootfs"
 
+    CHROOT_MOUNTS=""
+    cleanup_mounts() {
+        for m in $CHROOT_MOUNTS; do
+            umount "$m" || true
+        done
+    }
+    trap cleanup_mounts EXIT
+
     if [ ! -e "$ROOTFS/dev/null" ] ; then
         echo "Mount /dev to rootfs"
-        cleanup_mounts() {
-            umount "$ROOTFS/dev"
-        }
         mount -o bind /dev "$ROOTFS/dev"
-        trap cleanup_mounts EXIT
+        CHROOT_MOUNTS="$CHROOT_MOUNTS $ROOTFS/dev"
+    fi
+
+    if [ ! -e "$ROOTFS/proc/device-tree" ] ; then
+        echo "Mount /proc to rootfs"
+        mount -o bind /proc "$ROOTFS/proc"
+        CHROOT_MOUNTS="$CHROOT_MOUNTS $ROOTFS/proc"
     fi
 
     chroot "$ROOTFS" /usr/bin/u-boot-install-wb --force
