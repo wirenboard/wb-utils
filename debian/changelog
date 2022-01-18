@@ -1,3 +1,10 @@
+wb-utils (3.3.0) stable; urgency=medium
+
+  * add wb-image-update/postinst directory
+  * image-postinst: add script to update u-boot during factory reset
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Tue, 18 Jan 2022 16:38:50 +0300
+
 wb-utils (3.2.0) stable; urgency=medium
 
   * Support for WB7

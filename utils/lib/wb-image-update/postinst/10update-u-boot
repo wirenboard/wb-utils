@@ -1,0 +1,42 @@
+#!/bin/sh -e
+
+# Called from install_update.sh with arguments
+# /path/to/script /path/to/new/rootfs [flag1 [flag2 ...]]
+#
+# This script may run in Busybox initramfs environment,
+# so if you need some special tools or features, use ones from rootfs.
+
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 path/to/rootfs [flag1 [flag2 ...]]"
+    exit 2
+fi
+
+ROOTFS="$1"
+shift
+FLAGS="$*"
+
+flag_set() {
+	echo "$FLAGS" | grep -- "--$1" >/dev/null 2>&1
+}
+
+if ! flag_set "factoryreset" ; then
+    echo "Skipping u-boot update (use factory reset to do it)"
+    exit
+fi
+
+if [ -e "$ROOTFS/usr/bin/u-boot-install-wb" ] ; then
+    echo "Trying to install u-boot using u-boot-install-wb from new rootfs"
+
+    if [ ! -e "$ROOTFS/dev/null" ] ; then
+        echo "Mount /dev to rootfs"
+        cleanup_mounts() {
+            umount "$ROOTFS/dev"
+        }
+        mount -o bind /dev "$ROOTFS/dev"
+        trap cleanup_mounts EXIT
+    fi
+
+    chroot "$ROOTFS" /usr/bin/u-boot-install-wb --force
+else
+    echo "No u-boot installer found in new rootfs, skipping step"
+fi

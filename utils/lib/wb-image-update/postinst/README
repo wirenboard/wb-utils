@@ -1,0 +1,20 @@
+Wiren Board image update postinst scripts
+=========================================
+
+Scripts from this directory are called in FIT image installation process
+after rootfs is extracted and device certificates are recovered.
+
+Scripts from NEW rootfs are used.
+
+Scripts are called NOT from this rootfs environment. They may be even
+called from Busybox minimal environment (initramfs in FIT images).
+If you need some tools from rootfs, use chroot (don't forget to mount
+all required directories such as /dev, /proc etc.)
+
+Scripts are called in alphabetic order; you can use it by adding numeric
+prefixes to script names (e.g. 99-install-uboot.sh).
+
+Invokation of these scripts is performed in install_image.sh script
+(see https://github.com/wirenboard/wirenboard repo for more details).
+
+See 10update-u-boot script as an example.
