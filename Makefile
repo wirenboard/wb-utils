@@ -9,9 +9,10 @@ BINDIR = $(DESTDIR)/$(prefix)/bin
 LIBDIR = $(DESTDIR)/$(prefix)/lib/wb-utils
 PREPARE_LIBDIR = $(LIBDIR)/prepare
 RTC_LIBDIR = $(LIBDIR)/wb-gsm-rtc
+IMAGEUPDATE_POSTINST_DIR = $(DESTDIR)/$(prefix)/lib/wb-image-update/postinst
 
 install:
-	install -m 0755 -d $(BINDIR) $(LIBDIR) $(PREPARE_LIBDIR) $(RTC_LIBDIR)
+	install -m 0755 -d $(BINDIR) $(LIBDIR) $(PREPARE_LIBDIR) $(RTC_LIBDIR) $(IMAGEUPDATE_POSTINST_DIR)
 
 	install -m 0644 utils/etc_wb_env.sh $(DESTDIR)/etc/wb_env.sh
 
@@ -47,6 +48,9 @@ install:
 		utils/bin/wb-gsm-rtc \
 		utils/bin/wb-watch-update \
 		utils/bin/wb-run-update
+
+	install -m 0755 -t $(IMAGEUPDATE_POSTINST_DIR) \
+		utils/lib/wb-image-update/postinst/10update-u-boot
 
 clean:
 	@echo Nothing to do

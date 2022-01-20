@@ -1,3 +1,9 @@
+wb-utils (3.4.0) stable; urgency=medium
+
+  * image-postinst: add script to update u-boot during factory reset
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Thu, 20 Jan 2022 23:29:28 +0300
+
 wb-utils (3.3.0) stable; urgency=medium
 
   * support for factory restore fit on eMMC and new update mode in bootloader
