@@ -4,6 +4,13 @@ wb-utils (3.3.0) stable; urgency=medium
 
  -- Evgeny Boger <boger@contactless.ru>  Thu, 13 Jan 2022 10:25:47 +0300
 
+wb-utils (3.2.1) stable; urgency=medium
+
+  * wb-gen-serial: proper WB7 serial generation
+  * add dependency on linux-image-wb7
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Wed, 19 Jan 2022 22:18:51 +0300
+
 wb-utils (3.2.0) stable; urgency=medium
 
   * Support for WB7
