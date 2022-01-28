@@ -4,8 +4,28 @@
 wb_source "hardware"
 wb_source "of"
 
-PORT=/dev/ttyGSM
+
 DEFAULT_BAUDRATE=115200
+
+
+function has_uart() {
+    # usually modem has UART for AT-commands and USB-uart for data connection
+    # sometimes uart may be not present (ex: no uart in wb7 board); we defining "usb-soc-addr" prop in these cases
+    ! of_has_prop "wirenboard/gsm" "usb-soc-addr"
+}
+
+
+if has_uart; then
+    PORT=/dev/ttyGSM
+    POWERON_DELAY=0
+    debug "Connecting via uart; port: $PORT"
+else
+    PORT=/dev/ttyUSB1
+    POWERON_DELAY=10
+    debug "Connecting via usb; port: $PORT"
+    # TODO: port by modem model?
+fi
+
 
 function get_model() {
     set_speed
@@ -75,12 +95,15 @@ function gsm_init() {
         exit 1
     fi
 
-    if [[ ! -c "$PORT" || ! -r "$PORT" || ! -w "$PORT" ]]; then
-        debug "Cannot access GSM modem serial port, exiting"
-        exit 1
+    if has_uart; then
+        # UART has present always (even if modem is turned off)
+        if [[ ! -c "$PORT" || ! -r "$PORT" || ! -w "$PORT" ]]; then
+            debug "Cannot access GSM modem serial port, exiting"
+            exit 1
+        else
+            set_speed
+        fi
     fi
-
-    set_speed
 
     gpio_setup $WB_GPIO_GSM_PWRKEY out
 
@@ -154,7 +177,9 @@ function set_speed() {
         BAUDRATE=$1
     fi
 
-    stty -F $PORT ${BAUDRATE} cs8 -cstopb -parenb -icrnl
+    if has_uart; then
+        stty -F $PORT ${BAUDRATE} cs8 -cstopb -parenb -icrnl
+    fi
 }
 
 function _try_set_baud() {
@@ -280,6 +305,7 @@ function ensure_on() {
     fi;
 
     toggle
+    sleep $POWERON_DELAY
 
     if [[ -n "${WB_GPIO_GSM_STATUS}" ]]; then
         debug "Waiting for modem to start"
