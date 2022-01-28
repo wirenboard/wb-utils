@@ -6,6 +6,7 @@ wb_source "of"
 
 
 DEFAULT_BAUDRATE=115200
+PORT=/dev/ttyGSM
 
 
 function has_uart() {
@@ -15,16 +16,24 @@ function has_uart() {
 }
 
 
-if has_uart; then
-    PORT=/dev/ttyGSM
-    POWERON_DELAY=0
-    debug "Connecting via uart; port: $PORT"
-else
-    PORT=/dev/ttyUSB1
-    POWERON_DELAY=10
-    debug "Connecting via usb; port: $PORT"
-    # TODO: port by modem model?
-fi
+function get_at_port() {
+    if ! of_has_prop "wirenboard/gsm" "at-port-position"; then
+        debug "USB port position is not defined"
+        exit 1
+    fi
+
+    local at_port_position=of_get_prop_ulong "wirenboard/gsm" "at-port-position"
+    local current_position=0
+
+    for port_params in $(readlink -f /sys/bus/usb-serial/devices/* | grep $(of_get_prop_str "wirenboard/gsm" "usb-soc-addr")); do
+        if [ $current_position -eq $at_port_position ]; then
+            echo /dev/$($port_params | grep -o 'tty.*$')
+            return
+        else
+            ((current_position=current_position+1))
+        fi
+    done
+}
 
 
 function get_model() {
@@ -101,6 +110,7 @@ function gsm_init() {
             debug "Cannot access GSM modem serial port, exiting"
             exit 1
         else
+            debug "Connecting via uart; port: $PORT"
             set_speed
         fi
     fi
@@ -305,7 +315,15 @@ function ensure_on() {
     fi;
 
     toggle
-    sleep $POWERON_DELAY
+
+    if ! has_uart; then
+        local poweron_delay=10
+        debug "Connecting via usb"
+        debug "Will wait $poweron_delay s untill port becomes available"
+        sleep $poweron_delay
+        PORT=`get_at_port`
+        debug "Got AT-port: $PORT"
+    fi
 
     if [[ -n "${WB_GPIO_GSM_STATUS}" ]]; then
         debug "Waiting for modem to start"
