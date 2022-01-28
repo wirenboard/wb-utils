@@ -1,3 +1,9 @@
+wb-utils (3.5.0) stable; urgency=medium
+
+  * wb-gsm: added usb-only modems support (wb6, wb7)
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Wed, 02 Feb 2022 02:01:53 +0300
+
 wb-utils (3.4.1) stable; urgency=medium
 
   * invalidate wb_env cache if device-tree was updated

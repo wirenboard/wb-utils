@@ -4,8 +4,53 @@
 wb_source "hardware"
 wb_source "of"
 
-PORT=/dev/ttyGSM
+
 DEFAULT_BAUDRATE=115200
+PORT=/dev/ttyGSM
+
+
+function is_usb_only() {
+    # usually modem has UART for AT-commands and USB-uart for data connection
+    # sometimes uart may be not present (ex: no uart in wb7 board); we defining "conn-type" = "usb" prop in these cases
+    local nodename="wirenboard/gsm"
+    local propname="conn-type"
+
+    if of_has_prop $nodename $propname; then
+        ret=$(of_get_prop_str $nodename $propname)
+    fi
+    [[ $ret == "usb" ]]
+}
+
+
+function get_modem_usb_devices() {
+    # usb-port, modem connected to, is binded in device-tree
+    # returns all tty devices on this port
+    local compatible_str="wirenboard,wbc-usb-modem"
+    local usb_root=$(grep -l $compatible_str /sys/bus/usb/devices/*/of_node/compatible | sed 's/of_node\/compatible//')
+    [[ -z $usb_root ]] && echo $usb_root || echo $(ls $usb_root*/ | grep -o 'tty.*$')
+}
+
+
+function test_connection() {
+    debug "Testing connection (port:$1; timeout:$2)"
+    /usr/sbin/chat -v   TIMEOUT $2 ABORT "ERROR" ABORT "BUSY" "" AT OK "" > $1 < $1
+    RC=$?
+    echo $RC
+}
+
+
+function get_at_port() {
+    # a usb-connected modem produces multiple devices
+    # trying to guess, which one is at-port
+    for portname in $(get_modem_usb_devices); do
+        port="/dev/$portname"
+        if [[ $(test_connection $port 2) == 0 ]] ; then
+            echo "$port"
+            break
+        fi
+    done
+}
+
 
 function get_model() {
     set_speed
@@ -75,12 +120,16 @@ function gsm_init() {
         exit 1
     fi
 
-    if [[ ! -c "$PORT" || ! -r "$PORT" || ! -w "$PORT" ]]; then
-        debug "Cannot access GSM modem serial port, exiting"
-        exit 1
+    if ! is_usb_only; then
+        # UART has present always (even if modem is turned off)
+        if [[ ! -c "$PORT" || ! -r "$PORT" || ! -w "$PORT" ]]; then
+            debug "Cannot access GSM modem serial port, exiting"
+            exit 1
+        else
+            debug "Connecting via uart; port: $PORT"
+            set_speed
+        fi
     fi
-
-    set_speed
 
     gpio_setup $WB_GPIO_GSM_PWRKEY out
 
@@ -107,6 +156,13 @@ function gsm_init() {
         gpio_set_dir $WB_GPIO_GSM_SIMSELECT out
         # select SIM1 at startup
         gpio_set_value $WB_GPIO_GSM_SIMSELECT 0
+    fi
+
+    if is_usb_only; then
+        if [[ `gpio_get_value $WB_GPIO_GSM_STATUS` -eq "1" ]]; then
+            debug "USB modem is turned on already"
+            PORT=`get_at_port`
+        fi
     fi
 }
 
@@ -154,12 +210,14 @@ function set_speed() {
         BAUDRATE=$1
     fi
 
-    stty -F $PORT ${BAUDRATE} cs8 -cstopb -parenb -icrnl
+    if ! is_usb_only; then
+        stty -F $PORT ${BAUDRATE} cs8 -cstopb -parenb -icrnl
+    fi  # In usb-connection case, setting BD is mock; actual port's BD is a modem's one
 }
 
 function _try_set_baud() {
     local RC=1
-    if [[ $(test_connection) == 0 ]] ; then
+    if [[ $(test_connection $PORT 5) == 0 ]] ; then
         debug "Got answer from modem, now set the fixed baudrate"
         echo  -e "AT+IPR=115200\r\n" > $PORT
         RC=0
@@ -281,6 +339,20 @@ function ensure_on() {
 
     toggle
 
+    if is_usb_only; then
+        local poweron_delay=30
+        debug "Connecting via usb"
+        debug "Will wait up to ${poweron_delay}s untill usb port becomes available"
+        for ((i=0; i<=poweron_delay; i++)); do
+            if [[ ! -z `echo $(get_modem_usb_devices)` ]]; then
+                break
+            fi
+            sleep 1
+        done
+        PORT=`get_at_port`
+        debug "Got AT-port: $PORT"
+    fi
+
     if [[ -n "${WB_GPIO_GSM_STATUS}" ]]; then
         debug "Waiting for modem to start"
         max_tries=30
@@ -306,11 +378,6 @@ function ensure_on() {
     synchronize_baudrate
 }
 
-function test_connection() {
-    /usr/sbin/chat -v   TIMEOUT 5 ABORT "ERROR" ABORT "BUSY" "" AT OK "" > $PORT < $PORT
-    RC=$?
-    echo $RC
-}
 
 function restart_if_broken() {
     #~ set_speed
@@ -323,7 +390,7 @@ function restart_if_broken() {
     fi
 
     if [[ $RC == 0 ]]; then
-        RC=$(test_connection)
+        RC=$(test_connection $PORT 5)
         if [[ $RC != 0 ]] ; then
             debug "WARNING: connection test error!"
             switch_off
@@ -336,7 +403,7 @@ function restart_if_broken() {
 
         local max_retries=10
         for ((run=1;run<$max_retries;run++)); do
-            RC=$(test_connection)
+            RC=$(test_connection $PORT 5)
             if [[ $RC == 0 ]]; then
                 return 0;
             fi
