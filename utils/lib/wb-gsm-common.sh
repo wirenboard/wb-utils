@@ -23,21 +23,22 @@ function get_modem_usb_devices() {
 }
 
 
+function test_connection() {
+    debug "Testing connection (port:$1; timeout:$2)"
+    /usr/sbin/chat -v   TIMEOUT $2 ABORT "ERROR" ABORT "BUSY" "" AT OK "" > $1 < $1
+    RC=$?
+    echo $RC
+}
+
+
 function get_at_port() {
-    if ! of_has_prop "wirenboard/gsm" "at-port-position"; then
-        debug "USB-AT port position is not defined"
-        exit 1
-    fi
-
-    local at_port_position=$(of_get_prop_ulong "wirenboard/gsm" "at-port-position")
-    local current_position=0
-
+    # a usb-connected modem produces multiple devices
+    # trying to guess, which one is at-port
     for port_params in $(get_modem_usb_devices); do
-        if [ $current_position -eq $at_port_position ]; then
-            echo "/dev/$(echo $port_params | grep -o 'tty.*$')"
-            return
-        else
-            ((current_position=current_position+1))
+        portname="/dev/$(echo $port_params | grep -o 'tty.*$')"
+        if [[ $(test_connection $portname 2) == 0 ]] ; then
+            echo "$portname"
+            break
         fi
     done
 }
@@ -148,6 +149,13 @@ function gsm_init() {
         # select SIM1 at startup
         gpio_set_value $WB_GPIO_GSM_SIMSELECT 0
     fi
+
+    if ! has_uart; then
+        if [[ `gpio_get_value $WB_GPIO_GSM_STATUS` -eq "1" ]]; then
+            debug "USB modem is turned on already"
+            PORT=`get_at_port`
+        fi
+    fi
 }
 
 
@@ -201,7 +209,7 @@ function set_speed() {
 
 function _try_set_baud() {
     local RC=1
-    if [[ $(test_connection) == 0 ]] ; then
+    if [[ $(test_connection $PORT 5) == 0 ]] ; then
         debug "Got answer from modem, now set the fixed baudrate"
         echo  -e "AT+IPR=115200\r\n" > $PORT
         RC=0
@@ -362,11 +370,6 @@ function ensure_on() {
     synchronize_baudrate
 }
 
-function test_connection() {
-    /usr/sbin/chat -v   TIMEOUT 5 ABORT "ERROR" ABORT "BUSY" "" AT OK "" > $PORT < $PORT
-    RC=$?
-    echo $RC
-}
 
 function restart_if_broken() {
     #~ set_speed
@@ -379,7 +382,7 @@ function restart_if_broken() {
     fi
 
     if [[ $RC == 0 ]]; then
-        RC=$(test_connection)
+        RC=$(test_connection $PORT 5)
         if [[ $RC != 0 ]] ; then
             debug "WARNING: connection test error!"
             switch_off
@@ -392,7 +395,7 @@ function restart_if_broken() {
 
         local max_retries=10
         for ((run=1;run<$max_retries;run++)); do
-            RC=$(test_connection)
+            RC=$(test_connection $PORT 5)
             if [[ $RC == 0 ]]; then
                 return 0;
             fi

@@ -1,3 +1,9 @@
+wb-utils (3.4.1) stable; urgency=medium
+
+  * wb-gsm: added support of usb-only modems
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Wed, 01 Feb 2022 01:53:17 +0300
+
 wb-utils (3.4.0) stable; urgency=medium
 
   * image-postinst: add script to update u-boot during factory reset
