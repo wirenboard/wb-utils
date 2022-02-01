@@ -16,18 +16,25 @@ function has_uart() {
 }
 
 
+function get_modem_usb_devices() {
+    # modem is connected to it's own usb-hub with known address (from wirenboard/gsm node)
+    # returns all devices on this hub
+    echo $(readlink -m /sys/bus/usb-serial/devices/* | grep $(of_get_prop_str "wirenboard/gsm" "usb-soc-addr"));
+}
+
+
 function get_at_port() {
     if ! of_has_prop "wirenboard/gsm" "at-port-position"; then
-        debug "USB port position is not defined"
+        debug "USB-AT port position is not defined"
         exit 1
     fi
 
-    local at_port_position=of_get_prop_ulong "wirenboard/gsm" "at-port-position"
+    local at_port_position=$(of_get_prop_ulong "wirenboard/gsm" "at-port-position")
     local current_position=0
 
-    for port_params in $(readlink -f /sys/bus/usb-serial/devices/* | grep $(of_get_prop_str "wirenboard/gsm" "usb-soc-addr")); do
+    for port_params in $(get_modem_usb_devices); do
         if [ $current_position -eq $at_port_position ]; then
-            echo /dev/$($port_params | grep -o 'tty.*$')
+            echo "/dev/$(echo $port_params | grep -o 'tty.*$')"
             return
         else
             ((current_position=current_position+1))
@@ -189,7 +196,7 @@ function set_speed() {
 
     if has_uart; then
         stty -F $PORT ${BAUDRATE} cs8 -cstopb -parenb -icrnl
-    fi
+    fi  # In usb-connection case, setting BD is mock; actual port's BD is a modem's one
 }
 
 function _try_set_baud() {
@@ -317,10 +324,15 @@ function ensure_on() {
     toggle
 
     if ! has_uart; then
-        local poweron_delay=10
+        local poweron_delay=30
         debug "Connecting via usb"
-        debug "Will wait $poweron_delay s untill port becomes available"
-        sleep $poweron_delay
+        debug "Will wait up to ${poweron_delay}s untill usb port becomes available"
+        for ((i=0; i<=poweron_delay; i++)); do
+            if [[ ! -z `echo $(get_modem_usb_devices)` ]]; then
+                break
+            fi
+            sleep 1
+        done
         PORT=`get_at_port`
         debug "Got AT-port: $PORT"
     fi
