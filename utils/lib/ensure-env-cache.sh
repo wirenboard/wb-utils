@@ -19,6 +19,18 @@ flock -w "$LOCK_TIMEOUT" 100 || {
 
 trap 'rm -f $WB_ENV_LOCK' EXIT
 
+if [[ -e "$WB_ENV_CACHE" ]]; then
+    # Collect last modification time from /proc/device-tree/wirenboard
+    # recursively and check if cache is newer
+    DT_WIRENBOARD_LAST_CHANGE="$(find "/proc/device-tree/$WB_OF_ROOT" -type f -printf "%Ts\n" | sort | tail -1)"
+    CACHE_LAST_CHANGE="$(stat -c"%X" "$WB_ENV_CACHE")"
+
+    # Remove cache file if device tree was updated. It is safe to do here, we have lock
+    if [[ "$DT_WIRENBOARD_LAST_CHANGE" -gt "$CACHE_LAST_CHANGE" ]]; then
+        rm "$WB_ENV_CACHE" -f
+    fi
+fi
+
 if [[ ! -e "$WB_ENV_CACHE" ]]; then
 	ENV_TMP=$(mktemp)
 
