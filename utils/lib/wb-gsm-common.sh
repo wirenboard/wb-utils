@@ -19,7 +19,7 @@ function has_uart() {
 function get_modem_usb_devices() {
     # modem is connected to it's own usb-hub with known address (from wirenboard/gsm node)
     # returns all devices on this hub
-    echo $(readlink -m /sys/bus/usb-serial/devices/* | grep $(of_get_prop_str "wirenboard/gsm" "usb-soc-addr"));
+    echo $(readlink -f /dev/serial/by-path/platform-$(of_get_prop_str "wirenboard/gsm" "usb-soc-addr")*);
 }
 
 
@@ -34,10 +34,9 @@ function test_connection() {
 function get_at_port() {
     # a usb-connected modem produces multiple devices
     # trying to guess, which one is at-port
-    for port_params in $(get_modem_usb_devices); do
-        portname="/dev/$(echo $port_params | grep -o 'tty.*$')"
-        if [[ $(test_connection $portname 2) == 0 ]] ; then
-            echo "$portname"
+    for port in $(get_modem_usb_devices); do
+        if [[ $(test_connection $port 2) == 0 ]] ; then
+            echo "$port"
             break
         fi
     done
