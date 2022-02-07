@@ -17,9 +17,11 @@ function has_uart() {
 
 
 function get_modem_usb_devices() {
-    # modem is connected to it's own usb-hub with known address (from wirenboard/gsm node)
-    # returns all devices on this hub
-    echo $(readlink -f /dev/serial/by-path/platform-$(of_get_prop_str "wirenboard/gsm" "usb-soc-addr")*);
+    # usb-port, modem connected to, is binded in device-tree
+    # returns all tty devices on this port
+    local compatible_str="wirenboard,wbc-usb-modem"
+    local usb_root=$(grep -l $compatible_str /sys/bus/usb/devices/*/of_node/compatible | sed 's/of_node\/compatible//')
+    [[ -z $usb_root ]] && echo $usb_root || echo $(ls $usb_root*/ | grep -o 'tty.*$')
 }
 
 
@@ -34,7 +36,8 @@ function test_connection() {
 function get_at_port() {
     # a usb-connected modem produces multiple devices
     # trying to guess, which one is at-port
-    for port in $(get_modem_usb_devices); do
+    for portname in $(get_modem_usb_devices); do
+        port="/dev/$portname"
         if [[ $(test_connection $port 2) == 0 ]] ; then
             echo "$port"
             break
