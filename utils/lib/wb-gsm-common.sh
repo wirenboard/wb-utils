@@ -9,10 +9,16 @@ DEFAULT_BAUDRATE=115200
 PORT=/dev/ttyGSM
 
 
-function has_uart() {
+function is_usb_only() {
     # usually modem has UART for AT-commands and USB-uart for data connection
-    # sometimes uart may be not present (ex: no uart in wb7 board); we defining "usb-soc-addr" prop in these cases
-    ! of_has_prop "wirenboard/gsm" "usb-soc-addr"
+    # sometimes uart may be not present (ex: no uart in wb7 board); we defining "conn-type" = "usb" prop in these cases
+    local nodename="wirenboard/gsm"
+    local propname="conn-type"
+
+    if of_has_prop $nodename $propname; then
+        ret=$(of_get_prop_str $nodename $propname)
+    fi
+    [[ $ret == "usb" ]]
 }
 
 
@@ -114,7 +120,7 @@ function gsm_init() {
         exit 1
     fi
 
-    if has_uart; then
+    if ! is_usb_only; then
         # UART has present always (even if modem is turned off)
         if [[ ! -c "$PORT" || ! -r "$PORT" || ! -w "$PORT" ]]; then
             debug "Cannot access GSM modem serial port, exiting"
@@ -152,7 +158,7 @@ function gsm_init() {
         gpio_set_value $WB_GPIO_GSM_SIMSELECT 0
     fi
 
-    if ! has_uart; then
+    if is_usb_only; then
         if [[ `gpio_get_value $WB_GPIO_GSM_STATUS` -eq "1" ]]; then
             debug "USB modem is turned on already"
             PORT=`get_at_port`
@@ -204,7 +210,7 @@ function set_speed() {
         BAUDRATE=$1
     fi
 
-    if has_uart; then
+    if ! is_usb_only; then
         stty -F $PORT ${BAUDRATE} cs8 -cstopb -parenb -icrnl
     fi  # In usb-connection case, setting BD is mock; actual port's BD is a modem's one
 }
@@ -333,7 +339,7 @@ function ensure_on() {
 
     toggle
 
-    if ! has_uart; then
+    if is_usb_only; then
         local poweron_delay=30
         debug "Connecting via usb"
         debug "Will wait up to ${poweron_delay}s untill usb port becomes available"
