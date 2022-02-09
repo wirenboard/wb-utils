@@ -39,16 +39,24 @@ function test_connection() {
 }
 
 
-function get_at_port() {
-    # a usb-connected modem produces multiple devices
-    # trying to guess, which one is at-port
+function probe_usb_ports() {
+    # a usb-connected modem produces multiple tty devices
+    # probing all these ports; symlinking answered ones; returning first answered
+    local symlink_mask="ttyWBC"
+    local symlinked_ports=()
+
+    debug "Probing all modem's usb ports"
+    local pos=0
     for portname in $(get_modem_usb_devices); do
         port="/dev/$portname"
         if [[ $(test_connection $port 2) == 0 ]] ; then
-            echo "$port"
-            break
+            symlinked_port="/dev/${symlink_mask}${pos}"
+            ln -sfn $port $symlinked_port && symlinked_ports+=( $symlinked_port ); let pos+=1
         fi
     done
+
+    debug "Ports, answered to 'AT': ${symlinked_ports[@]}"
+    echo $symlinked_ports  # only first one!!
 }
 
 
@@ -161,7 +169,7 @@ function gsm_init() {
     if is_usb_only; then
         if [[ `gpio_get_value $WB_GPIO_GSM_STATUS` -eq "1" ]]; then
             debug "USB modem is turned on already"
-            PORT=`get_at_port`
+            PORT=`probe_usb_ports`
         fi
     fi
 }
@@ -349,7 +357,7 @@ function ensure_on() {
             fi
             sleep 1
         done
-        PORT=`get_at_port`
+        PORT=`probe_usb_ports`
         debug "Got AT-port: $PORT"
     fi
 
