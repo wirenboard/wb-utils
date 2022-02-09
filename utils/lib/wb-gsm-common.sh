@@ -7,18 +7,22 @@ wb_source "of"
 
 DEFAULT_BAUDRATE=115200
 PORT=/dev/ttyGSM
+USB_SYMLINK_MASK="/dev/ttyWBC"
+OF_GSM_NODE="wirenboard/gsm"
 
 
-function is_usb_only() {
-    # usually modem has UART for AT-commands and USB-uart for data connection
-    # sometimes uart may be not present (ex: no uart in wb7 board); we defining "conn-type" = "usb" prop in these cases
-    local nodename="wirenboard/gsm"
-    local propname="conn-type"
+function has_usb() {
+    # usually modems have UART for AT-commands and USB-uart for data connection
+    # probing and symlinking appropriate USB-AT ports
+    local compatible_str="wirenboard,wbc-usb"
+    of_has_prop $OF_GSM_NODE "compatible" && of_node_match $OF_GSM_NODE $compatible_str &>/dev/null
+}
 
-    if of_has_prop $nodename $propname; then
-        ret=$(of_get_prop_str $nodename $propname)
-    fi
-    [[ $ret == "usb" ]]
+
+function is_at_over_usb() {
+    # sometimes uart may be not present (ex: no uart in wb7 board); AT-communication will be via usb
+    local compatible_str="at-usb"
+    has_usb && of_node_match $OF_GSM_NODE $compatible_str &>/dev/null
 }
 
 
@@ -26,29 +30,99 @@ function get_modem_usb_devices() {
     # usb-port, modem connected to, is binded in device-tree
     # returns all tty devices on this port
     local compatible_str="wirenboard,wbc-usb-modem"
-    local usb_root=$(grep -l $compatible_str /sys/bus/usb/devices/*/of_node/compatible | sed 's/of_node\/compatible//')
-    [[ -z $usb_root ]] && echo $usb_root || echo $(ls $usb_root*/ | grep -o 'tty.*$')
+
+    for device in $(ls -d /sys/bus/usb/devices/*/of_node); do
+        if of_node_match $(readlink -f $device) $compatible_str &>/dev/null; then
+            usb_root=$(echo $device | sed 's/of_node//')
+            break
+        fi
+    done
+    [[ -z $usb_root ]] && echo $usb_root || echo $(ls -R $usb_root* | grep -o 'tty[a-zA-Z0-9]\+$' | sort -u)
 }
 
 
 function test_connection() {
-    debug "Testing connection (port:$1; timeout:$2)"
     /usr/sbin/chat -v   TIMEOUT $2 ABORT "ERROR" ABORT "BUSY" "" AT OK "" > $1 < $1
     RC=$?
+    debug "(port:$1; timeout:$2) => $RC"
     echo $RC
 }
 
 
-function get_at_port() {
-    # a usb-connected modem produces multiple devices
-    # trying to guess, which one is at-port
+function probe_usb_ports() {
+    # a usb-connected modem produces multiple tty devices
+    # probing, which ones are AT-ports
+    local answered_ports=()
+
+    debug "Probing all modem's usb ports"
     for portname in $(get_modem_usb_devices); do
         port="/dev/$portname"
-        if [[ $(test_connection $port 2) == 0 ]] ; then
-            echo "$port"
-            break
+        [[ $(test_connection $port 2) == 0 ]] && answered_ports+=( $port )
+    done
+
+    debug "Answered to 'AT': ${answered_ports[@]}"
+    echo ${answered_ports[@]}
+}
+
+
+function link_ports() {
+    # Creating symlinks to known AT-ports
+    # Returns a first one!
+    local symlinked_ports=()
+    local pos=0
+
+    for port in "$@"; do
+        symlinked_port="${USB_SYMLINK_MASK}${pos}"
+        ln -sfn $port $symlinked_port && symlinked_ports+=( $symlinked_port ); let pos+=1
+    done
+
+    debug "$@ => ${symlinked_ports[@]}"
+    echo $symlinked_ports  # returns first one!
+}
+
+
+function unlink_ports() {
+    for port in $USB_SYMLINK_MASK*; do
+        if [[ -L $port ]]; then
+            unlink $port
+            debug "Unlinked $port"
         fi
     done
+}
+
+
+function init_usb_connection() {
+    # waiting for appropriate usb-ports appear
+    # probing, which ones have answered to AT; creating symlinks
+    # updating a PORT global var, if modem is connected usb-only
+    local allowed_delay=30
+
+    debug "Will wait up to ${allowed_delay}s untill usb port becomes available"
+    for ((i=0; i<=allowed_delay; i++)); do
+        if [[ -n `echo $(get_modem_usb_devices)` ]]; then
+            break # appropriate usb ports are available in system
+        fi
+        sleep 1
+    done
+
+    if [[ -z `echo $(get_modem_usb_devices)` ]]; then
+        debug "ERROR: no usb device after ${allowed_delay}s"
+        exit 1
+    fi
+
+    modem_at_ports=$(probe_usb_ports)
+    if [[ -n "$modem_at_ports" ]]; then
+        # any of modem's usb ports answered to AT
+        usb_at_port=`link_ports $modem_at_ports` # creating symlinks
+        if is_at_over_usb; then
+            PORT=$usb_at_port
+            debug "Got USB-AT port: $PORT"
+        fi
+        return 0
+    fi
+
+    debug "ERROR: no valid usb-AT connection after ${allowed_delay}s"
+    exit 1
 }
 
 
@@ -81,10 +155,9 @@ function get_model() {
 function is_simcom_7000e() {
     #NB-IOT modem
     local model_to_search="sim7000e"
-    local nodename="wirenboard/gsm"
 
-    if of_has_prop $nodename "model"; then
-        ret=$(of_get_prop_str $nodename "model")
+    if of_has_prop $OF_GSM_NODE "model"; then
+        ret=$(of_get_prop_str $OF_GSM_NODE "model")
     fi
 
     [[ $ret == $model_to_search ]]
@@ -120,7 +193,7 @@ function gsm_init() {
         exit 1
     fi
 
-    if ! is_usb_only; then
+    if ! is_at_over_usb; then
         # UART has present always (even if modem is turned off)
         if [[ ! -c "$PORT" || ! -r "$PORT" || ! -w "$PORT" ]]; then
             debug "Cannot access GSM modem serial port, exiting"
@@ -158,10 +231,10 @@ function gsm_init() {
         gpio_set_value $WB_GPIO_GSM_SIMSELECT 0
     fi
 
-    if is_usb_only; then
+    if has_usb; then
         if [[ `gpio_get_value $WB_GPIO_GSM_STATUS` -eq "1" ]]; then
             debug "USB modem is turned on already"
-            PORT=`get_at_port`
+            init_usb_connection
         fi
     fi
 }
@@ -210,7 +283,7 @@ function set_speed() {
         BAUDRATE=$1
     fi
 
-    if ! is_usb_only; then
+    if ! is_at_over_usb; then
         stty -F $PORT ${BAUDRATE} cs8 -cstopb -parenb -icrnl
     fi  # In usb-connection case, setting BD is mock; actual port's BD is a modem's one
 }
@@ -312,6 +385,8 @@ function switch_off() {
         sleep 5
     fi
 
+    unlink_ports
+
     if [[ ${WB_GSM_POWER_TYPE} = "2" ]]; then
         debug "physically switching off GSM modem using POWER FET"
         gpio_set_value $WB_GPIO_GSM_POWER 0
@@ -339,20 +414,6 @@ function ensure_on() {
 
     toggle
 
-    if is_usb_only; then
-        local poweron_delay=30
-        debug "Connecting via usb"
-        debug "Will wait up to ${poweron_delay}s untill usb port becomes available"
-        for ((i=0; i<=poweron_delay; i++)); do
-            if [[ ! -z `echo $(get_modem_usb_devices)` ]]; then
-                break
-            fi
-            sleep 1
-        done
-        PORT=`get_at_port`
-        debug "Got AT-port: $PORT"
-    fi
-
     if [[ -n "${WB_GPIO_GSM_STATUS}" ]]; then
         debug "Waiting for modem to start"
         max_tries=30
@@ -365,6 +426,10 @@ function ensure_on() {
         done
     else
         sleep 2
+    fi
+
+    if has_usb; then
+        init_usb_connection
     fi
 
     set_speed
