@@ -26,8 +26,14 @@ function get_modem_usb_devices() {
     # usb-port, modem connected to, is binded in device-tree
     # returns all tty devices on this port
     local compatible_str="wirenboard,wbc-usb-modem"
-    local usb_root=$(grep -l $compatible_str /sys/bus/usb/devices/*/of_node/compatible | sed 's/of_node\/compatible//')
-    [[ -z $usb_root ]] && echo $usb_root || echo $(ls $usb_root*/ | grep -o 'tty.*$')
+
+    for device in $(ls -d /sys/bus/usb/devices/*/of_node); do
+        if of_node_match $(readlink -f $device) $compatible_str &>/dev/null; then
+            usb_root=$(echo $device | sed 's/of_node//')
+            break
+        fi
+    done
+    [[ -z $usb_root ]] && echo $usb_root || echo $(ls $usb_root* | grep -o 'tty.*$')
 }
 
 
