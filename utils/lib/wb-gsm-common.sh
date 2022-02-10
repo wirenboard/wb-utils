@@ -10,7 +10,7 @@ PORT=/dev/ttyGSM
 USB_SYMLINK_MASK="/dev/ttyWBC"
 
 
-function is_usb_only() {
+function is_at_over_usb() {
     # usually modem has UART for AT-commands and USB-uart for data connection
     # sometimes uart may be not present (ex: no uart in wb7 board); we defining "conn-type" = "usb" prop in these cases
     local nodename="wirenboard/gsm"
@@ -20,6 +20,12 @@ function is_usb_only() {
         ret=$(of_get_prop_str $nodename $propname)
     fi
     [[ $ret == "usb" ]]
+}
+
+
+function has_usb() {
+    # TODO: compatible from hwconf
+    [[ -n $HAS_USB ]]
 }
 
 
@@ -34,14 +40,14 @@ function get_modem_usb_devices() {
             break
         fi
     done
-    [[ -z $usb_root ]] && echo $usb_root || echo $(ls $usb_root* | grep -o 'tty.*$')
+    [[ -z $usb_root ]] && echo $usb_root || echo $(ls -R $usb_root* | grep -o 'tty[a-zA-Z0-9]\+$' | sort -u)
 }
 
 
 function test_connection() {
-    debug "Testing connection (port:$1; timeout:$2)"
     /usr/sbin/chat -v   TIMEOUT $2 ABORT "ERROR" ABORT "BUSY" "" AT OK "" > $1 < $1
     RC=$?
+    debug "(port:$1; timeout:$2) => $RC"
     echo $RC
 }
 
@@ -85,6 +91,41 @@ function unlink_ports() {
             debug "Unlinked $port"
         fi
     done
+}
+
+
+function init_usb_connection() {
+    # waiting for appropriate usb-ports appear
+    # probing, which ones have answered to AT; creating symlinks
+    # updating a PORT global var, if modem is connected usb-only
+    local allowed_delay=30
+
+    debug "Will wait up to ${allowed_delay}s untill usb port becomes available"
+    for ((i=0; i<=allowed_delay; i++)); do
+        if [[ -n `echo $(get_modem_usb_devices)` ]]; then
+            break # appropriate usb ports are available in system
+        fi
+        sleep 1
+    done
+
+    if [[ -z `echo $(get_modem_usb_devices)` ]]; then
+        debug "ERROR: no usb device after ${allowed_delay}s"
+        exit 1
+    fi
+
+    modem_at_ports=$(probe_usb_ports)
+    if [[ -n "$modem_at_ports" ]]; then
+        # any of modem's usb ports answered to AT
+        usb_at_port=`link_ports $modem_at_ports` # creating symlinks
+        if is_at_over_usb; then
+            PORT=$usb_at_port
+            debug "Got USB-AT port: $PORT"
+        fi
+        return 0
+    fi
+
+    debug "ERROR: no valid usb-AT connection after ${allowed_delay}s"
+    exit 1
 }
 
 
@@ -156,7 +197,7 @@ function gsm_init() {
         exit 1
     fi
 
-    if ! is_usb_only; then
+    if ! is_at_over_usb; then
         # UART has present always (even if modem is turned off)
         if [[ ! -c "$PORT" || ! -r "$PORT" || ! -w "$PORT" ]]; then
             debug "Cannot access GSM modem serial port, exiting"
@@ -194,10 +235,10 @@ function gsm_init() {
         gpio_set_value $WB_GPIO_GSM_SIMSELECT 0
     fi
 
-    if is_usb_only; then
+    if has_usb; then
         if [[ `gpio_get_value $WB_GPIO_GSM_STATUS` -eq "1" ]]; then
             debug "USB modem is turned on already"
-            PORT=`link_ports $(probe_usb_ports)`
+            init_usb_connection
         fi
     fi
 }
@@ -246,7 +287,7 @@ function set_speed() {
         BAUDRATE=$1
     fi
 
-    if ! is_usb_only; then
+    if ! is_at_over_usb; then
         stty -F $PORT ${BAUDRATE} cs8 -cstopb -parenb -icrnl
     fi  # In usb-connection case, setting BD is mock; actual port's BD is a modem's one
 }
@@ -377,20 +418,6 @@ function ensure_on() {
 
     toggle
 
-    if is_usb_only; then
-        local poweron_delay=30
-        debug "Connecting via usb"
-        debug "Will wait up to ${poweron_delay}s untill usb port becomes available"
-        for ((i=0; i<=poweron_delay; i++)); do
-            if [[ ! -z `echo $(get_modem_usb_devices)` ]]; then
-                break
-            fi
-            sleep 1
-        done
-        PORT=`link_ports $(probe_usb_ports)`
-        debug "Got AT-port: $PORT"
-    fi
-
     if [[ -n "${WB_GPIO_GSM_STATUS}" ]]; then
         debug "Waiting for modem to start"
         max_tries=30
@@ -403,6 +430,10 @@ function ensure_on() {
         done
     else
         sleep 2
+    fi
+
+    if has_usb; then
+        init_usb_connection
     fi
 
     set_speed
