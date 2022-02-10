@@ -8,24 +8,21 @@ wb_source "of"
 DEFAULT_BAUDRATE=115200
 PORT=/dev/ttyGSM
 USB_SYMLINK_MASK="/dev/ttyWBC"
-
-
-function is_at_over_usb() {
-    # usually modem has UART for AT-commands and USB-uart for data connection
-    # sometimes uart may be not present (ex: no uart in wb7 board); we defining "conn-type" = "usb" prop in these cases
-    local nodename="wirenboard/gsm"
-    local propname="conn-type"
-
-    if of_has_prop $nodename $propname; then
-        ret=$(of_get_prop_str $nodename $propname)
-    fi
-    [[ $ret == "usb" ]]
-}
+OF_GSM_NODE="wirenboard/gsm"
 
 
 function has_usb() {
-    # TODO: compatible from hwconf
-    [[ -n $HAS_USB ]]
+    # usually modems have UART for AT-commands and USB-uart for data connection
+    # probing and symlinking appropriate USB-AT ports
+    local compatible_str="wirenboard,wbc-usb"
+    of_has_prop $OF_GSM_NODE "compatible" && of_node_match $OF_GSM_NODE $compatible_str &>/dev/null
+}
+
+
+function is_at_over_usb() {
+    # sometimes uart may be not present (ex: no uart in wb7 board); AT-communication will be via usb
+    local compatible_str="at-usb"
+    has_usb && of_node_match $OF_GSM_NODE $compatible_str &>/dev/null
 }
 
 
@@ -158,10 +155,9 @@ function get_model() {
 function is_simcom_7000e() {
     #NB-IOT modem
     local model_to_search="sim7000e"
-    local nodename="wirenboard/gsm"
 
-    if of_has_prop $nodename "model"; then
-        ret=$(of_get_prop_str $nodename "model")
+    if of_has_prop $OF_GSM_NODE "model"; then
+        ret=$(of_get_prop_str $OF_GSM_NODE "model")
     fi
 
     [[ $ret == $model_to_search ]]
