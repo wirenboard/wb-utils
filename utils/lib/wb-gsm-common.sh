@@ -7,6 +7,7 @@ wb_source "of"
 
 DEFAULT_BAUDRATE=115200
 PORT=/dev/ttyGSM
+USB_SYMLINK_MASK="/dev/ttyWBC"
 
 
 function is_usb_only() {
@@ -47,22 +48,43 @@ function test_connection() {
 
 function probe_usb_ports() {
     # a usb-connected modem produces multiple tty devices
-    # probing all these ports; symlinking answered ones; returning first answered
-    local symlink_mask="ttyWBC"
-    local symlinked_ports=()
+    # probing, which ones are AT-ports
+    local answered_ports=()
 
     debug "Probing all modem's usb ports"
-    local pos=0
     for portname in $(get_modem_usb_devices); do
         port="/dev/$portname"
-        if [[ $(test_connection $port 2) == 0 ]] ; then
-            symlinked_port="/dev/${symlink_mask}${pos}"
-            ln -sfn $port $symlinked_port && symlinked_ports+=( $symlinked_port ); let pos+=1
-        fi
+        [[ $(test_connection $port 2) == 0 ]] && answered_ports+=( $port )
     done
 
-    debug "Ports, answered to 'AT': ${symlinked_ports[@]}"
-    echo $symlinked_ports  # only first one!!
+    debug "Answered to 'AT': ${answered_ports[@]}"
+    echo ${answered_ports[@]}
+}
+
+
+function link_ports() {
+    # Creating symlinks to known AT-ports
+    # Returns a first one!
+    local symlinked_ports=()
+    local pos=0
+
+    for port in "$@"; do
+        symlinked_port="${USB_SYMLINK_MASK}${pos}"
+        ln -sfn $port $symlinked_port && symlinked_ports+=( $symlinked_port ); let pos+=1
+    done
+
+    debug "$@ => ${symlinked_ports[@]}"
+    echo $symlinked_ports  # returns first one!
+}
+
+
+function unlink_ports() {
+    for port in $USB_SYMLINK_MASK*; do
+        if [[ -L $port ]]; then
+            unlink $port
+            debug "Unlinked $port"
+        fi
+    done
 }
 
 
@@ -175,7 +197,7 @@ function gsm_init() {
     if is_usb_only; then
         if [[ `gpio_get_value $WB_GPIO_GSM_STATUS` -eq "1" ]]; then
             debug "USB modem is turned on already"
-            PORT=`probe_usb_ports`
+            PORT=`link_ports $(probe_usb_ports)`
         fi
     fi
 }
@@ -326,6 +348,8 @@ function switch_off() {
         sleep 5
     fi
 
+    unlink_ports
+
     if [[ ${WB_GSM_POWER_TYPE} = "2" ]]; then
         debug "physically switching off GSM modem using POWER FET"
         gpio_set_value $WB_GPIO_GSM_POWER 0
@@ -363,7 +387,7 @@ function ensure_on() {
             fi
             sleep 1
         done
-        PORT=`probe_usb_ports`
+        PORT=`link_ports $(probe_usb_ports)`
         debug "Got AT-port: $PORT"
     fi
 
