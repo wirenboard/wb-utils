@@ -4,32 +4,34 @@
 wb_source "hardware"
 wb_source "of"
 
-
 DEFAULT_BAUDRATE=115200
 PORT=/dev/ttyGSM
 USB_SYMLINK_MASK="/dev/ttyWBC"
-OF_GSM_NODE="wirenboard/gsm"
+
+OF_GSM_NODE="wirenboard/gsm"  # deprecated since default modem's connection is usb
 
 
 function has_usb() {
     # usually modems have UART for AT-commands and USB-uart for data connection
-    # probing and symlinking appropriate USB-AT ports
+    # probing and symlinking appropriate USB-AT ports if modem has usb
     local compatible_str="wirenboard,wbc-usb"
-    of_has_prop $OF_GSM_NODE "compatible" && of_node_match $OF_GSM_NODE $compatible_str &>/dev/null
+
+    of_node_exists "aliases/wbc_modem" && OF_GSM_NODE=$(of_get_prop_str "aliases" "wbc_modem") || return 1
+    of_node_match $OF_GSM_NODE $compatible_str &>/dev/null
 }
 
 
 function is_at_over_usb() {
-    # sometimes uart may be not present (ex: no uart in wb7 board); AT-communication will be via usb
-    local compatible_str="at-usb"
-    has_usb && of_node_match $OF_GSM_NODE $compatible_str &>/dev/null
+    # at-communications inside wb-gsm could be performed via uart or usb
+    # we could communicate via uart, while probing and symlinking usb ports (if present in modem)
+    has_usb  # communicating via usb by default
 }
 
 
 function get_modem_usb_devices() {
     # usb-port, modem connected to, is binded in device-tree
     # returns all tty devices on this port
-    local compatible_str="wirenboard,wbc-usb-modem"
+    local compatible_str="wirenboard,wbc-usb"
 
     for device in $(ls -d /sys/bus/usb/devices/*/of_node); do
         if of_node_match $(readlink -f $device) $compatible_str &>/dev/null; then
@@ -233,7 +235,13 @@ function gsm_init() {
 
     if has_usb; then
         if [[ `gpio_get_value $WB_GPIO_GSM_STATUS` -eq "1" ]]; then
-            debug "USB modem is turned on already"
+            debug "USB modem is turned on already; probing ${USB_SYMLINK_MASK}* ports"
+            for port in ${USB_SYMLINK_MASK}*; do
+                [[ -e $port ]] && [[ $(test_connection $port 2) == 0 ]] && {
+                    PORT=$port
+                    return 0
+                }
+            done
             init_usb_connection
         fi
     fi
