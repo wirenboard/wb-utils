@@ -6,7 +6,7 @@ wb_source "of"
 
 DEFAULT_BAUDRATE=115200
 PORT=/dev/ttyGSM
-USB_SYMLINK_MASK="/dev/ttyWBC"
+USB_SYMLINK_MASK="/dev/ttyGSM"
 
 OF_GSM_NODE="wirenboard/gsm"  # deprecated since default modem's connection is usb
 
@@ -16,8 +16,8 @@ function has_usb() {
     # probing and symlinking appropriate USB-AT ports if modem has usb
     local compatible_str="wirenboard,wbc-usb"
 
-    of_node_exists "aliases/wbc_modem" && OF_GSM_NODE=$(of_get_prop_str "aliases" "wbc_modem") || return 1
-    of_node_match $OF_GSM_NODE $compatible_str &>/dev/null
+    of_has_prop "aliases" "wbc_modem" && OF_GSM_NODE=$(of_get_prop_str "aliases" "wbc_modem") || return 1
+    of_node_exists $OF_GSM_NODE && of_node_match $OF_GSM_NODE $compatible_str &>/dev/null
 }
 
 
@@ -79,12 +79,14 @@ function link_ports() {
     done
 
     debug "$@ => ${symlinked_ports[@]}"
-    echo $symlinked_ports  # returns first one!
+
+    [[ -L $PORT ]] && unlink $PORT
+    ln -sfn $symlinked_ports $PORT
+    debug "$symlinked_ports => $PORT"
 }
 
-
 function unlink_ports() {
-    for port in $USB_SYMLINK_MASK*; do
+    for port in $PORT ${USB_SYMLINK_MASK}[0-9]*; do
         if [[ -L $port ]]; then
             unlink $port
             debug "Unlinked $port"
@@ -96,7 +98,6 @@ function unlink_ports() {
 function init_usb_connection() {
     # waiting for appropriate usb-ports appear
     # probing, which ones have answered to AT; creating symlinks
-    # updating a PORT global var, if modem is connected usb-only
     local allowed_delay=30
 
     debug "Will wait up to ${allowed_delay}s untill usb port becomes available"
@@ -115,11 +116,7 @@ function init_usb_connection() {
     modem_at_ports=$(probe_usb_ports)
     if [[ -n "$modem_at_ports" ]]; then
         # any of modem's usb ports answered to AT
-        usb_at_port=`link_ports $modem_at_ports` # creating symlinks
-        if is_at_over_usb; then
-            PORT=$usb_at_port
-            debug "Got USB-AT port: $PORT"
-        fi
+        link_ports $modem_at_ports
         return 0
     fi
 
@@ -196,7 +193,7 @@ function gsm_init() {
     fi
 
     if ! is_at_over_usb; then
-        # UART has present always (even if modem is turned off)
+        # UART is always present (even if modem is turned off)
         if [[ ! -c "$PORT" || ! -r "$PORT" || ! -w "$PORT" ]]; then
             debug "Cannot access GSM modem serial port, exiting"
             exit 1
@@ -235,13 +232,13 @@ function gsm_init() {
 
     if has_usb; then
         if [[ `gpio_get_value $WB_GPIO_GSM_STATUS` -eq "1" ]]; then
-            debug "USB modem is turned on already; probing ${USB_SYMLINK_MASK}* ports"
-            for port in ${USB_SYMLINK_MASK}*; do
+            debug "USB modem is turned on already; probing ($PORT, ${USB_SYMLINK_MASK}*) ports"
+            for port in $PORT ${USB_SYMLINK_MASK}[0-9]*; do
                 [[ -e $port ]] && [[ $(test_connection $port 2) == 0 ]] && {
-                    PORT=$port
                     return 0
                 }
             done
+            debug "Modem is connected via USB, but no valid ports are present. Reinitializing USB connection"
             init_usb_connection
         fi
     fi
@@ -366,7 +363,10 @@ function imei_sn() {
 
 
 function switch_off() {
-    debug "Try to switch off GSM modem "
+    [[ -n ${WB_GPIO_GSM_STATUS} ]] && [[ "`gpio_get_value ${WB_GPIO_GSM_STATUS}`" = "0" ]] && {
+        debug "Modem is already OFF"
+        return 0
+    } || debug "Modem is ON. Will try to switch off GSM modem "
 
     if [[ ${WB_GSM_POWER_TYPE} = "1" ]]; then
         debug "resetting GSM modem first"
@@ -374,7 +374,7 @@ function switch_off() {
         sleep 3
     fi
 
-    debug "Send power down command "
+    debug "Send power down command > $PORT"
     set_speed
     echo  -e "AT+CPOWD=1\r\n" > $PORT # for SIMCOM
     echo  -e "AT+CPWROFF\r\n" > $PORT # for SIMCOM
