@@ -366,7 +366,10 @@ function imei_sn() {
 
 
 function switch_off() {
-    debug "Try to switch off GSM modem "
+    [[ -n ${WB_GPIO_GSM_STATUS} ]] && [[ "`gpio_get_value ${WB_GPIO_GSM_STATUS}`" = "0" ]] && {
+        debug "Modem is already OFF"
+        return 0
+    } || debug "Modem is ON. Will try to switch off GSM modem "
 
     if [[ ${WB_GSM_POWER_TYPE} = "1" ]]; then
         debug "resetting GSM modem first"
