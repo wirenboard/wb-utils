@@ -80,27 +80,18 @@ function link_ports() {
 
     debug "$@ => ${symlinked_ports[@]}"
 
-    [[ -L $PORT ]] || {
-        ln -sfn $symlinked_ports $PORT
-        debug "$symlinked_ports => $PORT"
-    }
+    [[ -L $PORT ]] && unlink $PORT
+    ln -sfn $symlinked_ports $PORT
+    debug "$symlinked_ports => $PORT"
 }
 
 function unlink_ports() {
-    for port in ${USB_SYMLINK_MASK}[0-9]*; do
+    for port in $PORT ${USB_SYMLINK_MASK}[0-9]*; do
         if [[ -L $port ]]; then
             unlink $port
             debug "Unlinked $port"
         fi
     done
-
-    [[ -L $PORT ]] && {
-        [[ readlink -e $PORT ]] || {
-            # $PORT could be a symlink to UART (udev) and USB. Unlinking, if symlink to USB
-            unlink $PORT
-            debug "Unlinked $PORT"
-        }
-    }
 }
 
 
@@ -241,13 +232,13 @@ function gsm_init() {
 
     if has_usb; then
         if [[ `gpio_get_value $WB_GPIO_GSM_STATUS` -eq "1" ]]; then
-            debug "USB modem is turned on already; probing ${USB_SYMLINK_MASK}* ports"
-            for port in ${USB_SYMLINK_MASK}[0-9]*; do
+            debug "USB modem is turned on already; probing ($PORT, ${USB_SYMLINK_MASK}*) ports"
+            for port in $PORT ${USB_SYMLINK_MASK}[0-9]*; do
                 [[ -e $port ]] && [[ $(test_connection $port 2) == 0 ]] && {
                     return 0
                 }
             done
-            debug "Modem is connected via USB, but no ports are present. Reinitializing USB connection"
+            debug "Modem is connected via USB, but no valid ports are present. Reinitializing USB connection"
             init_usb_connection
         fi
     fi
