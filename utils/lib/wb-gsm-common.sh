@@ -79,9 +79,12 @@ function link_ports() {
     done
 
     debug "$@ => ${symlinked_ports[@]}"
-    echo $symlinked_ports  # returns first one!
-}
 
+    [[ -L $PORT ]] || {
+        ln -sfn $symlinked_ports $PORT
+        debug "$symlinked_ports => $PORT"
+    }
+}
 
 function unlink_ports() {
     for port in ${USB_SYMLINK_MASK}[0-9]*; do
@@ -90,13 +93,20 @@ function unlink_ports() {
             debug "Unlinked $port"
         fi
     done
+
+    [[ -L $PORT ]] && {
+        [[ readlink -e $PORT ]] || {
+            # $PORT could be a symlink to UART (udev) and USB. Unlinking, if symlink to USB
+            unlink $PORT
+            debug "Unlinked $PORT"
+        }
+    }
 }
 
 
 function init_usb_connection() {
     # waiting for appropriate usb-ports appear
     # probing, which ones have answered to AT; creating symlinks
-    # updating a PORT global var, if modem is connected usb-only
     local allowed_delay=30
 
     debug "Will wait up to ${allowed_delay}s untill usb port becomes available"
@@ -115,11 +125,7 @@ function init_usb_connection() {
     modem_at_ports=$(probe_usb_ports)
     if [[ -n "$modem_at_ports" ]]; then
         # any of modem's usb ports answered to AT
-        usb_at_port=`link_ports $modem_at_ports` # creating symlinks
-        if is_at_over_usb; then
-            PORT=$usb_at_port
-            debug "Got USB-AT port: $PORT"
-        fi
+        link_ports $modem_at_ports
         return 0
     fi
 
@@ -196,7 +202,7 @@ function gsm_init() {
     fi
 
     if ! is_at_over_usb; then
-        # UART has present always (even if modem is turned off)
+        # UART is always present (even if modem is turned off)
         if [[ ! -c "$PORT" || ! -r "$PORT" || ! -w "$PORT" ]]; then
             debug "Cannot access GSM modem serial port, exiting"
             exit 1
@@ -238,10 +244,10 @@ function gsm_init() {
             debug "USB modem is turned on already; probing ${USB_SYMLINK_MASK}* ports"
             for port in ${USB_SYMLINK_MASK}[0-9]*; do
                 [[ -e $port ]] && [[ $(test_connection $port 2) == 0 ]] && {
-                    PORT=$port
                     return 0
                 }
             done
+            debug "Modem is connected via USB, but no ports are present. Reinitializing USB connection"
             init_usb_connection
         fi
     fi
