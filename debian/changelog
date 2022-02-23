@@ -1,3 +1,10 @@
+wb-utils (3.6.0) stable; urgency=medium
+
+  * wb-run-update: add --no-confirm option to run factory reset
+    procedures without the button confirmation (for production use)
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Thu, 02 Jun 2022 18:39:48 +0300
+
 wb-utils (3.5.1) stable; urgency=medium
 
   * wb-gsm: added turning modem's power off in force_exit handler
