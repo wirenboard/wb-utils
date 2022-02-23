@@ -11,12 +11,18 @@ USB_SYMLINK_MASK="/dev/ttyGSM"
 OF_GSM_NODE="wirenboard/gsm"  # deprecated since default modem's connection is usb
 
 
+function guess_of_node() {
+    # default modem's connection is usb (with modem node on specific port)
+    # wirenboard/gsm node is left for uart-only-modems compatibility
+    of_has_prop "aliases" "wbc_modem" && OF_GSM_NODE=$(of_get_prop_str "aliases" "wbc_modem") || OF_GSM_NODE="wirenboard/gsm"
+    debug "Got of_gsm_node: $OF_GSM_NODE"
+}
+
+
 function has_usb() {
     # usually modems have UART for AT-commands and USB-uart for data connection
     # probing and symlinking appropriate USB-AT ports if modem has usb
     local compatible_str="wirenboard,wbc-usb"
-
-    of_has_prop "aliases" "wbc_modem" && OF_GSM_NODE=$(of_get_prop_str "aliases" "wbc_modem") || return 1
     of_node_exists $OF_GSM_NODE && of_node_match $OF_GSM_NODE $compatible_str &>/dev/null
 }
 
@@ -27,6 +33,22 @@ function is_at_over_usb() {
     has_usb  # communicating via usb by default
 }
 
+function force_exit() {
+    # exitting (to where the trap to TERM signal placed) from any inner-func
+    # default trap to ERR waits a caller to finish, which sometimes is not suitable
+    >&2 echo "Force exit: $@"
+    for (( i = 1; i < ${#FUNCNAME[@]} - 1; i++ )); do
+        >&2 echo " $i: ${BASH_SOURCE[$i+1]}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(...)"
+    done
+
+    kill -s TERM $WB_GSM_PID
+    exit 1
+}
+
+function force_exit_handler() {
+    has_usb && unlink_ports
+    exit 1
+}
 
 function get_modem_usb_devices() {
     # usb-port, modem connected to, is binded in device-tree
@@ -80,18 +102,19 @@ function link_ports() {
 
     debug "$@ => ${symlinked_ports[@]}"
 
-    [[ -L $PORT ]] && unlink $PORT
+    [[ -L $PORT ]] && unlink $PORT  # /dev/ttyGSM could be already linked via udev
     ln -sfn $symlinked_ports $PORT
     debug "$symlinked_ports => $PORT"
 }
 
 function unlink_ports() {
+    local unlinked_ports=()
     for port in $PORT ${USB_SYMLINK_MASK}[0-9]*; do
         if [[ -L $port ]]; then
-            unlink $port
-            debug "Unlinked $port"
+            unlink $port && unlinked_ports+=( $port )
         fi
     done
+    [[ -n $unlinked_ports ]] && debug "Unlinked: ${unlinked_ports[@]}"
 }
 
 
@@ -109,8 +132,7 @@ function init_usb_connection() {
     done
 
     if [[ -z `echo $(get_modem_usb_devices)` ]]; then
-        debug "ERROR: no usb device after ${allowed_delay}s"
-        exit 1
+        force_exit "no usb device after ${allowed_delay}s"
     fi
 
     modem_at_ports=$(probe_usb_ports)
@@ -120,10 +142,22 @@ function init_usb_connection() {
         return 0
     fi
 
-    debug "ERROR: no valid usb-AT connection after ${allowed_delay}s"
-    exit 1
+    force_exit "no valid usb-AT connection after ${allowed_delay}s"
 }
 
+function of_prop_required() {
+    # hiding tons of debug output in of_* funcs
+    # terminating wb-gsm, if required of_prop is missing
+    [[ $# -ne 3 ]] && {
+        force_exit "${FUNCNAME[1]} usage: <of_parsing_func> <of_node> <prop>"
+    }
+
+    local of_node=$2
+    local prop=$3
+    of_has_prop $of_node $prop && echo "$($@ 2>/dev/null)" || {  # of_get_prop* return 0 even if prop is missing
+        force_exit "Required prop $of_node->$prop is missing!"
+    }
+}
 
 function get_model() {
     set_speed
@@ -183,7 +217,7 @@ function is_neoway_m660a() {
 
 
 function gsm_present() {
-    [[ -n "${WB_GSM_POWER_TYPE}" ]] && [[ "$WB_GSM_POWER_TYPE" != "0" ]]
+    of_has_prop $OF_GSM_NODE "power-type" && [[ $(of_get_prop_ulong $OF_GSM_NODE "power-type") != "0" ]]
 }
 
 function gsm_init() {
@@ -203,35 +237,41 @@ function gsm_init() {
         fi
     fi
 
-    gpio_setup $WB_GPIO_GSM_PWRKEY out
+    local gpio_gsm_pwrkey=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "pwrkey-gpios")
+    local gsm_power_type=$(of_prop_required of_get_prop_ulong $OF_GSM_NODE "power-type")
+    local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
+    local gpio_gsm_status=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "status-gpios")
 
+    gpio_setup $gpio_gsm_pwrkey out
 
-    if [[ ${WB_GSM_POWER_TYPE} = "1" ]]; then
-        gpio_setup $WB_GPIO_GSM_RESET low
+    if [[ $gsm_power_type = "1" ]]; then
+        local gpio_gsm_reset=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "reset-gpios")
+        gpio_setup $gpio_gsm_reset low
     fi
 
-    if [[ ${WB_GSM_POWER_TYPE} = "2" ]]; then
-        gpio_setup $WB_GPIO_GSM_POWER out
+    if [[ $gsm_power_type = "2" ]]; then
+        gpio_setup $gpio_gsm_power out
     fi
 
-    if [[ -n ${WB_GPIO_GSM_STATUS} ]]; then
-        gpio_setup $WB_GPIO_GSM_STATUS in
-        if [[ ${WB_GPIO_GSM_STATUS_INVERTED} = "1" ]]; then
-            gpio_set_inverted $WB_GPIO_GSM_STATUS 1
+    if [[ -n $gpio_gsm_status ]]; then
+        gpio_setup $gpio_gsm_status in
+        if of_gpio_is_inverted $(of_prop_required of_get_prop_gpio $OF_GSM_NODE "status-gpios"); then
+            gpio_set_inverted $gpio_gsm_status 1
         else
-            gpio_set_inverted $WB_GPIO_GSM_STATUS 0
+            gpio_set_inverted $gpio_gsm_status 0
         fi
     fi
 
-    if [[ ! -z $WB_GPIO_GSM_SIMSELECT ]]; then
-        gpio_export $WB_GPIO_GSM_SIMSELECT
-        gpio_set_dir $WB_GPIO_GSM_SIMSELECT out
+    if of_has_prop $OF_GSM_NODE "simselect-gpios"; then  # some wb5's modems have not simselect
+        local gpio_gsm_simselect=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "simselect-gpios")
+        gpio_export $gpio_gsm_simselect
+        gpio_set_dir $gpio_gsm_simselect out
         # select SIM1 at startup
-        gpio_set_value $WB_GPIO_GSM_SIMSELECT 0
+        gpio_set_value $gpio_gsm_simselect 0
     fi
 
     if has_usb; then
-        if [[ `gpio_get_value $WB_GPIO_GSM_STATUS` -eq "1" ]]; then
+        if [[ `gpio_get_value $gpio_gsm_status` -eq "1" ]]; then
             debug "USB modem is turned on already; probing ($PORT, ${USB_SYMLINK_MASK}*) ports"
             for port in $PORT ${USB_SYMLINK_MASK}[0-9]*; do
                 [[ -e $port ]] && [[ $(test_connection $port 2) == 0 ]] && {
@@ -246,36 +286,42 @@ function gsm_init() {
 
 
 function toggle() {
+    local gsm_power_type=$(of_prop_required of_get_prop_ulong $OF_GSM_NODE "power-type")
+    local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
+    local gpio_gsm_pwrkey=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "pwrkey-gpios")
+
     debug "toggle GSM modem state using PWRKEY"
 
-    if [[ ${WB_GSM_POWER_TYPE} = "2" ]]; then
-        gpio_set_value $WB_GPIO_GSM_POWER 1
+    if [[ $gsm_power_type = "2" ]]; then
+        gpio_set_value $gpio_gsm_power 1
     fi
 
-
     sleep 1
-    gpio_set_value $WB_GPIO_GSM_PWRKEY 0
+    gpio_set_value $gpio_gsm_pwrkey 0
     sleep 1
-    gpio_set_value $WB_GPIO_GSM_PWRKEY 1
+    gpio_set_value $gpio_gsm_pwrkey 1
     sleep 1
-    gpio_set_value $WB_GPIO_GSM_PWRKEY 0
+    gpio_set_value $gpio_gsm_pwrkey 0
 }
 
 function reset() {
+    local gsm_power_type=$(of_prop_required of_get_prop_ulong $OF_GSM_NODE "power-type")
+    local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
 
-    if [[ ${WB_GSM_POWER_TYPE} = "1" ]]; then
+    if [[ $gsm_power_type = "1" ]]; then
         debug "Resetting GSM modem using RESET pin"
-        gpio_set_value $WB_GPIO_GSM_RESET 1
+        local gpio_gsm_reset=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "reset-gpios")
+        gpio_set_value $gpio_gsm_reset 1
         sleep 0.5
-        gpio_set_value $WB_GPIO_GSM_RESET 0
+        gpio_set_value $gpio_gsm_reset 0
         sleep 0.5
     fi
 
-    if [[ ${WB_GSM_POWER_TYPE} = "2" ]]; then
+    if [[ $gsm_power_type = "2" ]]; then
         debug "Resetting GSM modem using POWER FET"
-        gpio_set_value $WB_GPIO_GSM_POWER 0
+        gpio_set_value $gpio_gsm_power 0
         sleep 0.5
-        gpio_set_value $WB_GPIO_GSM_POWER 1
+        gpio_set_value $gpio_gsm_power 1
         sleep 0.5
     fi
 
@@ -358,17 +404,17 @@ function imei_sn() {
     echo ${IMEI_SN}
 }
 
-
-
-
-
 function switch_off() {
-    [[ -n ${WB_GPIO_GSM_STATUS} ]] && [[ "`gpio_get_value ${WB_GPIO_GSM_STATUS}`" = "0" ]] && {
+    local gpio_gsm_status=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "status-gpios")
+    local gsm_power_type=$(of_prop_required of_get_prop_ulong $OF_GSM_NODE "power-type")
+    local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
+
+    [[ -n $gpio_gsm_status ]] && [[ "`gpio_get_value $gpio_gsm_status`" = "0" ]] && {
         debug "Modem is already OFF"
         return 0
     } || debug "Modem is ON. Will try to switch off GSM modem "
 
-    if [[ ${WB_GSM_POWER_TYPE} = "1" ]]; then
+    if [[ $gsm_power_type = "1" ]]; then
         debug "resetting GSM modem first"
         reset
         sleep 3
@@ -379,12 +425,12 @@ function switch_off() {
     echo  -e "AT+CPOWD=1\r\n" > $PORT # for SIMCOM
     echo  -e "AT+CPWROFF\r\n" > $PORT # for SIMCOM
 
-    if [[ -n ${WB_GPIO_GSM_STATUS} ]]; then
+    if [[ -n $gpio_gsm_status ]]; then
         debug "Waiting for modem to stop"
         max_tries=25
 
         for ((i=0; i<=upperlim; i++)); do
-            if [[ "`gpio_get_value ${WB_GPIO_GSM_STATUS}`" = "0" ]]; then
+            if [[ "`gpio_get_value $gpio_gsm_status`" = "0" ]]; then
                 break
             fi
             sleep 0.2
@@ -393,21 +439,21 @@ function switch_off() {
         sleep 5
     fi
 
-    unlink_ports
+    has_usb && unlink_ports
 
-    if [[ ${WB_GSM_POWER_TYPE} = "2" ]]; then
+    if [[ $gsm_power_type = "2" ]]; then
         debug "physically switching off GSM modem using POWER FET"
-        gpio_set_value $WB_GPIO_GSM_POWER 0
+        gpio_set_value $gpio_gsm_power 0
     fi;
-
-
-
-
 }
 
 function ensure_on() {
-    if [[ -n "${WB_GPIO_GSM_STATUS}" ]]; then
-        if [[ "`gpio_get_value ${WB_GPIO_GSM_STATUS}`" = "1" ]]; then
+    local gpio_gsm_status=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "status-gpios")
+    local gsm_power_type=$(of_prop_required of_get_prop_ulong $OF_GSM_NODE "power-type")
+    local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
+
+    if [[ -n "$gpio_gsm_status" ]]; then
+        if [[ "`gpio_get_value $gpio_gsm_status`" = "1" ]]; then
             debug "Modem is already switched on"
             return
         fi
@@ -415,19 +461,19 @@ function ensure_on() {
         switch_off
     fi
 
-    if [[ ${WB_GSM_POWER_TYPE} = "2" ]]; then
+    if [[ $gsm_power_type = "2" ]]; then
         debug "switching on GSM modem using POWER FET"
-        gpio_set_value $WB_GPIO_GSM_POWER 1
+        gpio_set_value $gpio_gsm_power 1
     fi;
 
     toggle
 
-    if [[ -n "${WB_GPIO_GSM_STATUS}" ]]; then
+    if [[ -n "$gpio_gsm_status" ]]; then
         debug "Waiting for modem to start"
         max_tries=30
 
         for ((i=0; i<=max_tries; i++)); do
-            if [[ "`gpio_get_value ${WB_GPIO_GSM_STATUS}`" = "1" ]]; then
+            if [[ "`gpio_get_value $gpio_gsm_status`" = "1" ]]; then
                 break
             fi
             sleep 0.1
@@ -453,10 +499,12 @@ function ensure_on() {
 
 
 function restart_if_broken() {
+    local gpio_gsm_status=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "status-gpios")
+
     #~ set_speed
     local RC=0
-    if [[ -n "${WB_GPIO_GSM_STATUS}" ]]; then
-        if [[ "`gpio_get_value ${WB_GPIO_GSM_STATUS}`" = "0" ]]; then
+    if [[ -n "$gpio_gsm_status" ]]; then
+        if [[ "`gpio_get_value $gpio_gsm_status`" = "0" ]]; then
             debug "Modem switched off, switch it on instead of testing the connection"
             local RC=1
         fi
