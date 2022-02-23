@@ -4,9 +4,6 @@
 wb_source "hardware"
 wb_source "of"
 
-trap "exit 1" TERM
-WB_GSM_PID=$$
-
 DEFAULT_BAUDRATE=115200
 PORT=/dev/ttyGSM
 USB_SYMLINK_MASK="/dev/ttyGSM"
@@ -14,12 +11,18 @@ USB_SYMLINK_MASK="/dev/ttyGSM"
 OF_GSM_NODE="wirenboard/gsm"  # deprecated since default modem's connection is usb
 
 
+function guess_of_node() {
+    # default modem's connection is usb (with modem node on specific port)
+    # wirenboard/gsm node is left for uart-only-modems compatibility
+    of_has_prop "aliases" "wbc_modem" && OF_GSM_NODE=$(of_get_prop_str "aliases" "wbc_modem") || OF_GSM_NODE="wirenboard/gsm"
+    debug "Got of_gsm_node: $OF_GSM_NODE"
+}
+
+
 function has_usb() {
     # usually modems have UART for AT-commands and USB-uart for data connection
     # probing and symlinking appropriate USB-AT ports if modem has usb
     local compatible_str="wirenboard,wbc-usb"
-
-    of_has_prop "aliases" "wbc_modem" && OF_GSM_NODE=$(of_get_prop_str "aliases" "wbc_modem") || return 1
     of_node_exists $OF_GSM_NODE && of_node_match $OF_GSM_NODE $compatible_str &>/dev/null
 }
 
@@ -30,6 +33,22 @@ function is_at_over_usb() {
     has_usb  # communicating via usb by default
 }
 
+function force_exit() {
+    # exitting (to where the trap to TERM signal placed) from any inner-func
+    # default trap to ERR waits a caller to finish, which sometimes is not suitable
+    >&2 echo "Force exit: $@"
+    for (( i = 1; i < ${#FUNCNAME[@]} - 1; i++ )); do
+        >&2 echo " $i: ${BASH_SOURCE[$i+1]}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(...)"
+    done
+
+    kill -s TERM $WB_GSM_PID
+    exit 1
+}
+
+function force_exit_handler() {
+    has_usb && unlink_ports
+    exit 1
+}
 
 function get_modem_usb_devices() {
     # usb-port, modem connected to, is binded in device-tree
@@ -83,18 +102,19 @@ function link_ports() {
 
     debug "$@ => ${symlinked_ports[@]}"
 
-    [[ -L $PORT ]] && unlink $PORT
+    [[ -L $PORT ]] && unlink $PORT  # /dev/ttyGSM could be already linked via udev
     ln -sfn $symlinked_ports $PORT
     debug "$symlinked_ports => $PORT"
 }
 
 function unlink_ports() {
+    local unlinked_ports=()
     for port in $PORT ${USB_SYMLINK_MASK}[0-9]*; do
         if [[ -L $port ]]; then
-            unlink $port
-            debug "Unlinked $port"
+            unlink $port && unlinked_ports+=( $port )
         fi
     done
+    [[ -n $unlinked_ports ]] && debug "Unlinked: ${unlinked_ports[@]}"
 }
 
 
@@ -112,8 +132,7 @@ function init_usb_connection() {
     done
 
     if [[ -z `echo $(get_modem_usb_devices)` ]]; then
-        debug "ERROR: no usb device after ${allowed_delay}s"
-        exit 1
+        force_exit "no usb device after ${allowed_delay}s"
     fi
 
     modem_at_ports=$(probe_usb_ports)
@@ -123,23 +142,20 @@ function init_usb_connection() {
         return 0
     fi
 
-    debug "ERROR: no valid usb-AT connection after ${allowed_delay}s"
-    exit 1
+    force_exit "no valid usb-AT connection after ${allowed_delay}s"
 }
 
 function of_prop_required() {
     # hiding tons of debug output in of_* funcs
     # terminating wb-gsm, if required of_prop is missing
     [[ $# -ne 3 ]] && {
-        echo "${FUNCNAME[1]}: of_parsing_func of_node prop"
-        kill -s TERM $WB_GSM_PID
+        force_exit "${FUNCNAME[1]} usage: <of_parsing_func> <of_node> <prop>"
     }
 
     local of_node=$2
     local prop=$3
     of_has_prop $of_node $prop && echo "$($@ 2>/dev/null)" || {  # of_get_prop* return 0 even if prop is missing
-        debug "Required prop $of_node->$prop is missing!"
-        kill -s TERM $WB_GSM_PID
+        force_exit "Required prop $of_node->$prop is missing!"
     }
 }
 
@@ -423,7 +439,7 @@ function switch_off() {
         sleep 5
     fi
 
-    unlink_ports
+    has_usb && unlink_ports
 
     if [[ $gsm_power_type = "2" ]]; then
         debug "physically switching off GSM modem using POWER FET"
