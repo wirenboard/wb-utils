@@ -2,6 +2,10 @@
 
 . /usr/lib/wb-utils/wb-gsm-common.sh
 
+WB_GSM_PID=$$
+trap "force_exit_handler" TERM
+
+guess_of_node
 gsm_init
 
 case "$1" in
@@ -44,7 +48,3 @@ case "$1" in
         echo "USAGE: $0 reset|toggle|on|restart_if_broken|off|set_speed|init_baud|imei|imei_sn";
     ;;
 esac
-
-
-
-

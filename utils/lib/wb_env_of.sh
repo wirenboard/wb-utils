@@ -51,8 +51,11 @@ wb_of_parse_gpios_props() {
 	local subnode="$1"
 	local node="${WB_OF_ROOT}/$subnode"
 	local prefix="WB_GPIO"
-	[[ "$subnode" != "gpios" ]] && prefix+="_$(to_upper_snake "$subnode")"
-	
+
+	[[ -z $2 ]] && subnode_prefix="$(to_upper_snake "$subnode")" || subnode_prefix="$(to_upper_snake "$2")"
+
+	[[ "$subnode" != "gpios" ]] && prefix+="_$subnode_prefix"
+
 	for gpioname in $(of_node_props "$node" | sed -n 's/-gpios$//p'); do
 		wb_gpio_to_vars "$prefix" "$gpioname" \
 			"$(of_get_prop_gpio "$node" "$gpioname-gpios")"
@@ -81,14 +84,21 @@ wb_of_parse() {
 	declare -p OF_GPIOCHIPS
 
 	wb_of_parse_props
-	
+
 	of_node_exists "${WB_OF_ROOT}/gpios" && wb_of_parse_gpios gpios || \
         echo "# No enabled GPIOs node found"
 
-	of_node_exists "${WB_OF_ROOT}/gsm" && {
-		echo "export WB_GSM_POWER_TYPE=$(of_get_prop_ulong ${WB_OF_ROOT}/gsm power-type)"
-		wb_of_parse_gpios_props gsm
-	} || echo "# No enabled GSM node found"
+	# USB is new default modem's connection => required gpios are defined in actual usb node (instead of wirenboard/gsm)
+	of_node_exists "aliases/wbc_modem" && usb_of_node=$(of_get_prop_str "aliases" "wbc_modem") || usb_of_node=""
+	subnode_envvar_prefix="GSM"
+	for node in $usb_of_node "${WB_OF_ROOT}/gsm"; do
+		of_node_exists $node && {
+			echo "export WB_GSM_POWER_TYPE=$(of_get_prop_ulong $node power-type)"
+			WB_OF_ROOT=""
+			wb_of_parse_gpios_props $node $subnode_envvar_prefix
+			break
+		} || echo "# No enabled node $node found"
+	done
 
 	of_node_exists "${WB_OF_ROOT}/radio" && {
 		tmp="$(of_get_prop_ulong ${WB_OF_ROOT}/radio spi-major-minor | split_each 1)"
