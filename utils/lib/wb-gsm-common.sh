@@ -34,8 +34,13 @@ function is_at_over_usb() {
 }
 
 function force_exit() {
-    # exitting (to where the trap to TERM signal placed) from any inner-func
+    # exitting (to where the trap to TERM signal placed) from any inner-func (with turning GSM_POWER off if available)
     # default trap to ERR waits a caller to finish, which sometimes is not suitable
+    [[ -n $OF_GSM_NODE ]] && of_has_prop $OF_GSM_NODE "power-gpios" && {
+        >&2 echo "Turning OFF modem's POWER FET"
+        gpio_set_value $(of_get_prop_gpionum $OF_GSM_NODE "power-gpios") 0
+    }
+
     >&2 echo "Force exit: $@"
     for (( i = 1; i < ${#FUNCNAME[@]} - 1; i++ )); do
         >&2 echo " $i: ${BASH_SOURCE[$i+1]}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(...)"

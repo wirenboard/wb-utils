@@ -1,3 +1,9 @@
+wb-utils (3.5.1) stable; urgency=medium
+
+  * wb-gsm: added turning modem's power off in force_exit handler
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Thu, 19 May 2022 16:00:47 +0300
+
 wb-utils (3.5.0) stable; urgency=medium
 
   * wb_env_of: added usb-modem node for parsing gpios
