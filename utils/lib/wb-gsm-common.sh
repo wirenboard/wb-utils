@@ -271,10 +271,13 @@ function gsm_init() {
 
     if of_has_prop $OF_GSM_NODE "simselect-gpios"; then  # some wb5's modems have not simselect
         local gpio_gsm_simselect=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "simselect-gpios")
-        gpio_export $gpio_gsm_simselect
-        gpio_set_dir $gpio_gsm_simselect out
-        # select SIM1 at startup
-        gpio_set_value $gpio_gsm_simselect 0
+        if [[ ! -e "$(gpio_attr_path "$gpio_gsm_simselect")" ]]; then
+            gpio_export $gpio_gsm_simselect
+            gpio_set_dir $gpio_gsm_simselect out
+            local simselect_val=0  # SIM1 is active
+            gpio_set_value $gpio_gsm_simselect $simselect_val
+            debug "Exported and toggled SIMSELECT (gpio$gpio_gsm_simselect -> $simselect_val)"
+        fi
     fi
 
     if has_usb; then

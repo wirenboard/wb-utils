@@ -1,3 +1,9 @@
+wb-utils (3.6.1) stable; urgency=medium
+
+  * wb-gsm: not toggling simselect gpio, if already exported
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Thu, 30 Jun 2022 10:10:43 +0300
+
 wb-utils (3.6.0) stable; urgency=medium
 
   * wb-run-update: add --no-confirm option to run factory reset
