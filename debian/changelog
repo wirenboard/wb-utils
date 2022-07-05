@@ -1,3 +1,10 @@
+wb-utils (3.7.0) stable; urgency=medium
+
+  * wb-watch-update: add delay before sending log/status to mqtt
+  to prevent conflicts in webui's download progress displaying
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Tue, 5 Jul 2022 13:54:29 +0300
+
 wb-utils (3.6.1) stable; urgency=medium
 
   * wb-gsm: not toggling simselect gpio, if already exported
