@@ -12,6 +12,7 @@ function sys_set_time() {
     date -u -s "20${DATE/,/ }"
 }
 
+guess_of_node
 
 case "$1" in
 	"save_time" )
@@ -44,4 +45,3 @@ case "$1" in
 		echo "USAGE: $0 [save_time|restore_time|read|present]";
 	;;
 esac
-
