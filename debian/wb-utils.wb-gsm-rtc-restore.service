@@ -5,7 +5,8 @@ After=local-fs.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/lib/wb-utils/wb-gsm-rtc/restore-wrapper.sh
+ExecCondition=/usr/lib/wb-utils/wb-gsm-rtc/conditions.sh restore_time
+ExecStart=/usr/bin/wb-gsm-rtc restore_time
 
 [Install]
 WantedBy=multi-user.target

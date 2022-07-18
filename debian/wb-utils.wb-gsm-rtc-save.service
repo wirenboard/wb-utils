@@ -4,7 +4,8 @@ Before=final.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/lib/wb-utils/wb-gsm-rtc/save-wrapper.sh
+ExecCondition=/usr/lib/wb-utils/wb-gsm-rtc/conditions.sh save_time
+ExecStart=/usr/bin/wb-gsm-rtc save_time
 
 [Install]
 WantedBy=final.target

@@ -38,8 +38,7 @@ install:
 		utils/lib/prepare/wb-prepare.sh
 
 	install -m 0755 -t $(RTC_LIBDIR) \
-		utils/lib/wb-gsm-rtc/restore-wrapper.sh \
-		utils/lib/wb-gsm-rtc/save-wrapper.sh
+		utils/lib/wb-gsm-rtc/conditions.sh
 
 	install -m 0755 -t $(BINDIR) \
 		utils/bin/wb-gen-serial \
