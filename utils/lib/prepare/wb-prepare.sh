@@ -16,8 +16,6 @@ WB_DIR="/var/lib/wirenboard"
 SERIAL="$WB_DIR/serial.conf"
 SHORT_SN_FNAME="$WB_DIR/short_sn.conf"
 
-FIRSTBOOT_FLAG="/var/lib/firstboot_done.flag"
-
 FIRSTBOOT_NEED_REBOOT=false
 
 wb_check_mounted()
@@ -60,9 +58,9 @@ wb_prepare_partitions()
 
     mkswap /dev/mmcblk0p5
 
-    mkfs.ext4 /dev/mmcblk0p3 
+    mkfs.ext4 /dev/mmcblk0p3
     mkfs.ext4 /dev/mmcblk0p6
-    
+
     log_success_msg "Partition table changed, reboot needed"
     fw_setenv bootcount 0
     sync
@@ -276,12 +274,6 @@ wb_fix_short_sn()
     log_end_msg $?
 }
 
-# returns 0 if this boot is first and 1 if it is not
-wb_is_firstboot()
-{
-    [[ ! -f $FIRSTBOOT_FLAG ]]
-}
-
 # This function should be called only on first boot of the rootfs
 wb_firstboot()
 {
@@ -324,7 +316,6 @@ wb_firstboot()
 
     done
 
-    touch $FIRSTBOOT_FLAG
     sync
 
     if $FIRSTBOOT_NEED_REBOOT; then
@@ -334,21 +325,14 @@ wb_firstboot()
     return 0
 }
 
-do_check_prepare()
-{
-    wb_is_firstboot || return 0
-
-    wb_prepare_filesystems
-    wb_firstboot
-}
-
 do_make_partitions() {
     wb_prepare_partitions
 }
 
 case "$1" in
-  prepare)
-    do_check_prepare
+  firstboot)
+    wb_prepare_filesystems
+    wb_firstboot
     exit $?
     ;;
   make-partitions)
