@@ -5,10 +5,12 @@ Conflicts=shutdown.target
 Before=local-fs-pre.target shutdown.target
 After=systemd-remount-fs.service
 RefuseManualStop=true
+ConditionPathExists=!${WB_STORAGE}p3 !${WB_STORAGE}p5 !${WB_STORAGE}p6
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+EnvironmentFile=/usr/lib/wb-utils/prepare/vars.sh
 ExecStart=/usr/lib/wb-utils/prepare/wb-prepare.sh make-partitions
 
 [Install]

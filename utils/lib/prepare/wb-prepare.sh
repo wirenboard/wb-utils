@@ -36,11 +36,6 @@ wb_erase_partition()
 # Creates all the needed partitions
 wb_prepare_partitions()
 {
-    [[ -e ${WB_STORAGE}p3 && -e ${WB_STORAGE}p5 && -e ${WB_STORAGE}p6 ]] && {
-        log_success_msg "Partition table is good"
-        return 0
-    }
-
     log_action_msg "Preparing partitions"
 
     CURRENT_ROOTFS_BLOCK_SIZE=`tune2fs -l $ROOT_PARTITION  | grep "Block size" | awk '{print $3}'`
@@ -325,10 +320,6 @@ wb_firstboot()
     return 0
 }
 
-do_make_partitions() {
-    wb_prepare_partitions
-}
-
 case "$1" in
   firstboot)
     wb_prepare_filesystems
@@ -336,7 +327,7 @@ case "$1" in
     exit $?
     ;;
   make-partitions)
-    do_make_partitions
+    wb_prepare_partitions
     exit $?
     ;;
   fix_macs)
