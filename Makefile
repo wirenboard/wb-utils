@@ -34,7 +34,8 @@ install:
 		utils/lib/prepare/vars.sh
 
 	install -m 0755 -t $(PREPARE_LIBDIR) \
-		utils/lib/prepare/wb-prepare.sh
+		utils/lib/prepare/wb-prepare.sh \
+		utils/lib/prepare/repart-conditions.sh
 
 	install -m 0755 -t $(BINDIR) \
 		utils/bin/wb-gen-serial \
