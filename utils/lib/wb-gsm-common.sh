@@ -34,8 +34,15 @@ function is_at_over_usb() {
 }
 
 function force_exit() {
-    # exitting (to where the trap to TERM signal placed) from any inner-func
+    # exitting (to where the trap to TERM signal placed) from any inner-func (with turning GSM_POWER off if available)
     # default trap to ERR waits a caller to finish, which sometimes is not suitable
+    if [[ -n "$OF_GSM_NODE" ]]; then
+        if of_has_prop $OF_GSM_NODE "power-gpios"; then
+            >&2 echo "Turning OFF modem's POWER FET"
+            gpio_set_value $(of_get_prop_gpionum $OF_GSM_NODE "power-gpios") 0
+        fi
+    fi
+
     >&2 echo "Force exit: $@"
     for (( i = 1; i < ${#FUNCNAME[@]} - 1; i++ )); do
         >&2 echo " $i: ${BASH_SOURCE[$i+1]}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(...)"
@@ -264,10 +271,13 @@ function gsm_init() {
 
     if of_has_prop $OF_GSM_NODE "simselect-gpios"; then  # some wb5's modems have not simselect
         local gpio_gsm_simselect=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "simselect-gpios")
-        gpio_export $gpio_gsm_simselect
-        gpio_set_dir $gpio_gsm_simselect out
-        # select SIM1 at startup
-        gpio_set_value $gpio_gsm_simselect 0
+        if [[ ! -e "$(gpio_attr_path "$gpio_gsm_simselect")" ]]; then
+            gpio_export $gpio_gsm_simselect
+            gpio_set_dir $gpio_gsm_simselect out
+            local simselect_val=0  # SIM1 is active
+            gpio_set_value $gpio_gsm_simselect $simselect_val
+            debug "Exported and toggled SIMSELECT (gpio$gpio_gsm_simselect -> $simselect_val)"
+        fi
     fi
 
     if has_usb; then
