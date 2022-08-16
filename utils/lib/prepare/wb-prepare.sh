@@ -269,6 +269,12 @@ wb_fix_short_sn()
     log_end_msg $?
 }
 
+wb_fix_machine_id()
+{
+    log_action_msg "Generating actual /etc/machine-id"
+    systemd-machine-id-setup
+}
+
 # This function should be called only on first boot of the rootfs
 wb_firstboot()
 {
@@ -290,6 +296,7 @@ wb_firstboot()
     wb_fix_serial
     wb_fix_macs
     wb_fix_short_sn
+    wb_fix_machine_id
 
     log_action_msg "Generating SSH host keys if necessary"
     for keytype in ecdsa dsa rsa; do

@@ -3,6 +3,7 @@ wb-utils (3.7.0) stable; urgency=medium
   * wb-gsm-rtc: remove
   * wb-repart: become wb-check-partitions; turn off partitions re-creating
   * wb-prepare: migrate from bash to systemd conditions
+  * wb-prepare: generate machine-id at firstboot
 
  -- Vladimir Romanov <v.romanov@wirenboard.ru>  Wed, 20 Jul 2022 18:43:39 +0300
 
