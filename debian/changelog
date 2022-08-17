@@ -1,3 +1,9 @@
+wb-utils (3.5.1-wb102) stable; urgency=medium
+
+  * wb-gen-serial: do not use eth0 MAC for serial generation on WB 7.3+
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Wed, 17 Aug 2022 17:03:02 +0300
+
 wb-utils (3.5.1-wb101) stable; urgency=medium
 
   * wb-gsm: added turning modem's power off in force_exit handler
