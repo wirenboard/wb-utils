@@ -35,6 +35,28 @@ def _get_imei():
     else:
         return gsm.gsm_get_imei()
 
+MAC_ASSIGN_PERMANENT = 0
+MAC_ASSIGN_RANDOM = 1
+MAC_ASSIGN_STOLEN = 2
+MAC_ASSIGN_SET = 3
+
+
+def get_mac_assign_type(iface):
+    """
+    Indicates the address assignment type. Possible values are:
+    == =============================
+    0  permanent address
+    1  randomly generated
+    2  stolen from another device
+    3  set using dev_set_mac_address
+    == =============================
+    """
+    return int(open('/sys/class/net/%s/addr_assign_type' % iface).read().strip())
+
+
+def has_wb_factory_mac(iface):
+    return os.path.isfile("/proc/device-tree/wirenboard/%s-mac-address" % iface)
+
 
 def pack_long(num):
     ret = ""
@@ -90,7 +112,13 @@ def _get_serial_2():
 
     mmc_serial = str(get_mmc_serial())
 
-    eth_mac = get_eth_mac() or ""
+    # WB 7.3+ does not have EEPROMs with MAC.
+    # MAC address is set during factory tests, but serial number is generated at first boot,
+    # so we can't use eth0 MAC address for serial anymore.
+    if has_wb_factory_mac("eth0") or get_mac_assign_type("eth0") == MAC_ASSIGN_RANDOM:
+        eth_mac = ""
+    else:
+        eth_mac = get_eth_mac() or ""
 
     seed_string = str(imei) + cpuinfo_serial + mmc_serial + eth_mac
 
