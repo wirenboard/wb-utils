@@ -6,45 +6,68 @@ WB_GSM_PID=$$
 trap "force_exit_handler" TERM
 
 guess_of_node
-gsm_init
 
 case "$1" in
     "reset" )
+        gsm_init
         reset
     ;;
 
     "toggle" )
+        gsm_init
         toggle
     ;;
 
     "on" )
+        gsm_init
         ensure_on
     ;;
 
     "restart_if_broken" )
+        gsm_init
         restart_if_broken
     ;;
 
     "off" )
+        gsm_init
         switch_off
     ;;
 
     "set_speed" )
+        gsm_init
         set_speed
     ;;
+
     "init_baud" )
+        gsm_init
         init_baud
     ;;
 
     "imei" )
+        gsm_init
         imei
     ;;
 
     "imei_sn" )
+        gsm_init
         imei_sn
     ;;
 
+    "simple_on" )
+        simple_gsm_init
+        simple_on
+    ;;
+
+    "simple_off" )
+        simple_gsm_init
+        simple_off
+    ;;
+
+    "should_enable" )
+        should_enable
+    ;;
+
     * )
-        echo "USAGE: $0 reset|toggle|on|restart_if_broken|off|set_speed|init_baud|imei|imei_sn";
+        echo "USAGE: $0 reset|toggle|on|restart_if_broken|off|set_speed|init_baud|imei|imei_sn|simple_on|simple_off";
     ;;
 esac

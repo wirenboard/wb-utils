@@ -587,3 +587,127 @@ function gsm_set_time() {
         exit $RC;
     fi
 }
+
+# WB7 and SIM A7600E-H/A7602E-H only
+function simple_gsm_init() {
+    if ! gsm_present; then
+        debug "No GSM modem present, exiting"
+        exit 1
+    fi
+
+    local gpio_gsm_pwrkey=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "pwrkey-gpios")
+    local gsm_power_type=$(of_prop_required of_get_prop_ulong $OF_GSM_NODE "power-type")
+    local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
+    local gpio_gsm_status=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "status-gpios")
+
+    gpio_setup $gpio_gsm_pwrkey out
+
+    if [[ $gsm_power_type = "1" ]]; then
+        local gpio_gsm_reset=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "reset-gpios")
+        gpio_setup $gpio_gsm_reset low
+    fi
+
+    if [[ $gsm_power_type = "2" ]]; then
+        gpio_setup $gpio_gsm_power out
+    fi
+
+    if [[ -n $gpio_gsm_status ]]; then
+        gpio_setup $gpio_gsm_status in
+        if of_gpio_is_inverted $(of_prop_required of_get_prop_gpio $OF_GSM_NODE "status-gpios"); then
+            gpio_set_inverted $gpio_gsm_status 1
+        else
+            gpio_set_inverted $gpio_gsm_status 0
+        fi
+    fi
+}
+
+# WB7 and SIM A7600E-H/A7602E-H only
+function simple_on() {
+    local gpio_gsm_status=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "status-gpios")
+    local gsm_power_type=$(of_prop_required of_get_prop_ulong $OF_GSM_NODE "power-type")
+    local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
+    local gpio_gsm_pwrkey=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "pwrkey-gpios")
+
+    if [[ -n "$gpio_gsm_status" ]]; then
+        if [[ "`gpio_get_value $gpio_gsm_status`" = "1" ]]; then
+            debug "Modem is already switched on"
+            return
+        fi
+    fi
+
+    if [[ $gsm_power_type = "2" ]]; then
+        gpio_set_value $gpio_gsm_power 1
+    fi
+
+    sleep 1
+    gpio_set_value $gpio_gsm_pwrkey 0
+    sleep 1
+    gpio_set_value $gpio_gsm_pwrkey 1
+    sleep 1
+    gpio_set_value $gpio_gsm_pwrkey 0
+    sleep 9
+
+    if [[ -n "$gpio_gsm_status" ]]; then
+        debug "Waiting for modem to start"
+        max_tries=40
+
+        for ((i=0; i<=max_tries; i++)); do
+            if [[ "`gpio_get_value $gpio_gsm_status`" = "1" ]]; then
+                break
+            fi
+            sleep 0.5
+        done
+    fi
+}
+
+# WB7 and SIM A7600E-H/A7602E-H only
+function simple_off() {
+    local gpio_gsm_status=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "status-gpios")
+    local gsm_power_type=$(of_prop_required of_get_prop_ulong $OF_GSM_NODE "power-type")
+    local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
+    local gpio_gsm_pwrkey=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "pwrkey-gpios")
+
+    [[ -n $gpio_gsm_status ]] && [[ "`gpio_get_value $gpio_gsm_status`" = "0" ]] && {
+        debug "Modem is already OFF"
+        return 0
+    } || debug "Modem is ON. Will try to switch off GSM modem "
+
+    gpio_set_value $gpio_gsm_pwrkey 0
+    sleep 1
+    gpio_set_value $gpio_gsm_pwrkey 1
+    sleep 3
+    gpio_set_value $gpio_gsm_pwrkey 0
+    sleep 9
+
+    if [[ -n $gpio_gsm_status ]]; then
+        debug "Waiting for modem to stop"
+        max_tries=25
+
+        for ((i=0; i<=max_tries; i++)); do
+            if [[ "`gpio_get_value $gpio_gsm_status`" = "0" ]]; then
+                debug "Modem is OFF"
+                break
+            fi
+            sleep 0.2
+        done
+    fi
+
+    if [[ $gsm_power_type = "2" ]]; then
+        debug "Physically switching off GSM modem using POWER FET"
+        gpio_set_value $gpio_gsm_power 0
+    fi;
+}
+
+function should_enable() {
+    if gsm_present; then
+        if of_machine_match "wirenboard,wirenboard-720"; then
+            debug "Should enable GSM modem"
+            return
+        else
+            debug "Not a WB7"
+        fi
+    else
+        debug "No GSM modem present, exiting"
+    fi
+    exit 1
+}
