@@ -44,7 +44,7 @@ split_each() {
 # heuristics and not to confuse user
 guess_data_type() {
 	which file >/dev/null || echo "int"
-	local guess=`cat | file -e apptype -e compress -e elf -e encoding \
+	local guess=`cat | head -c -1 | file -e apptype -e compress -e elf -e encoding \
 	        -e soft -e tar -`
 	case $guess in *ASCII*) echo "string" ;; *) echo "int" ;; esac
 }

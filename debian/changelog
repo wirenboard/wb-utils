@@ -1,11 +1,23 @@
-wb-utils (3.7.0) stable; urgency=medium
+wb-utils (3.9.0) stable; urgency=medium
 
   * wb-gsm-rtc: remove
   * wb-repart: remove
   * wb-prepare: migrate from bash to systemd conditions
   * wb-prepare: generate machine-id at firstboot
 
- -- Vladimir Romanov <v.romanov@wirenboard.ru>  Wed, 20 Jul 2022 18:43:39 +0300
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Wed, 24 Aug 2022 10:42:39 +0300
+
+wb-utils (3.8.0) stable; urgency=medium
+
+  * of: fix type deduction for bullseye
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Thu, 18 Aug 2022 14:04:36 +0300
+
+wb-utils (3.7.0) stable; urgency=medium
+
+  * wb-gen-serial: do not use eth0 MAC for serial generation on WB 7.3+
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Wed, 17 Aug 2022 15:50:29 +0300
 
 wb-utils (3.6.1) stable; urgency=medium
 
