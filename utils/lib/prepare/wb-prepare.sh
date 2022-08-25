@@ -33,35 +33,6 @@ wb_erase_partition()
     log_end_msg $?
 }
 
-# Creates all the needed partitions
-wb_prepare_partitions()
-{
-    log_action_msg "Preparing partitions"
-
-    CURRENT_ROOTFS_BLOCK_SIZE=`tune2fs -l $ROOT_PARTITION  | grep "Block size" | awk '{print $3}'`
-    CURRENT_ROOTFS_BLOCK_COUNT=`tune2fs -l $ROOT_PARTITION | grep "Block count" | awk '{print $3}'`
-    CURRENT_ROOTFS_SIZE_BYTES=$[${CURRENT_ROOTFS_BLOCK_SIZE}*${CURRENT_ROOTFS_BLOCK_COUNT}]
-
-    [[ ${CURRENT_ROOTFS_SIZE_BYTES} -le ${WB_ROOTFS_SIZE_BYTES} ]] ||  {
-        log_failure_msg "Current rootfs size is greater than new partition size, aborting"
-        return 1
-    }
-
-    wb_make_partitions ${WB_STORAGE} ${WB_ROOTFS_SIZE_MB}
-
-    partprobe
-
-    mkswap /dev/mmcblk0p5
-
-    mkfs.ext4 /dev/mmcblk0p3
-    mkfs.ext4 /dev/mmcblk0p6
-
-    log_success_msg "Partition table changed, reboot needed"
-    fw_setenv bootcount 0
-    sync
-    reboot
-}
-
 # Run mkfs.ext4 with custom options
 # Args:
 # - device file
@@ -269,6 +240,8 @@ wb_fix_short_sn()
     log_end_msg $?
 }
 
+# To run firstboot only once
+# https://freedesktop.org/software/systemd/man/machine-id.html
 wb_fix_machine_id()
 {
     log_action_msg "Generating actual /etc/machine-id"
@@ -331,10 +304,6 @@ case "$1" in
   firstboot)
     wb_prepare_filesystems
     wb_firstboot
-    exit $?
-    ;;
-  make-partitions)
-    wb_prepare_partitions
     exit $?
     ;;
   fix_macs)

@@ -4,6 +4,7 @@ wb-utils (3.9.0) stable; urgency=medium
   * wb-repart: remove
   * wb-prepare: migrate from bash to systemd conditions
   * wb-prepare: generate machine-id at firstboot
+  * wb-prepare: remove "make-partitions" entry
 
  -- Vladimir Romanov <v.romanov@wirenboard.ru>  Wed, 24 Aug 2022 10:42:39 +0300
 
