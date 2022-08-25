@@ -73,7 +73,8 @@ function get_modem_usb_devices() {
 
 
 function test_connection() {
-    /usr/sbin/chat -v   TIMEOUT $2 ABORT "ERROR" ABORT "BUSY" "" AT OK "" > $1 < $1
+    # /usr/sbin/chat -v   TIMEOUT $2 ABORT "ERROR" ABORT "BUSY" "" AT OK "" > $1 < $1
+    /usr/sbin/chat -t $2 -v ABORT "ERROR" ABORT "BUSY" "" AT OK "" > $1 < $1
     RC=$?
     debug "(port:$1; timeout:$2) => $RC"
     echo $RC
@@ -141,6 +142,9 @@ function init_usb_connection() {
     if [[ -z `echo $(get_modem_usb_devices)` ]]; then
         force_exit "no usb device after ${allowed_delay}s"
     fi
+
+    debug "Waiting 15s before usb ports probing..."
+    sleep 15
 
     modem_at_ports=$(probe_usb_ports)
     if [[ -n "$modem_at_ports" ]]; then

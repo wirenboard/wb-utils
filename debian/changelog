@@ -1,3 +1,9 @@
+wb-utils (3.5.1-wb103) stable; urgency=medium
+
+  * wb-gsm: added delay around usb-devices probing
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Thu, 25 Aug 2022 14:27:12 +0300
+
 wb-utils (3.5.1-wb102) stable; urgency=medium
 
   * wb-gen-serial: do not use eth0 MAC for serial generation on WB 7.3+
