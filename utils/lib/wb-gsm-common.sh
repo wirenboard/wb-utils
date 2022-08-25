@@ -590,7 +590,7 @@ function gsm_set_time() {
 
 # WB7 and SIM A7600E-H/A7602E-H only
 function simple_gsm_init() {
-    if ! gsm_present; then
+    if ! has_usb; then
         debug "No GSM modem present, exiting"
         exit 1
     fi
@@ -699,7 +699,7 @@ function simple_off() {
 }
 
 function should_enable() {
-    if gsm_present; then
+    if has_usb; then
         if of_machine_match "wirenboard,wirenboard-720"; then
             debug "Should enable GSM modem"
             return
@@ -707,7 +707,7 @@ function should_enable() {
             debug "Not a WB7"
         fi
     else
-        debug "No GSM modem present, exiting"
+        debug "No GSM modem present"
     fi
     exit 1
 }
