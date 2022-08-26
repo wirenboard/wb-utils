@@ -53,14 +53,12 @@ case "$1" in
         imei_sn
     ;;
 
-    "simple_on" )
-        simple_gsm_init
-        simple_on
+    "wb7_on" )
+        wb7_on
     ;;
 
-    "simple_off" )
-        simple_gsm_init
-        simple_off
+    "wb7_off" )
+        wb7_off
     ;;
 
     "should_enable" )
@@ -68,6 +66,6 @@ case "$1" in
     ;;
 
     * )
-        echo "USAGE: $0 reset|toggle|on|restart_if_broken|off|set_speed|init_baud|imei|imei_sn|simple_on|simple_off";
+        echo "USAGE: $0 reset|toggle|on|restart_if_broken|off|set_speed|init_baud|imei|imei_sn|wb7_on|wb7_off";
     ;;
 esac

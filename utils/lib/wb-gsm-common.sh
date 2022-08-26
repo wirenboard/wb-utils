@@ -589,9 +589,9 @@ function gsm_set_time() {
 }
 
 # WB7 and SIM A7600E-H/A7602E-H only
-function simple_gsm_init() {
+function wb7_gsm_init() {
     if ! has_usb; then
-        debug "No GSM modem present, exiting"
+        debug "No GSM modem present"
         exit 1
     fi
 
@@ -600,45 +600,41 @@ function simple_gsm_init() {
     local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
     local gpio_gsm_status=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "status-gpios")
 
+    if [[ $gsm_power_type != "2" ]]; then
+        debug "Unsupported GSM modem power_type"
+        exit 1
+    fi
+
+    if [[ -z $gpio_gsm_status ]]; then
+        debug "GSM status GPIO is not defined"
+        exit 1
+    fi
+
     gpio_setup $gpio_gsm_pwrkey out
+    gpio_setup $gpio_gsm_power out
+    gpio_setup $gpio_gsm_status in
 
-    if [[ $gsm_power_type = "1" ]]; then
-        local gpio_gsm_reset=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "reset-gpios")
-        gpio_setup $gpio_gsm_reset low
-    fi
-
-    if [[ $gsm_power_type = "2" ]]; then
-        gpio_setup $gpio_gsm_power out
-    fi
-
-    if [[ -n $gpio_gsm_status ]]; then
-        gpio_setup $gpio_gsm_status in
-        if of_gpio_is_inverted $(of_prop_required of_get_prop_gpio $OF_GSM_NODE "status-gpios"); then
-            gpio_set_inverted $gpio_gsm_status 1
-        else
-            gpio_set_inverted $gpio_gsm_status 0
-        fi
+    if of_gpio_is_inverted $(of_prop_required of_get_prop_gpio $OF_GSM_NODE "status-gpios"); then
+        gpio_set_inverted $gpio_gsm_status 1
+    else
+        gpio_set_inverted $gpio_gsm_status 0
     fi
 }
 
 # WB7 and SIM A7600E-H/A7602E-H only
-function simple_on() {
+function wb7_on() {
+    wb7_gsm_init
+
     local gpio_gsm_status=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "status-gpios")
-    local gsm_power_type=$(of_prop_required of_get_prop_ulong $OF_GSM_NODE "power-type")
     local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
     local gpio_gsm_pwrkey=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "pwrkey-gpios")
 
-    if [[ -n "$gpio_gsm_status" ]]; then
-        if [[ "`gpio_get_value $gpio_gsm_status`" = "1" ]]; then
-            debug "Modem is already switched on"
-            return
-        fi
+    if [[ "`gpio_get_value $gpio_gsm_status`" = "1" ]]; then
+        debug "Modem is already switched on"
+        return 0
     fi
 
-    if [[ $gsm_power_type = "2" ]]; then
-        gpio_set_value $gpio_gsm_power 1
-    fi
-
+    gpio_set_value $gpio_gsm_power 1
     sleep 1
     gpio_set_value $gpio_gsm_pwrkey 0
     sleep 1
@@ -647,30 +643,30 @@ function simple_on() {
     gpio_set_value $gpio_gsm_pwrkey 0
     sleep 9
 
-    if [[ -n "$gpio_gsm_status" ]]; then
-        debug "Waiting for modem to start"
-        max_tries=40
-
-        for ((i=0; i<=max_tries; i++)); do
-            if [[ "`gpio_get_value $gpio_gsm_status`" = "1" ]]; then
-                break
-            fi
-            sleep 0.5
-        done
-    fi
+    debug "Waiting for modem to start"
+    max_tries=40
+    for ((i=0; i<=max_tries; i++)); do
+        if [[ "`gpio_get_value $gpio_gsm_status`" = "1" ]]; then
+            break
+        fi
+        sleep 0.5
+    done
 }
 
 # WB7 and SIM A7600E-H/A7602E-H only
-function simple_off() {
+function wb7_off() {
+    wb7_gsm_init
+
     local gpio_gsm_status=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "status-gpios")
-    local gsm_power_type=$(of_prop_required of_get_prop_ulong $OF_GSM_NODE "power-type")
     local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
     local gpio_gsm_pwrkey=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "pwrkey-gpios")
 
-    [[ -n $gpio_gsm_status ]] && [[ "`gpio_get_value $gpio_gsm_status`" = "0" ]] && {
+    if [[ "`gpio_get_value $gpio_gsm_status`" = "0" ]]; then
         debug "Modem is already OFF"
         return 0
-    } || debug "Modem is ON. Will try to switch off GSM modem "
+    else
+        debug "Modem is ON. Will try to switch off GSM modem "
+    fi
 
     gpio_set_value $gpio_gsm_pwrkey 0
     sleep 1
@@ -679,30 +675,25 @@ function simple_off() {
     gpio_set_value $gpio_gsm_pwrkey 0
     sleep 9
 
-    if [[ -n $gpio_gsm_status ]]; then
-        debug "Waiting for modem to stop"
-        max_tries=25
+    debug "Waiting for modem to stop"
+    max_tries=25
+    for ((i=0; i<=max_tries; i++)); do
+        if [[ "`gpio_get_value $gpio_gsm_status`" = "0" ]]; then
+            debug "Modem is OFF"
+            break
+        fi
+        sleep 0.2
+    done
 
-        for ((i=0; i<=max_tries; i++)); do
-            if [[ "`gpio_get_value $gpio_gsm_status`" = "0" ]]; then
-                debug "Modem is OFF"
-                break
-            fi
-            sleep 0.2
-        done
-    fi
-
-    if [[ $gsm_power_type = "2" ]]; then
-        debug "Physically switching off GSM modem using POWER FET"
-        gpio_set_value $gpio_gsm_power 0
-    fi;
+    debug "Physically switching off GSM modem using POWER FET"
+    gpio_set_value $gpio_gsm_power 0
 }
 
 function should_enable() {
     if has_usb; then
-        if of_machine_match "wirenboard,wirenboard-720"; then
+        if [[ of_machine_match "wirenboard,wirenboard-720" || of_machine_match "wirenboard,wirenboard-7xx" ]]; then
             debug "Should enable GSM modem"
-            return
+            return 0
         else
             debug "Not a WB7"
         fi
