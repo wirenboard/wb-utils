@@ -1,4 +1,4 @@
-wb-utils (3.9.0) stable; urgency=medium
+wb-utils (4.0.0) stable; urgency=medium
 
   * wb-gsm-rtc: remove
   * wb-repart: remove
@@ -6,7 +6,7 @@ wb-utils (3.9.0) stable; urgency=medium
   * wb-prepare: generate machine-id at firstboot
   * wb-prepare: remove "make-partitions" entry
 
- -- Vladimir Romanov <v.romanov@wirenboard.ru>  Wed, 24 Aug 2022 10:42:39 +0300
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Tue, 06 Sep 2022 18:54:56 +0300
 
 wb-utils (3.8.0) stable; urgency=medium
 
