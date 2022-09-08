@@ -16,8 +16,6 @@ WB_DIR="/var/lib/wirenboard"
 SERIAL="$WB_DIR/serial.conf"
 SHORT_SN_FNAME="$WB_DIR/short_sn.conf"
 
-FIRSTBOOT_FLAG="/var/lib/firstboot_done.flag"
-
 FIRSTBOOT_NEED_REBOOT=false
 
 wb_check_mounted()
@@ -33,40 +31,6 @@ wb_erase_partition()
     log_action_begin_msg "Erasing partition $part"
     dd if=/dev/zero of=$WB_STORAGE seek=$start bs=$WB_SECTOR_SIZE count=$[1*MB/WB_SECTOR_SIZE] 2>&1 >/dev/null
     log_end_msg $?
-}
-
-# Creates all the needed partitions
-wb_prepare_partitions()
-{
-    [[ -e ${WB_STORAGE}p3 && -e ${WB_STORAGE}p5 && -e ${WB_STORAGE}p6 ]] && {
-        log_success_msg "Partition table is good"
-        return 0
-    }
-
-    log_action_msg "Preparing partitions"
-
-    CURRENT_ROOTFS_BLOCK_SIZE=`tune2fs -l $ROOT_PARTITION  | grep "Block size" | awk '{print $3}'`
-    CURRENT_ROOTFS_BLOCK_COUNT=`tune2fs -l $ROOT_PARTITION | grep "Block count" | awk '{print $3}'`
-    CURRENT_ROOTFS_SIZE_BYTES=$[${CURRENT_ROOTFS_BLOCK_SIZE}*${CURRENT_ROOTFS_BLOCK_COUNT}]
-
-    [[ ${CURRENT_ROOTFS_SIZE_BYTES} -le ${WB_ROOTFS_SIZE_BYTES} ]] ||  {
-        log_failure_msg "Current rootfs size is greater than new partition size, aborting"
-        return 1
-    }
-
-    wb_make_partitions ${WB_STORAGE} ${WB_ROOTFS_SIZE_MB}
-
-    partprobe
-
-    mkswap /dev/mmcblk0p5
-
-    mkfs.ext4 /dev/mmcblk0p3 
-    mkfs.ext4 /dev/mmcblk0p6
-    
-    log_success_msg "Partition table changed, reboot needed"
-    fw_setenv bootcount 0
-    sync
-    reboot
 }
 
 # Run mkfs.ext4 with custom options
@@ -276,10 +240,12 @@ wb_fix_short_sn()
     log_end_msg $?
 }
 
-# returns 0 if this boot is first and 1 if it is not
-wb_is_firstboot()
+# To run firstboot only once
+# https://freedesktop.org/software/systemd/man/machine-id.html
+wb_fix_machine_id()
 {
-    [[ ! -f $FIRSTBOOT_FLAG ]]
+    log_action_msg "Generating actual /etc/machine-id"
+    systemd-machine-id-setup
 }
 
 # This function should be called only on first boot of the rootfs
@@ -303,6 +269,7 @@ wb_firstboot()
     wb_fix_serial
     wb_fix_macs
     wb_fix_short_sn
+    wb_fix_machine_id
 
     log_action_msg "Generating SSH host keys if necessary"
     for keytype in ecdsa dsa rsa; do
@@ -324,7 +291,6 @@ wb_firstboot()
 
     done
 
-    touch $FIRSTBOOT_FLAG
     sync
 
     if $FIRSTBOOT_NEED_REBOOT; then
@@ -334,25 +300,10 @@ wb_firstboot()
     return 0
 }
 
-do_check_prepare()
-{
-    wb_is_firstboot || return 0
-
+case "$1" in
+  firstboot)
     wb_prepare_filesystems
     wb_firstboot
-}
-
-do_make_partitions() {
-    wb_prepare_partitions
-}
-
-case "$1" in
-  prepare)
-    do_check_prepare
-    exit $?
-    ;;
-  make-partitions)
-    do_make_partitions
     exit $?
     ;;
   fix_macs)

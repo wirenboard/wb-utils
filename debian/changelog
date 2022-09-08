@@ -1,3 +1,13 @@
+wb-utils (4.0.0) stable; urgency=medium
+
+  * wb-gsm-rtc: remove
+  * wb-repart: remove
+  * wb-prepare: migrate from bash to systemd conditions
+  * wb-prepare: generate machine-id at firstboot
+  * wb-prepare: remove "make-partitions" entry
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Tue, 06 Sep 2022 18:54:56 +0300
+
 wb-utils (3.8.0) stable; urgency=medium
 
   * of: fix type deduction for bullseye
