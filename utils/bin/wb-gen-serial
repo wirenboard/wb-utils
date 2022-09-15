@@ -25,8 +25,9 @@ MAC_PREFIX = "00:86"
 GEN_REVISION = 0
 
 # A workaround to remove modem IMEI from generating SN on specific boards
-DT_MODEM_IS_MODULE = "contactless,imx6ul-wirenboard670"
+DT_WB6_MODEM_IS_MODULE = "contactless,imx6ul-wirenboard670"
 
+DT_WB6 = "contactless,imx6ul-wirenboard60"
 DT_SUNXI = "sun8i-r40"
 
 
@@ -112,7 +113,10 @@ def _get_serial_2():
     Since WB 6.7, a gsm modem has become a module => one board could have different modems
     Modem's IMEI shouldn't be involved into WB's SN-generating process
     """
-    imei = "" if dt_is_compatible(DT_MODEM_IS_MODULE) else _get_imei()
+    if dt_is_compatible(DT_WB6) and not dt_is_compatible(DT_WB6_MODEM_IS_MODULE):
+        imei = _get_imei()
+    else:
+        imei = ""
 
     # read WB7 CPU serial from alternative source
     if dt_is_compatible(DT_SUNXI):
