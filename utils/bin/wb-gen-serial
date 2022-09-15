@@ -159,56 +159,10 @@ def _get_serial_2():
     return pack_long(serial_reduced)
 
 
-# Old serial format
-
-
-def reduce_hash(digest_str, modulo):
-    remainder = 0
-    for char in digest_str:
-        remainder = remainder * 256
-        remainder = remainder + ord(char)
-        remainder = remainder % modulo
-    return remainder
-
-
-def _get_serial_1():
-    """
-    Since WB 6.7, a gsm modem has become a module => one board could have different modems
-    Modem's IMEI shouldn't be involved into WB's SN-generating process
-    """
-    if dt_is_compatible(DT_MODEM_IS_MODULE):
-        imei = None
-    else:
-        try:
-            gsm.init_gsm()
-        except RuntimeError:
-            # print "No GSM modem detected"
-            imei = None
-        else:
-            imei = gsm.gsm_get_imei()
-            # print "imei=%s" % imei
-
-    wifi_mac = wifi.get_wlan_mac()
-
-    cpuinfo_serial = str(get_cpuinfo_serial())
-    # print "cpuinfo serial: ", cpuinfo_serial
-
-    if imei is not None:
-        imei_prefix, imei_sn, imei_crc = gsm.split_imei(imei)
-        board_id = imei
-        short_sn = imei_sn
-    else:
-        board_id = cpuinfo_serial + (wifi_mac if wifi_mac else "")
-        short_sn = "1" + str(reduce_hash(hashlib.md5(board_id.encode("utf-8")).digest(), 1000000))
-
-    return short_sn
-
-
 def get_serial(version=2):
-    if version == 2:
-        return _get_serial_2()
-    else:
-        return _get_serial_1()
+    if version != 2:
+        raise ValueError("version 2 serials only are supported")
+    return _get_serial_2()
 
 
 def _get_24bit_serial_v2():
@@ -350,10 +304,10 @@ def main():
     parser.add_argument(
         "-v",
         "--version",
-        help="Select version of serial number (1 - old, 2 - new), default - 2",
+        help="Select version of serial number (2 - actual), default - 2",
         type=int,
         default=2,
-        choices=[1, 2],
+        choices=[2],
     )
 
     parser.add_argument(
