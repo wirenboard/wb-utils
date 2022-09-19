@@ -1,8 +1,18 @@
-wb-utils (3.9.0) stable; urgency=medium
+wb-utils (4.1.0) stable; urgency=medium
 
   * wb-gsm: add GSM modem power management for use with ModemManager
 
- -- Petr Krasnoshchekov <petr.krasnoshchekov@wirenboard.ru>  Wed, 24 Aug 2022 19:00:30 +0500
+ -- Petr Krasnoshchekov <petr.krasnoshchekov@wirenboard.ru>  Mon, 19 Sep 2022 15:23:41 +0500
+
+wb-utils (4.0.0) stable; urgency=medium
+
+  * wb-gsm-rtc: remove
+  * wb-repart: remove
+  * wb-prepare: migrate from bash to systemd conditions
+  * wb-prepare: generate machine-id at firstboot
+  * wb-prepare: remove "make-partitions" entry
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Tue, 06 Sep 2022 18:54:56 +0300
 
 wb-utils (3.8.0) stable; urgency=medium
 

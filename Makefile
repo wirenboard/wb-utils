@@ -8,11 +8,10 @@ all:
 BINDIR = $(DESTDIR)/$(prefix)/bin
 LIBDIR = $(DESTDIR)/$(prefix)/lib/wb-utils
 PREPARE_LIBDIR = $(LIBDIR)/prepare
-RTC_LIBDIR = $(LIBDIR)/wb-gsm-rtc
 IMAGEUPDATE_POSTINST_DIR = $(DESTDIR)/$(prefix)/lib/wb-image-update/postinst
 
 install:
-	install -m 0755 -d $(BINDIR) $(LIBDIR) $(PREPARE_LIBDIR) $(RTC_LIBDIR) $(IMAGEUPDATE_POSTINST_DIR)
+	install -m 0755 -d $(BINDIR) $(LIBDIR) $(PREPARE_LIBDIR) $(IMAGEUPDATE_POSTINST_DIR)
 
 	install -m 0644 utils/etc_wb_env.sh $(DESTDIR)/etc/wb_env.sh
 
@@ -37,15 +36,10 @@ install:
 	install -m 0755 -t $(PREPARE_LIBDIR) \
 		utils/lib/prepare/wb-prepare.sh
 
-	install -m 0755 -t $(RTC_LIBDIR) \
-		utils/lib/wb-gsm-rtc/restore-wrapper.sh \
-		utils/lib/wb-gsm-rtc/save-wrapper.sh
-
 	install -m 0755 -t $(BINDIR) \
 		utils/bin/wb-gen-serial \
 		utils/bin/wb-set-mac \
 		utils/bin/wb-gsm \
-		utils/bin/wb-gsm-rtc \
 		utils/bin/wb-watch-update \
 		utils/bin/wb-run-update
 
