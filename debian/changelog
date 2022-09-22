@@ -1,3 +1,10 @@
+wb-utils (4.1.1) stable; urgency=medium
+
+  * wb-gsm: add delay before usb ports probing at poweron
+  * wb-gsm: rework chat timeout setting (at connection test)
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Tue, 22 Sep 2022 22:48:47 +0300
+
 wb-utils (4.1.0) stable; urgency=medium
 
   * wb-gsm: add GSM modem power management for use with ModemManager
