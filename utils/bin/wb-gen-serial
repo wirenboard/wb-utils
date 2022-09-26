@@ -1,16 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import os
-import sys
-import hashlib
 import argparse
+import hashlib
+import os
 import random
 import string
+import sys
 
-sys.path.insert(0, "/usr/lib/wb-test-suite/common/")
-
-from wb_common.uid import get_cpuinfo_serial, get_wb7_cpu_serial, get_mmc_serial, get_eth_mac
 from wb_common import gsm, wifi
+from wb_common.uid import (
+    get_cpuinfo_serial,
+    get_eth_mac,
+    get_mmc_serial,
+    get_wb7_cpu_serial,
+)
 
 # Filename for random generated serial number seed
 FALLBACK_SEED_FILE = "/var/lib/wirenboard/serial-seed"
@@ -22,9 +25,14 @@ MAC_PREFIX = "00:86"
 GEN_REVISION = 0
 
 # A workaround to remove modem IMEI from generating SN on specific boards
-DT_MODEM_IS_MODULE = 'contactless,imx6ul-wirenboard670'
+DT_WB6_MODEM_IS_MODULE = "contactless,imx6ul-wirenboard670"
 
-DT_SUNXI = 'sun8i-r40'
+DT_WB6 = "contactless,imx6ul-wirenboard60"
+DT_SUNXI = "sun8i-r40"
+
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
 
 
 def _get_imei():
@@ -34,6 +42,7 @@ def _get_imei():
         return ""
     else:
         return gsm.gsm_get_imei()
+
 
 MAC_ASSIGN_PERMANENT = 0
 MAC_ASSIGN_RANDOM = 1
@@ -51,7 +60,8 @@ def get_mac_assign_type(iface):
     3  set using dev_set_mac_address
     == =============================
     """
-    return int(open('/sys/class/net/%s/addr_assign_type' % iface).read().strip())
+    with open("/sys/class/net/%s/addr_assign_type" % iface, encoding="utf-8") as f:
+        return int(f.read().strip())
 
 
 def has_wb_factory_mac(iface):
@@ -63,22 +73,22 @@ def pack_long(num):
     while num > 0:
         val = num & 0x1F
         if val < 26:
-            ret += chr(ord('A') + val)
+            ret += chr(ord("A") + val)
         else:
-            ret += chr(ord('2') + val - 26)
+            ret += chr(ord("2") + val - 26)
 
         num >>= 5
     return ret
 
 
 def unpack_long(s):
-    ret = long()
+    ret = 0
 
     for i in s[::-1]:
         if i.isdigit():
-            ret += ord(i) - ord('2') + 26
+            ret += ord(i) - ord("2") + 26
         else:
-            ret += ord(i) - ord('A')
+            ret += ord(i) - ord("A")
 
         ret <<= 5
 
@@ -88,13 +98,14 @@ def unpack_long(s):
 
 
 def random_word(length):
-    return ''.join(random.choice(string.lowercase) for i in range(length))
+    return "".join(random.choice(string.ascii_lowercase) for i in range(length))
 
 
 def dt_is_compatible(compatible_str):
-    node_fname = '/proc/device-tree/compatible'
-    compatible_with = open(node_fname).read()
-    return (compatible_str in compatible_with)
+    node_fname = "/proc/device-tree/compatible"
+    with open(node_fname, encoding="utf-8") as f:
+        compatible_with = f.read()
+    return compatible_str in compatible_with
 
 
 def _get_serial_2():
@@ -102,7 +113,10 @@ def _get_serial_2():
     Since WB 6.7, a gsm modem has become a module => one board could have different modems
     Modem's IMEI shouldn't be involved into WB's SN-generating process
     """
-    imei = '' if dt_is_compatible(DT_MODEM_IS_MODULE) else _get_imei()
+    if dt_is_compatible(DT_WB6) and not dt_is_compatible(DT_WB6_MODEM_IS_MODULE):
+        imei = _get_imei()
+    else:
+        imei = ""
 
     # read WB7 CPU serial from alternative source
     if dt_is_compatible(DT_SUNXI):
@@ -125,16 +139,16 @@ def _get_serial_2():
     # Generate random serial number if no seed is presented
     if len(seed_string) == 0:
         if os.path.isfile(FALLBACK_SEED_FILE):
-            print >> sys.stderr, "Warning: use random seed file from %s" % FALLBACK_SEED_FILE
-            f = open(FALLBACK_SEED_FILE, "r")
-            seed_string = f.read()
+            eprint("Warning: use random seed file from %s" % FALLBACK_SEED_FILE)
+            with open(FALLBACK_SEED_FILE, "r", encoding="utf-8") as f:
+                seed_string = f.read()
         else:
-            print >> sys.stderr, "Warning: generating random seed file %s" % FALLBACK_SEED_FILE
-            f = open(FALLBACK_SEED_FILE, "w")
+            eprint("Warning: generating random seed file %s" % FALLBACK_SEED_FILE)
             seed_string = random_word(64)
-            f.write(seed_string)
+            with open(FALLBACK_SEED_FILE, "w", encoding="utf-8") as f:
+                f.write(seed_string)
 
-    ser_hash = hashlib.md5(seed_string).hexdigest()
+    ser_hash = hashlib.md5(seed_string.encode("utf-8")).hexdigest()
     ser_hash = int(ser_hash[8:], 16) ^ int(ser_hash[:8], 16)
 
     serial_reduced = 0
@@ -149,55 +163,11 @@ def _get_serial_2():
     return pack_long(serial_reduced)
 
 
-# Old serial format
-
-def reduce_hash(digest_str, modulo):
-    remainder = 0
-    for c in digest_str:
-        remainder = remainder * 256
-        remainder = remainder + ord(c)
-        remainder = remainder % modulo
-    return remainder
-
-
-def _get_serial_1():
-    """
-    Since WB 6.7, a gsm modem has become a module => one board could have different modems
-    Modem's IMEI shouldn't be involved into WB's SN-generating process
-    """
-    if dt_is_compatible(DT_MODEM_IS_MODULE):
-        imei = None
-    else:
-        try:
-            gsm.init_gsm()
-        except RuntimeError:
-            # print "No GSM modem detected"
-            imei = None
-        else:
-            imei = gsm.gsm_get_imei()
-            # print "imei=%s" % imei
-
-    wifi_mac = wifi.get_wlan_mac()
-
-    cpuinfo_serial = str(get_cpuinfo_serial())
-    # print "cpuinfo serial: ", cpuinfo_serial
-
-    if imei is not None:
-        imei_prefix, imei_sn, imei_crc = gsm.split_imei(imei)
-        board_id = imei
-        short_sn = imei_sn
-    else:
-        board_id = cpuinfo_serial + (wifi_mac if wifi_mac else "")
-        short_sn = "1" + str(reduce_hash(hashlib.md5(board_id).digest(), 1000000))
-
-    return short_sn
-
-
 def get_serial(version=2):
-    if version == 2:
-        return _get_serial_2()
-    else:
-        return _get_serial_1()
+    if version != 2:
+        raise ValueError("version 2 serials only are supported")
+    return _get_serial_2()
+
 
 def _get_24bit_serial_v2():
     # serial is 40-bit value,
@@ -205,7 +175,7 @@ def _get_24bit_serial_v2():
 
     serial = unpack_long(_get_serial_2())
 
-    serial_reduced = long()
+    serial_reduced = 0
 
     while serial > 0:
         serial_reduced ^= serial & (2**24 - 1)
@@ -213,13 +183,14 @@ def _get_24bit_serial_v2():
 
     return serial_reduced
 
-def _get_eth_mac_v2(iface = 0):
+
+def _get_eth_mac_v2(iface=0):
     if iface == 0:
-        third_octet = '40'
+        third_octet = "40"
     elif iface == 1:
-        third_octet = '39'
+        third_octet = "39"
     else:
-        raise RuntimeError('invalid interface index')
+        raise RuntimeError("invalid interface index")
 
     # generate mac address according to serial
     serial_reduced = _get_24bit_serial_v2()
@@ -232,13 +203,15 @@ def _get_eth_mac_v2(iface = 0):
 
     return MAC_PREFIX + ":" + third_octet + mac_suffix
 
-def _get_eth_mac_dt(iface = 0):
+
+def _get_eth_mac_dt(iface=0):
     mac = get_eth_mac(iface)
 
     if mac:
-        return ":".join([mac[i:i+2] for i in xrange(0, len(mac), 2)])
+        return ":".join([mac[i : i + 2] for i in range(0, len(mac), 2)])
     else:
         return ""
+
 
 def _get_mac_1_wifi():
     wifi_mac = wifi.get_wlan_mac()
@@ -258,7 +231,7 @@ def _get_mac_1_imei():
     imei_sn = imei[8:14]
     imei_prefix = imei[0:8]
 
-    int_prefix = "%02x" % (long(imei_prefix) % 256)
+    int_prefix = "%02x" % (int(imei_prefix) % 256)
     int_suffix = "%s:%s:%s" % (imei_sn[0:2], imei_sn[2:4], imei_sn[4:6])
 
     return MAC_PREFIX + ":" + int_prefix + ":" + int_suffix
@@ -270,7 +243,7 @@ def _get_mac_1_cpu():
     if cpu_serial is None or cpu_serial == "0000000000000000":
         return ""
 
-    smd5 = hashlib.md5(cpu_serial + "\n").hexdigest()
+    smd5 = hashlib.md5((cpu_serial + "\n").encode("utf-8")).hexdigest()
 
     return MAC_PREFIX + ":44:" + smd5[0:2] + ":" + smd5[2:4] + ":" + smd5[4:6]
 
@@ -294,10 +267,7 @@ def _get_mac_1(mac_type):
     elif mac_type == "rand":
         return _get_mac_1_rand()
     else:
-        return _get_mac_1_wifi() or \
-               _get_mac_1_cpu() or \
-               _get_mac_1_imei() or \
-               _get_mac_1_rand()
+        return _get_mac_1_wifi() or _get_mac_1_cpu() or _get_mac_1_imei() or _get_mac_1_rand()
 
 
 def get_mac(mac_type="best", version=2, iface=0):
@@ -308,28 +278,56 @@ def get_mac(mac_type="best", version=2, iface=0):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate unique device information: serial number or MAC address")
+    parser = argparse.ArgumentParser(
+        description="Generate unique device information: serial number or MAC address"
+    )
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("-s", "--serial", help="Get device serial number",
-                       action="store_const", dest="mode", const="serial", default=None)
+    group.add_argument(
+        "-s",
+        "--serial",
+        help="Get device serial number",
+        action="store_const",
+        dest="mode",
+        const="serial",
+        default=None,
+    )
 
-    group.add_argument("-m", "--mac", help="Generate eth<N> MAC address (eth0 by default)",
-                       action="store", type=int, nargs="?",
-                       choices=[0,1],
-                       dest="mode_eth_mac", const=0, default=0)
+    group.add_argument(
+        "-m",
+        "--mac",
+        help="Generate eth<N> MAC address (eth0 by default)",
+        action="store",
+        type=int,
+        nargs="?",
+        choices=[0, 1],
+        dest="mode_eth_mac",
+        const=0,
+        default=0,
+    )
 
-    parser.add_argument("-v", "--version", help="Select version of serial number (1 - old, 2 - new), default - 2",
-                        type=int, default=2, choices=[1, 2])
+    parser.add_argument(
+        "-v",
+        "--version",
+        help="Select version of serial number (2 - actual), default - 2",
+        type=int,
+        default=2,
+        choices=[2],
+    )
 
-    parser.add_argument("type", help="MAC generator type for version 1",
-                        default="best", nargs="?", choices=["best", "wifi", "cpu", "gsm", "rand"])
+    parser.add_argument(
+        "type",
+        help="MAC generator type for version 1",
+        default="best",
+        nargs="?",
+        choices=["best", "wifi", "cpu", "gsm", "rand"],
+    )
 
     args = parser.parse_args()
 
     if args.mode == "serial":
-        print get_serial(args.version)
+        print(get_serial(args.version))
     elif args.mode_eth_mac is not None:
-        print get_mac(args.type, args.version, args.mode_eth_mac)
+        print(get_mac(args.type, args.version, args.mode_eth_mac))
 
 
 if __name__ == "__main__":
