@@ -73,7 +73,7 @@ function get_modem_usb_devices() {
 
 
 function test_connection() {
-    /usr/sbin/chat -v   TIMEOUT $2 ABORT "ERROR" ABORT "BUSY" "" AT OK "" > $1 < $1
+    /usr/sbin/chat -t $2 -v ABORT "ERROR" ABORT "BUSY" "" AT OK "" > $1 < $1
     RC=$?
     debug "(port:$1; timeout:$2) => $RC"
     echo $RC
@@ -493,6 +493,8 @@ function ensure_on() {
     fi
 
     if has_usb; then
+        debug "Waiting 10s before probing usb ports..."
+        sleep 10  # Some A7600Es got stuck, when probing usb connection just after poweron
         init_usb_connection
     fi
 
