@@ -693,7 +693,7 @@ function wb7_off() {
 
 function should_enable() {
     if has_usb; then
-        if [[ of_machine_match "wirenboard,wirenboard-720" || of_machine_match "wirenboard,wirenboard-7xx" ]]; then
+        if of_machine_match "wirenboard,wirenboard-720" || of_machine_match "wirenboard,wirenboard-7xx"; then
             debug "Should enable GSM modem"
             return 0
         else
