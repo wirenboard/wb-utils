@@ -1,3 +1,9 @@
+wb-utils (4.2.2) stable; urgency=medium
+
+  * Fix GSM modem power up on Wiren Board 7
+
+ -- Petr Krasnoshchekov <petr.krasnoshchekov@wirenboard.ru>  Fri, 30 Sep 2022 12:22:11 +0500
+
 wb-utils (4.2.1) stable; urgency=medium
 
   * wb-gsm: add delay before usb ports probing at poweron
