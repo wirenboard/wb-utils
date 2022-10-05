@@ -1,3 +1,9 @@
+wb-utils (3.7.0-wb3) stable; urgency=medium
+
+  * wb-gsm: revert buggy 3.7.0-wb2 version
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Wed, 05 Oct 2022 18:40:17 +0300
+
 wb-utils (3.7.0-wb2) stable; urgency=medium
 
   * wb-gsm: add delay before usb ports probing at poweron
