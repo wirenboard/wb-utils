@@ -262,7 +262,7 @@ wb_firstboot()
 
     [[ -e "/dev/ttyGSM" ]] && {
 		log_action_begin_msg "Fixing GSM modem baudrate"
-		wb-gsm init_baud
+		wb-gsm init_baud || log_failure_msg "No answer from gsm modem"
 		log_end_msg $?
     }
 
