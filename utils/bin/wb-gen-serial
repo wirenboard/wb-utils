@@ -59,6 +59,15 @@ def has_wb_factory_mac(iface):
     return os.path.isfile("/proc/device-tree/wirenboard/%s-mac-address" % iface)
 
 
+def get_custom_serial():
+    path = "/proc/device-tree/wirenboard/device-serial"
+    if os.path.isfile(path):
+        with open(path, "r") as f:
+            return f.read().strip()
+    else:
+        return None
+
+
 def pack_long(num):
     ret = ""
     while num > 0:
@@ -198,6 +207,10 @@ def _get_serial_1():
 
 
 def get_serial(version=2):
+    custom = get_custom_serial()
+    if custom is not None:
+        return custom
+
     if version == 2:
         return _get_serial_2()
     else:
