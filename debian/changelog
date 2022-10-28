@@ -1,3 +1,9 @@
+wb-utils (4.5.0) stable; urgency=medium
+
+  * wb-gen-serial: add overridable factory serial support
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Thu, 29 Dec 2022 16:25:30 +0600
+
 wb-utils (4.4.4) stable; urgency=medium
 
   * wb-prepare: fix NetworkManager access point (wb-ap) SSID
