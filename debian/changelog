@@ -1,3 +1,9 @@
+wb-utils (3.7.0-wb106) stable; urgency=medium
+
+  * wb-gen-serial: fix overridable serial value (trim zero bytes)
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Tue, 01 Nov 2022 20:00:00 +0600
+
 wb-utils (3.7.0-wb105) stable; urgency=medium
 
   * wb-gen-serial: add overridable factory serial support
