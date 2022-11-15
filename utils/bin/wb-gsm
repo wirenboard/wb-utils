@@ -7,6 +7,8 @@ JOURNALD_PREFIX="wb-gsm"
 WB_GSM_PID=$$
 trap "force_exit_handler" TERM
 
+debug "Called from pid $PPID ($(cat /proc/$PPID/comm))"
+
 guess_of_node
 
 case "$1" in
