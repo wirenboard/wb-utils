@@ -1,5 +1,7 @@
 #!/bin/bash
 
+JOURNALD_PREFIX="wb-gsm"
+
 . /usr/lib/wb-utils/wb-gsm-common.sh
 
 WB_GSM_PID=$$
