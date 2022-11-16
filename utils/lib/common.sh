@@ -6,21 +6,32 @@ export WB_DATA_DIR=${WB_DATA_DIR:-/var/lib/wirenboard}
 if [[ -z "$DEBUG" ]] && [[ -z "$JOURNALD_PREFIX" ]]; then
 	debug() { :; }
 else
-	#  "of_*:" funcs output is hidden from journald
+	# of_*: functions from of.sh and wb_env_of.sh produce tons of hardware-magic output
+	# because of many debug() calls inside
+	# =>
+	# debug_onscreen: echoing to stderr (could suppress later)
+	# debug_journald: systemd-cat accepts only stdin -> grepping "of_"
+	debug_onscreen() {
+		>&2 echo "DEBUG: ${FUNCNAME[2]}: $*"
+	}
+	debug_journald() {
+		echo "${FUNCNAME[2]}: $*" | grep -v "^of_.*:" | systemd-cat -t $JOURNALD_PREFIX
+	}
+
 	if [[ -n "$DEBUG" ]] && [[ -n "$JOURNALD_PREFIX" ]]; then
 		set -e
 		debug() {
-			>&2 echo "DEBUG: ${FUNCNAME[1]}: $*"
-			echo "${FUNCNAME[1]}: $*" | grep -v "^of_.*:" | systemd-cat -t $JOURNALD_PREFIX
+			debug_onscreen $*
+			debug_journald $*
 		}
 	elif [[ -n "$DEBUG" ]]; then
 		set -e
 		debug() {
-			>&2 echo "DEBUG: ${FUNCNAME[1]}: $*"
+			debug_onscreen $*
 		}
 	else
 		debug() {
-			echo "${FUNCNAME[1]}: $*" | grep -v "^of_.*:" | systemd-cat -t $JOURNALD_PREFIX
+			debug_journald $*
 		}
 	fi
 fi
