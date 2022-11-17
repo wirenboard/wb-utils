@@ -83,14 +83,16 @@ function test_connection() {
 function probe_usb_ports() {
     # a usb-connected modem produces multiple tty devices
     # probing, which ones are AT-ports
+    local assumed_ports=$(get_modem_usb_devices)
     local answered_ports=()
 
     debug "Probing all modem's usb ports"
-    for portname in $(get_modem_usb_devices); do
+    for portname in $assumed_ports; do
         port="/dev/$portname"
-        [[ $(test_connection $port 2) == 0 ]] && answered_ports+=( $port )
+        [[ -c $port ]] && [[ $(test_connection $port 2) == 0 ]] && answered_ports+=( $port )
     done
 
+    debug "Modem's usb ports: ${assumed_ports[@]}"
     debug "Answered to 'AT': ${answered_ports[@]}"
     echo ${answered_ports[@]}
 }
@@ -284,7 +286,9 @@ function gsm_init() {
         if [[ `gpio_get_value $gpio_gsm_status` -eq "1" ]]; then
             debug "USB modem is turned on already; probing ($PORT, ${USB_SYMLINK_MASK}*) ports"
             for port in $PORT ${USB_SYMLINK_MASK}[0-9]*; do
-                [[ -e $port ]] && [[ $(test_connection $port 2) == 0 ]] && {
+                [[ -c $port ]] && [[ $(test_connection $port 2) == 0 ]] && {
+                    debug "\$PORT (for internal communications) => $port"
+                    PORT=$port
                     return 0
                 }
             done
