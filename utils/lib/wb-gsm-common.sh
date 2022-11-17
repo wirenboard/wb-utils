@@ -33,6 +33,21 @@ function is_at_over_usb() {
     has_usb  # communicating via usb by default
 }
 
+
+function is_model() {
+    local ret
+    local model_to_search=$1
+
+    if of_has_prop $OF_GSM_NODE "model"; then
+        ret=$(of_get_prop_str $OF_GSM_NODE "model")
+    else
+        debug "Missing prop 'model' in modem dtso"
+    fi
+
+    [[ $ret == $model_to_search ]]
+}
+
+
 function force_exit() {
     # exitting (to where the trap to TERM signal placed) from any inner-func (with turning GSM_POWER off if available)
     # default trap to ERR waits a caller to finish, which sometimes is not suitable
@@ -151,8 +166,17 @@ function init_usb_connection() {
     fi
 
     modem_at_ports=$(probe_usb_ports)
+    # any of modem's usb ports answered to AT
     if [[ -n "$modem_at_ports" ]]; then
-        # any of modem's usb ports answered to AT
+
+        # A76x0E modems support ppp connection only via last port
+        # => should be symlinked to /dev/ttyGSM (instead a first one)
+        # vizit https://mt-system.ru/sites/default/files/documents/moduli_a-serii_i_open_sdk.pdf for more info
+        local model_4g="a7600x"
+        if is_model $model_4g; then
+            debug "Got modem model $model_4g from dtso => reversing port symlinks"
+            modem_at_ports=$(echo "${modem_at_ports[@]} " | tac -s " ")
+        fi
         link_ports $modem_at_ports
         return 0
     fi
@@ -200,20 +224,8 @@ function get_model() {
 }
 
 
-function is_simcom_7000e() {
-    #NB-IOT modem
-    local model_to_search="sim7000e"
-
-    if of_has_prop $OF_GSM_NODE "model"; then
-        ret=$(of_get_prop_str $OF_GSM_NODE "model")
-    fi
-
-    [[ $ret == $model_to_search ]]
-}
-
-
 function synchronize_baudrate() {
-    if is_simcom_7000e; then
+    if is_model "sim7000e"; then
         tries=10
         for (( i=0; i<=$tries; i++ ))
         do
