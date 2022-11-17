@@ -73,8 +73,14 @@ function get_modem_usb_devices() {
 
 
 function test_connection() {
-    /usr/sbin/chat -v   TIMEOUT $2 ABORT "ERROR" ABORT "BUSY" "" AT OK "" > $1 < $1
-    RC=$?
+    if ! /bin/fuser -s $1; then
+        /usr/bin/timeout --signal=SIGKILL --preserve-status $2 /usr/sbin/chat -v   TIMEOUT $2 ABORT "ERROR" ABORT "BUSY" "" AT OK "" > $1 < $1
+        RC=$?
+    else
+        debug "$1 is not free"
+        RC=1
+    fi
+
     debug "(port:$1; timeout:$2) => $RC"
     echo $RC
 }
