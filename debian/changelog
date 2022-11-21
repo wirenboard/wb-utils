@@ -1,3 +1,9 @@
+wb-utils (4.3.0) stable; urgency=medium
+
+  * wb-gsm: add checks to test_connection
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Mon, 21 Nov 2022 11:41:12 +0300
+
 wb-utils (4.2.4) stable; urgency=medium
 
   * wb-gsm: revert buggy v4.2.1 version
