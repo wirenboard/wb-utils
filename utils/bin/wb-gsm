@@ -1,9 +1,13 @@
 #!/bin/bash
 
+JOURNALD_PREFIX="wb-gsm"
+
 . /usr/lib/wb-utils/wb-gsm-common.sh
 
 WB_GSM_PID=$$
 trap "force_exit_handler" TERM
+
+debug "Called from pid $PPID ($(cat /proc/$PPID/comm))"
 
 guess_of_node
 gsm_init
