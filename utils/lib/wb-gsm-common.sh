@@ -33,6 +33,21 @@ function is_at_over_usb() {
     has_usb  # communicating via usb by default
 }
 
+
+function is_model() {
+    local ret
+    local model_to_search=$1
+
+    if of_has_prop $OF_GSM_NODE "model"; then
+        ret=$(of_get_prop_str $OF_GSM_NODE "model")
+    else
+        debug "Missing prop 'model' in modem dtso"
+    fi
+
+    [[ $ret == $model_to_search ]]
+}
+
+
 function force_exit() {
     # exitting (to where the trap to TERM signal placed) from any inner-func (with turning GSM_POWER off if available)
     # default trap to ERR waits a caller to finish, which sometimes is not suitable
@@ -73,8 +88,14 @@ function get_modem_usb_devices() {
 
 
 function test_connection() {
-    /usr/sbin/chat -v   TIMEOUT $2 ABORT "ERROR" ABORT "BUSY" "" AT OK "" > $1 < $1
-    RC=$?
+    if ! /bin/fuser -s $1; then
+        /usr/bin/timeout --signal=SIGKILL --preserve-status $2 /usr/sbin/chat -v   TIMEOUT $2 ABORT "ERROR" ABORT "BUSY" "" AT OK "" > $1 < $1
+        RC=$?
+    else
+        debug "$1 is not free"
+        RC=1
+    fi
+
     debug "(port:$1; timeout:$2) => $RC"
     echo $RC
 }
@@ -83,14 +104,16 @@ function test_connection() {
 function probe_usb_ports() {
     # a usb-connected modem produces multiple tty devices
     # probing, which ones are AT-ports
+    local assumed_ports=$(get_modem_usb_devices)
     local answered_ports=()
 
     debug "Probing all modem's usb ports"
-    for portname in $(get_modem_usb_devices); do
+    for portname in $assumed_ports; do
         port="/dev/$portname"
-        [[ $(test_connection $port 2) == 0 ]] && answered_ports+=( $port )
+        [[ -c $port ]] && [[ $(test_connection $port 2) == 0 ]] && answered_ports+=( $port )
     done
 
+    debug "Modem's usb ports: ${assumed_ports[@]}"
     debug "Answered to 'AT': ${answered_ports[@]}"
     echo ${answered_ports[@]}
 }
@@ -143,8 +166,17 @@ function init_usb_connection() {
     fi
 
     modem_at_ports=$(probe_usb_ports)
+    # any of modem's usb ports answered to AT
     if [[ -n "$modem_at_ports" ]]; then
-        # any of modem's usb ports answered to AT
+
+        # A76x0E modems support ppp connection only via last port
+        # => should be symlinked to /dev/ttyGSM (instead a first one)
+        # visit https://mt-system.ru/sites/default/files/documents/moduli_a-serii_i_open_sdk.pdf for more info
+        local model_4g="a7600x"
+        if is_model $model_4g; then
+            debug "Got modem model $model_4g from dtso => reversing port symlinks"
+            modem_at_ports=$(echo "${modem_at_ports[@]} " | tac -s " ")
+        fi
         link_ports $modem_at_ports
         return 0
     fi
@@ -192,20 +224,8 @@ function get_model() {
 }
 
 
-function is_simcom_7000e() {
-    #NB-IOT modem
-    local model_to_search="sim7000e"
-
-    if of_has_prop $OF_GSM_NODE "model"; then
-        ret=$(of_get_prop_str $OF_GSM_NODE "model")
-    fi
-
-    [[ $ret == $model_to_search ]]
-}
-
-
 function synchronize_baudrate() {
-    if is_simcom_7000e; then
+    if is_model "sim7000e"; then
         tries=10
         for (( i=0; i<=$tries; i++ ))
         do
@@ -284,7 +304,9 @@ function gsm_init() {
         if [[ `gpio_get_value $gpio_gsm_status` -eq "1" ]]; then
             debug "USB modem is turned on already; probing ($PORT, ${USB_SYMLINK_MASK}*) ports"
             for port in $PORT ${USB_SYMLINK_MASK}[0-9]*; do
-                [[ -e $port ]] && [[ $(test_connection $port 2) == 0 ]] && {
+                [[ -c $port ]] && [[ $(test_connection $port 2) == 0 ]] && {
+                    debug "\$PORT (for internal communications) => $port"
+                    PORT=$port
                     return 0
                 }
             done
