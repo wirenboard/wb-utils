@@ -171,7 +171,7 @@ function init_usb_connection() {
 
         # A76x0E modems support ppp connection only via last port
         # => should be symlinked to /dev/ttyGSM (instead a first one)
-        # vizit https://mt-system.ru/sites/default/files/documents/moduli_a-serii_i_open_sdk.pdf for more info
+        # visit https://mt-system.ru/sites/default/files/documents/moduli_a-serii_i_open_sdk.pdf for more info
         local model_4g="a7600x"
         if is_model $model_4g; then
             debug "Got modem model $model_4g from dtso => reversing port symlinks"
