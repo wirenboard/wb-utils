@@ -1,3 +1,9 @@
+wb-utils (4.3.0) stable; urgency=medium
+
+  * wb-gsm: add journald-logging (journalctl -t wb-gsm)
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Wed, 17 Nov 2022 00:54:28 +0300
+
 wb-utils (4.2.4) stable; urgency=medium
 
   * wb-gsm: revert buggy v4.2.1 version
