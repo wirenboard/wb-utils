@@ -234,6 +234,9 @@ wb_fix_short_sn()
         FIRSTBOOT_NEED_REBOOT=true
     fi
     log_end_msg $?
+    
+    log_action_msg "Set 127.0.0.1 ip for ${hostname}"
+    sed -i "1i 127.0.0.1    ${hostname}" /etc/hosts.wb
 
     log_action_msg "Setting internal Wi-Fi SSID to ${ssid}"
     sed -i "s/^ssid=.*/ssid=${ssid}/" $(readlink -f "/etc/hostapd.conf")
