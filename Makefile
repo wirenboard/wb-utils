@@ -1,19 +1,20 @@
-DESTDIR=/
-prefix=usr
-
+DESTDIR=
+prefix=/usr
+sysconfdir=/etc
 
 all:
 	@echo Nothing to do
 
-BINDIR = $(DESTDIR)/$(prefix)/bin
-LIBDIR = $(DESTDIR)/$(prefix)/lib/wb-utils
+BINDIR = $(DESTDIR)$(prefix)/bin
+LIBDIR = $(DESTDIR)$(prefix)/lib/wb-utils
+SYSCONFDIR = $(DESTDIR)$(sysconfdir)
 PREPARE_LIBDIR = $(LIBDIR)/prepare
-IMAGEUPDATE_POSTINST_DIR = $(DESTDIR)/$(prefix)/lib/wb-image-update/postinst
+IMAGEUPDATE_POSTINST_DIR = $(DESTDIR)$(prefix)/lib/wb-image-update/postinst
 
 install:
-	install -m 0755 -d $(BINDIR) $(LIBDIR) $(PREPARE_LIBDIR) $(IMAGEUPDATE_POSTINST_DIR)
+	install -m 0755 -d $(BINDIR) $(LIBDIR) $(SYSCONFDIR) $(PREPARE_LIBDIR) $(IMAGEUPDATE_POSTINST_DIR)
 
-	install -m 0644 utils/etc_wb_env.sh $(DESTDIR)/etc/wb_env.sh
+	install -m 0644 utils/etc_wb_env.sh $(SYSCONFDIR)/wb_env.sh
 
 	install -m 0644 -t $(LIBDIR) \
 		utils/lib/common.sh \
