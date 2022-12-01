@@ -1,33 +1,24 @@
 #!/bin/bash
 
-FILE=/mnt/data/usb-otg/mass_storage
+PID_FILE=/var/run/wb-usb-otg.pid
+IMAGE_FILE=/usr/lib/wb-usb-otg/mass_storage
+PROFILE_FILE=/var/lib/wb-usb-otg.profile
 N="usb0"
 g=/sys/kernel/config/usb_gadget/g1
-PROFILE_FILE=/var/lib/wb-otg.profile
-LOG_FILE=/mnt/data/usb-otg/usb-otg.log
-PID_FILE=/var/run/wb-otg.pid
 
-if [ -f $PID_FILE ]; then
-    if [ ps --pid `cat $PID_FILE` &>/dev/null ]; then
-        log "Another instance is already running"
-	exit
+log_target() {
+    if [ -z "$1" ]; then
+        level=info
     else
-	log "Stale PID file detected"
-	rm $PID_FILE
+        level=$1
     fi
-fi
-
-echo $$ > $PID_FILE
-
-profile=''
+    exec systemd-cat -t wb-usb-otg -p $level    
+}
 
 log() {
     echo $1
-    date >> $LOG_FILE
-    echo $1 >> $LOG_FILE
+    echo $1 | log_target $2
 }
-
-log "usb-composite-start"
 
 setup_device() {
 
@@ -128,7 +119,7 @@ nm_up_ecm() {
 }
 
 mount_ms() {
-    echo $FILE > ${g}/functions/mass_storage.$N/lun.0/file
+    echo $IMAGE_FILE > ${g}/functions/mass_storage.$N/lun.0/file
 }
 
 get_default_profile() {
@@ -211,13 +202,36 @@ cycle_loop() {
     fi
 }
 
-setup_device
-get_default_profile
-log "Default profile is $profile"
-enable_profile $profile
+# actual commands
 
-while :
-do
-    sleep 5
-    cycle_loop
-done
+log "wb-usr-otg-start"
+
+if [ -f $PID_FILE ]; then
+    if [ ps --pid `cat $PID_FILE` &>/dev/null ]; then
+        log "Another instance is already running"
+	exit
+    else
+	log "Stale PID file detected"
+	rm $PID_FILE
+    fi
+fi
+echo $$ > $PID_FILE
+
+#profile=''
+
+#setup_device
+#get_default_profile
+#log "Default profile is $profile"
+#enable_profile $profile
+
+#while :
+#do
+#    sleep 10
+#    cycle_loop
+#done
+
+profile='rndis'
+setup_device
+enable_profile $profile
+mount_ms
+exit 0
