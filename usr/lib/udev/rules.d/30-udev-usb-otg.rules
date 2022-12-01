@@ -1,2 +1,0 @@
-ACTION=="change", SUBSYSTEM=="extcon", ATTR{name}=="1c13400.phy", KERNEL=="extcon0", ATTR{cable.1/state}=="0", RUN="/usr/lib/wb-usb-otg/wb-usb-otg-start.sh"
-ACTION=="change", SUBSYSTEM=="extcon", ATTR{name}=="1c13400.phy", KERNEL=="extcon0", ATTR{cable.1/state}=="1", RUN="/usr/lib/wb-usb-otg/wb-usb-otg-stop.sh"
