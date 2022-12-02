@@ -2,3 +2,4 @@ rm_conffile /etc/init.d/wb-prepare 3.0.0~
 rm_conffile /etc/init.d/wb-init 3.0.0~
 rm_conffile /etc/init.d/wb-watch-update 3.0.0~
 rm_conffile /etc/init.d/wb-gsm-rtc 3.0.0~
+rm_conffile /etc/init.d/wb-usb-otg 3.0.0~

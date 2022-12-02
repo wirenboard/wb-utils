@@ -1,3 +1,9 @@
+wb-utils (4.5.9) stable; urgency=medium
+
+  * wb-usb-otg: initial version
+
+ -- Aleksandr Kazadaev <aleksandr.kazadaev@wirenboard.com>  Fri, 2 Dec 2022 00:24:45 +0600
+
 wb-utils (4.4.0) stable; urgency=medium
 
   * wb-gsm: add checks to test_connection

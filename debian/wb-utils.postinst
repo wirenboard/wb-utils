@@ -1,0 +1,16 @@
+#!/bin/bash
+. /usr/lib/wb-utils/wb_env.sh
+wb_source "of"
+
+set -e
+
+case "$1" in
+    configure)
+
+        chmod 0600 /usr/lib/NetworkManager/system-connections/wb-rndis.nmconnection
+	chmod 0600 /usr/lib/NetworkManager/system-connections/wb-ecm.nmconnection
+	deb-systemd-invoke restart NetworkManager || true
+        ;;
+esac
+
+#DEBHELPER#

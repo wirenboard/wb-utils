@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PID_FILE=/var/run/wb-usb-otg.pid
-IMAGE_FILE=/usr/lib/wb-usb-otg/mass_storage
+IMAGE_FILE=/usr/lib/wb-utils/wb-usb-otg/mass_storage
 PROFILE_FILE=/var/lib/wb-usb-otg.profile
 N="usb0"
 g=/sys/kernel/config/usb_gadget/g1
