@@ -4,6 +4,12 @@ wb-utils (4.5.9) stable; urgency=medium
 
  -- Aleksandr Kazadaev <aleksandr.kazadaev@wirenboard.com>  Fri, 2 Dec 2022 00:24:45 +0600
 
+wb-utils (4.4.1) stable; urgency=medium
+
+  * Fix make install with DESTDIR
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Fri, 25 Nov 2022 10:18:15 +0400
+
 wb-utils (4.4.0) stable; urgency=medium
 
   * wb-gsm: add checks to test_connection
