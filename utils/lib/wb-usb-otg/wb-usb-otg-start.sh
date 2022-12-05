@@ -206,6 +206,11 @@ cycle_loop() {
 
 log "wb-usr-otg-start"
 
+if [ ! -f /usr/sbin/NetworkManager ]; then
+    log "NetworkManager not found, exiting"
+    exit 1
+fi
+
 if [ -f $PID_FILE ]; then
     if [ ps --pid `cat $PID_FILE` &>/dev/null ]; then
         log "Another instance is already running"
