@@ -1,3 +1,9 @@
+wb-utils (4.5.1) stable; urgency=medium
+
+  * wb7: blink red LED on shutdown
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Wed, 18 Jan 2023 17:24:28 +0600
+
 wb-utils (4.5.0) stable; urgency=medium
 
   * wb-gen-serial: add overridable factory serial support

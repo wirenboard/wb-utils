@@ -48,14 +48,12 @@ wb_deinit()
 	#   2 if daemon could not be stopped
 	#   other if a failure occurred
 
-    if of_machine_match "contactless,imx6ul-wirenboard60" || of_machine_match "contactless,imx28-wirenboard50"; then
-        #  blink red led
-        led_blink red
-        led_off green
-
-    elif of_machine_match "contactless,imx23-wirenboard41"; then
+    if of_machine_match "contactless,imx23-wirenboard41"; then
         #  switch on red led
         led_on red
+        led_off green
+    else
+        led_blink red
         led_off green
     fi
 
