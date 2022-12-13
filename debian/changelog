@@ -1,3 +1,9 @@
+wb-utils (4.4.2) stable; urgency=medium
+
+  * wb-prepare: fix NetworkManager access point (wb-ap) SSID
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Tue, 13 Dec 2022 13:28:00 +0400
+
 wb-utils (4.4.1) stable; urgency=medium
 
   * Fix make install with DESTDIR

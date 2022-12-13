@@ -238,6 +238,10 @@ wb_fix_short_sn()
     log_action_msg "Setting internal Wi-Fi SSID to ${ssid}"
     sed -i "s/^ssid=.*/ssid=${ssid}/" $(readlink -f "/etc/hostapd.conf")
     log_end_msg $?
+
+    log_action_msg "Setting NetworkManager access point SSID to ${ssid}"
+    sed -i "s/^ssid=Wirenboard/ssid=${ssid}/" "/etc/NetworkManager/system-connections/wb-ap.nmconnection"
+    log_end_msg $?
 }
 
 # To run firstboot only once
