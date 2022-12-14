@@ -2,5 +2,5 @@
 set -e
 #DEBHELPER#
 
-/usr/lib/wb-utils/prepare/wb-prepare.sh wb_fix_hosts
+/usr/lib/wb-utils/prepare/wb-prepare.sh fix_hosts
 exit 0
