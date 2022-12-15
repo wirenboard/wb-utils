@@ -1,3 +1,9 @@
+wb-utils (4.4.2) stable; urgency=medium
+
+  * Fix "die: command not found" error
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Fri, 09 Dec 2022 21:10:00 +0400
+
 wb-utils (4.4.1) stable; urgency=medium
 
   * Fix make install with DESTDIR
