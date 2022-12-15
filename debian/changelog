@@ -1,3 +1,10 @@
+wb-utils (3.7.0-wb107) stable; urgency=medium
+
+  * wb-gsm: backport journald-logging (journalctl -t wb-gsm)
+  * wb-gsm: backport checks to test_connection
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Fri, 09 Dec 2022 13:27:28 +0300
+
 wb-utils (3.7.0-wb106) stable; urgency=medium
 
   * wb-gen-serial: fix overridable serial value (trim zero bytes)
