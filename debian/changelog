@@ -1,8 +1,20 @@
-wb-utils (4.4.2) stable; urgency=medium
+wb-utils (4.4.4) stable; urgency=medium
 
   * wb-prepare: fix NetworkManager access point (wb-ap) SSID
 
- -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Tue, 13 Dec 2022 13:28:00 +0400
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Mon, 19 Dec 2022 13:28:00 +0400
+
+wb-utils (4.4.3) stable; urgency=medium
+
+  * wb-prepare: set 127.0.0.1 ip for hostname in etc/hosts
+
+ -- Ekaterina Volkova <ekaterina.volkova@wirenboard.ru>  Thu, 15 Dec 2022 18:10:45 +0300
+
+wb-utils (4.4.2) stable; urgency=medium
+
+  * Fix "die: command not found" error
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Fri, 09 Dec 2022 21:10:00 +0400
 
 wb-utils (4.4.1) stable; urgency=medium
 

@@ -216,6 +216,18 @@ wb_fix_serial()
     wb_fix_file ${SERIAL} "old eth0 MAC aka serial.conf" wb-gen-serial -m
 }
 
+wb_fix_hosts()
+{
+    hostname=$(cat /etc/hostname)
+    if [[ $hostname =~ wirenboard-[0-9A-Z]{2,8} ]]; then
+            hostname_search_string=$(awk -v hostname_pattern="$hostname" '$0~hostname_pattern {f=1} $0!~hostname_pattern {f=0} f {print 0}' /etc/hosts.wb)
+            if [ -z "$hostname_search_string" ]; then
+                    sed -i "1i 127.0.0.1    ${hostname}" /etc/hosts.wb
+                    systemd-cat echo "Add $hostname to /etc/hosts.wb list"
+            fi
+    fi
+}
+
 wb_fix_short_sn()
 {
     wb_fix_file ${SHORT_SN_FNAME} "short serial number" wb-gen-serial -s
@@ -234,6 +246,9 @@ wb_fix_short_sn()
         FIRSTBOOT_NEED_REBOOT=true
     fi
     log_end_msg $?
+
+    log_action_msg "Set 127.0.0.1 ip for ${hostname}"
+    wb_fix_hosts
 
     log_action_msg "Setting internal Wi-Fi SSID to ${ssid}"
     sed -i "s/^ssid=.*/ssid=${ssid}/" $(readlink -f "/etc/hostapd.conf")
@@ -318,6 +333,10 @@ case "$1" in
 	wb_fix_short_sn
 	exit 0
 	;;
+  fix_hosts)
+  wb_fix_hosts
+  exit 0
+  ;;
   *)
 	echo "Usage: $0 {prepare|fix_macs|fix_short_sn}" >&2
 	exit 3
