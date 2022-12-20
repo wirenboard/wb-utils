@@ -228,6 +228,15 @@ wb_fix_hosts()
     fi
 }
 
+wb_fix_nm_ap_ssid()
+{
+    local short_sn=`wb-gen-serial -s`
+    local ssid="WirenBoard-${short_sn}"
+    log_action_msg "Setting NetworkManager access point SSID to ${ssid}"
+    sed -i "s/^ssid=@SSID@$/ssid=${ssid}/" "/etc/NetworkManager/system-connections/wb-ap.nmconnection"
+    log_end_msg $?
+}
+
 wb_fix_short_sn()
 {
     wb_fix_file ${SHORT_SN_FNAME} "short serial number" wb-gen-serial -s
@@ -254,9 +263,7 @@ wb_fix_short_sn()
     sed -i "s/^ssid=.*/ssid=${ssid}/" $(readlink -f "/etc/hostapd.conf")
     log_end_msg $?
 
-    log_action_msg "Setting NetworkManager access point SSID to ${ssid}"
-    sed -i "s/^ssid=Wirenboard/ssid=${ssid}/" "/etc/NetworkManager/system-connections/wb-ap.nmconnection"
-    log_end_msg $?
+    wb_fix_nm_ap_ssid
 }
 
 # To run firstboot only once
@@ -334,11 +341,15 @@ case "$1" in
 	exit 0
 	;;
   fix_hosts)
-  wb_fix_hosts
-  exit 0
-  ;;
+    wb_fix_hosts
+    exit 0
+    ;;
+  fix_nm_ap_ssid)
+    wb_fix_nm_ap_ssid
+    exit 0
+    ;;
   *)
-	echo "Usage: $0 {prepare|fix_macs|fix_short_sn}" >&2
+	echo "Usage: $0 {firstboot|fix_macs|fix_short_sn|fix_hosts|fix_nm_ap_ssid}" >&2
 	exit 3
 	;;
 esac
