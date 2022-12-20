@@ -5,6 +5,9 @@ type=ethernet
 interface-name=ecm0
 autoconnect=true
 
+[user]
+data.read-only=true
+
 [ethernet]
 
 [ipv4]
