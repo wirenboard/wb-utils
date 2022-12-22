@@ -1,3 +1,9 @@
+wb-utils (4.4.4) stable; urgency=medium
+
+  * wb-prepare: fix NetworkManager access point (wb-ap) SSID
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Mon, 19 Dec 2022 13:28:00 +0400
+
 wb-utils (4.4.3) stable; urgency=medium
 
   * wb-prepare: set 127.0.0.1 ip for hostname in etc/hosts
