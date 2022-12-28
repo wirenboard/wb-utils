@@ -1,3 +1,9 @@
+wb-utils (4.4.5) stable; urgency=medium
+
+  * wb-prepare: do not set NetworkManager access point (wb-ap) SSID
+
+ -- Petr Krasnoshchekov <petr.krasnoshchekov@wirenboard.com>  Wed, 28 Dec 2022 20:03:33 +0500
+
 wb-utils (4.4.4) stable; urgency=medium
 
   * wb-prepare: fix NetworkManager access point (wb-ap) SSID
