@@ -253,8 +253,6 @@ wb_fix_short_sn()
     log_action_msg "Setting internal Wi-Fi SSID to ${ssid}"
     sed -i "s/^ssid=.*/ssid=${ssid}/" $(readlink -f "/etc/hostapd.conf")
     log_end_msg $?
-
-    /usr/lib/wb-configs/fix_nm_ap_ssid.sh
 }
 
 # To run firstboot only once
