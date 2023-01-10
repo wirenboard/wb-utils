@@ -1,14 +1,10 @@
 #!/bin/bash
 
-PID_FILE=/var/run/wb-usb-otg.pid
 IMAGE_FILE=/usr/lib/wb-utils/wb-usb-otg/mass_storage
-PROFILE_FILE=/var/lib/wb-usb-otg.profile
 N="usb0"
 g=/sys/kernel/config/usb_gadget/g1
 RNDIS_IFNAME="rndis%d"
-RNDIS_CONNAME="wb-rndis"
 ECM_IFNAME="ecm%d"
-ECM_CONNAME="wb-ecm"
 
 log_target() {
     if [ -z "$1" ]; then
@@ -116,138 +112,25 @@ config_ecm() {
     ln -s ${g}/functions/mass_storage.$N ${g}/configs/c.1/
 }
 
-nm_down_rndis() {
-    nmcli c down $RNDIS_CONNAME
-}
-
-nm_down_ecm() {
-    nmcli c down $ECM_CONNAME
-}
-
-nm_up_rndis() {
-    nmcli c up $RNDIS_CONNAME
-}
-
-nm_up_ecm() {
-    nmcli c up $ECM_CONNAME
-}
-
 mount_ms() {
     echo $IMAGE_FILE > ${g}/functions/mass_storage.$N/lun.0/file
-}
-
-get_default_profile() {
-    if [ -f $PROFILE_FILE ]; then
-	profile=`cat $PROFILE_FILE`
-    else
-	profile='rndis'
-    fi
-}
-
-set_default_profile() {
-    echo $profile > $PROFILE_FILE
-}
-
-disable_profile() {
-    log "disabling profile $1"
-    if [ "$1" == "ecm" ]; then
-        nm_down_ecm
-    else
-        nm_down_rndis
-    fi
-    unbind_device
-    sleep 1
-    config_reset
 }
 
 enable_profile() {
     log "enabling profile $1"
     if [ "$1" == "ecm" ]; then
         config_ecm
-        bind_device
-        nm_up_ecm
     else
         config_rndis
-        bind_device
-        nm_up_rndis
     fi
-}
-
-switch_config() {
-    if [ -L ${g}/configs/c.1/ecm.$N ]; then
-    log "current device is ecm, changing to rndis"
-        disable_profile "ecm"
-        enable_profile "rndis"
-        profile="rndis"
-    else
-    log "current device is rndis, changing to ecm"
-        disable_profile "rndis"
-        enable_profile "ecm"
-        profile="ecm"
-    fi
-}
-
-check_interface() {
-    sleep 5
-    value=`cat /sys/class/net/${profile}0/statistics/rx_packets`
-    echo "value = $value"
-    if [ "$value" == "0" ]; then
-        ifconfig "${profile}0"
-        return 1
-    else:
-        return 0
-    fi
-}
-
-cycle_loop() {
-    check_interface
-    if [ $? != 0 ]; then
-	log "no ping, changing config"
-        switch_config
-    else
-	log "ping ok"
-        mount_ms
-        set_default_profile $profile
-        rm $PID_FILE
-        exit 0
-    fi
+    bind_device
 }
 
 # actual commands
-
 log "wb-usr-otg-start"
-
-if [ ! -f /usr/sbin/NetworkManager ]; then
-    log "NetworkManager not found, exiting"
-    exit 1
-fi
-
-if [ -f $PID_FILE ]; then
-    if [ ps --pid `cat $PID_FILE` &>/dev/null ]; then
-        log "Another instance is already running"
-	exit
-    else
-	log "Stale PID file detected"
-	rm $PID_FILE
-    fi
-fi
-echo $$ > $PID_FILE
-
-#profile=''
-
-#setup_device
-#get_default_profile
-#log "Default profile is $profile"
-#enable_profile $profile
-
-#while :
-#do
-#    sleep 10
-#    cycle_loop
-#done
-
-profile='rndis'
+profile="rndis"
 setup_device
 enable_profile $profile
 mount_ms
+nmcli c up "wb-rndis"
 exit 0
