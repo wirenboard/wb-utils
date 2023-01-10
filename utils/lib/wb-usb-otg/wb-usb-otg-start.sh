@@ -5,6 +5,10 @@ IMAGE_FILE=/usr/lib/wb-utils/wb-usb-otg/mass_storage
 PROFILE_FILE=/var/lib/wb-usb-otg.profile
 N="usb0"
 g=/sys/kernel/config/usb_gadget/g1
+RNDIS_IFNAME="rndis%d"
+RNDIS_CONNAME="wb-rndis"
+ECM_IFNAME="ecm%d"
+ECM_CONNAME="wb-ecm"
 
 log_target() {
     if [ -z "$1" ]; then
@@ -12,7 +16,7 @@ log_target() {
     else
         level=$1
     fi
-    exec systemd-cat -t wb-usb-otg -p $level    
+    exec systemd-cat -t wb-usb-otg -p $level
 }
 
 log() {
@@ -20,14 +24,7 @@ log() {
     echo $1 | log_target $2
 }
 
-setup_device() {
-
-    log "setup_device()"
-
-    modprobe usb_f_mass_storage
-    modprobe usb_f_rndis
-    modprobe usb_f_ecm
-
+setup_usb() {
     mkdir -p ${g}
 
     echo 0x1d6b > ${g}/idVendor  # Linux Foundation
@@ -45,28 +42,45 @@ setup_device() {
     echo "Wirenboard" > ${g}/strings/0x409/manufacturer
     echo "WB7 Debug Network" > ${g}/strings/0x409/product
 
+    mkdir ${g}/configs/c.1
+    echo 250 > ${g}/configs/c.1/MaxPower
+}
+
+setup_rndis() {
+    mkdir -p ${g}/functions/rndis.$N
+    echo RNDIS   > ${g}/functions/rndis.$N/os_desc/interface.rndis/compatible_id
+    echo 5162001 > ${g}/functions/rndis.$N/os_desc/interface.rndis/sub_compatible_id
+    echo "1a:55:89:a2:69:44" > ${g}/functions/rndis.$N/host_addr
+    echo "1a:55:89:a2:69:43" > ${g}/functions/rndis.$N/dev_addr
+    echo $RNDIS_IFNAME > ${g}/functions/rndis.$N/ifname
+}
+
+setup_ecm() {
+    mkdir -p ${g}/functions/ecm.$N
+    echo "1a:55:89:a2:69:42" > ${g}/functions/ecm.$N/host_addr
+    echo "1a:55:89:a2:69:41" > ${g}/functions/ecm.$N/dev_addr
+    echo $ECM_IFNAME > ${g}/functions/ecm.$N/ifname
+}
+
+setup_mass_storage() {
     mkdir -p ${g}/functions/mass_storage.$N
     echo 1 > ${g}/functions/mass_storage.$N/stall
     echo 0 > ${g}/functions/mass_storage.$N/lun.0/cdrom
     echo 1 > ${g}/functions/mass_storage.$N/lun.0/ro
     echo 0 > ${g}/functions/mass_storage.$N/lun.0/nofua
+}
 
+setup_device() {
+    log "setup_device()"
 
-    mkdir -p ${g}/functions/rndis.$N  # network
-    echo RNDIS   > ${g}/functions/rndis.$N/os_desc/interface.rndis/compatible_id
-    echo 5162001 > ${g}/functions/rndis.$N/os_desc/interface.rndis/sub_compatible_id
-    echo "1a:55:89:a2:69:44" > ${g}/functions/rndis.$N/host_addr
-    echo "1a:55:89:a2:69:43" > ${g}/functions/rndis.$N/dev_addr
-    echo "rndis%d" > ${g}/functions/rndis.$N/ifname
+    modprobe usb_f_mass_storage
+    modprobe usb_f_rndis
+    modprobe usb_f_ecm
 
-    mkdir -p ${g}/functions/ecm.$N
-    echo "1a:55:89:a2:69:42" > ${g}/functions/ecm.$N/host_addr
-    echo "1a:55:89:a2:69:41" > ${g}/functions/ecm.$N/dev_addr
-    echo "ecm%d" > ${g}/functions/ecm.$N/ifname
-
-    mkdir ${g}/configs/c.1
-    echo 250 > ${g}/configs/c.1/MaxPower
-
+    setup_usb
+    setup_mass_storage
+    setup_rndis
+    setup_ecm
 }
 
 bind_device() {
@@ -103,19 +117,19 @@ config_ecm() {
 }
 
 nm_down_rndis() {
-    nmcli c down wb-rndis
+    nmcli c down $RNDIS_CONNAME
 }
 
 nm_down_ecm() {
-    nmcli c down wb-ecm
+    nmcli c down $ECM_CONNAME
 }
 
 nm_up_rndis() {
-    nmcli c up wb-rndis
+    nmcli c up $RNDIS_CONNAME
 }
 
 nm_up_ecm() {
-    nmcli c up wb-ecm
+    nmcli c up $ECM_CONNAME
 }
 
 mount_ms() {
@@ -136,43 +150,40 @@ set_default_profile() {
 
 disable_profile() {
     log "disabling profile $1"
-    if [ "$1" == 'ecm' ]; then
+    if [ "$1" == "ecm" ]; then
         nm_down_ecm
-	unbind_device
-        sleep 1
-        config_reset
     else
         nm_down_rndis
-	unbind_device
-        sleep 1
-        config_reset
     fi
+    unbind_device
+    sleep 1
+    config_reset
 }
 
 enable_profile() {
     log "enabling profile $1"
-    if [ "$1" == 'ecm' ]; then
-	config_ecm
+    if [ "$1" == "ecm" ]; then
+        config_ecm
         bind_device
         nm_up_ecm
     else
-	config_rndis
-	bind_device
-	nm_up_rndis
+        config_rndis
+        bind_device
+        nm_up_rndis
     fi
 }
 
 switch_config() {
     if [ -L ${g}/configs/c.1/ecm.$N ]; then
-	log "current device is ecm, changing to rndis"
-        disable_profile ecm
-        enable_profile rndis
-        profile='rndis'
+    log "current device is ecm, changing to rndis"
+        disable_profile "ecm"
+        enable_profile "rndis"
+        profile="rndis"
     else
-	log "current device is rndis, changing to ecm"
-        disable_profile rndis
-        enable_profile ecm
-        profile='ecm'
+    log "current device is rndis, changing to ecm"
+        disable_profile "rndis"
+        enable_profile "ecm"
+        profile="ecm"
     fi
 }
 
@@ -182,9 +193,9 @@ check_interface() {
     echo "value = $value"
     if [ "$value" == "0" ]; then
         ifconfig "${profile}0"
-	return 1
+        return 1
     else:
-	return 0
+        return 0
     fi
 }
 
