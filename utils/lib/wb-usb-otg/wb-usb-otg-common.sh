@@ -6,18 +6,8 @@ g=/sys/kernel/config/usb_gadget/g1
 RNDIS_IFNAME="rndis%d"
 ECM_IFNAME="ecm%d"
 
-log_target() {
-    if [ -z "$1" ]; then
-        level=info
-    else
-        level=$1
-    fi
-    exec systemd-cat -t wb-usb-otg -p $level
-}
-
 log() {
-    echo $1
-    echo $1 | log_target $2
+    >&2 echo "${FUNCNAME[2]}: $*"
 }
 
 setup_usb() {
