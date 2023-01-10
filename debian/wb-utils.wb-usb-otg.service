@@ -10,6 +10,7 @@ ExecStart=/usr/lib/wb-utils/wb-usb-otg/wb-usb-otg-start.sh
 RemainAfterExit=true
 ExecStop=/usr/lib/wb-utils/wb-usb-otg/wb-usb-otg-stop.sh
 StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
