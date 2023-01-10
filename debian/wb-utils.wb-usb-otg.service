@@ -2,7 +2,6 @@
 Description=USB Debug Network
 After=NetworkManager.service
 PartOf=NetworkManager.service
-ConditionFirmware=device-tree-compatible(wirenboard,wirenboard-72x)
 
 [Service]
 Type=oneshot
@@ -11,6 +10,7 @@ RemainAfterExit=true
 ExecStop=/usr/lib/wb-utils/wb-usb-otg/wb-usb-otg-stop.sh
 StandardOutput=journal
 StandardError=journal
+ExecCondition=/usr/lib/wb-utils/wb-usb-otg/check-wb7.sh
 
 [Install]
 WantedBy=multi-user.target
