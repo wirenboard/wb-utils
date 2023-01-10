@@ -1,6 +1,7 @@
 [Unit]
 Description=USB Debug Network
 After=NetworkManager.service
+PartOf=NetworkManager.service
 
 [Service]
 Type=oneshot
