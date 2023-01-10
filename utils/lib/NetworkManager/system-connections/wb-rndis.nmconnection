@@ -11,7 +11,7 @@ data.read-only=true
 [ethernet]
 
 [ipv4]
-address1=10.200.200.1/30
+address1=10.200.200.1/24,10.200.200.1
 method=shared
 
 [ipv6]
