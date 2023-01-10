@@ -50,7 +50,8 @@ install:
 	install -Dm0755 -t $(USBOTGDIR) \
 		utils/lib/wb-usb-otg/wb-usb-otg-common.sh \
 		utils/lib/wb-usb-otg/wb-usb-otg-start.sh \
-		utils/lib/wb-usb-otg/wb-usb-otg-stop.sh
+		utils/lib/wb-usb-otg/wb-usb-otg-stop.sh \
+		utils/lib/wb-usb-otg/check-wb7.sh
 
 	install -Dm0644 -t $(USBOTGDIR) \
 		utils/lib/wb-usb-otg/mass_storage
