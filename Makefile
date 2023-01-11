@@ -49,15 +49,15 @@ install:
 	install -Dm0755 -t $(IMAGEUPDATE_POSTINST_DIR) \
 		utils/lib/wb-image-update/postinst/10update-u-boot
 
-	install -m 0755 -t $(USBOTGDIR) \
+	install -Dm0755 -t $(USBOTGDIR) \
 		utils/lib/wb-usb-otg/wb-usb-otg-start.sh \
 		utils/lib/wb-usb-otg/wb-usb-otg-stop.sh \
 		utils/lib/wb-usb-otg/check-wb7.sh
 
-	install -m 0644 -t $(USBOTGDIR) \
+	install -Dm0644 -t $(USBOTGDIR) \
 		utils/lib/wb-usb-otg/mass_storage
 
-	install -m 0600 -t $(NMSCDIR) \
+	install -Dm0600 -t $(NMSCDIR) \
 		utils/lib/NetworkManager/system-connections/wb-ecm.nmconnection \
 		utils/lib/NetworkManager/system-connections/wb-rndis.nmconnection
 
