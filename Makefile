@@ -5,14 +5,18 @@ sysconfdir=/etc
 all:
 	@echo Nothing to do
 
-BINDIR = $(DESTDIR)$(prefix)/bin
-LIBDIR = $(DESTDIR)$(prefix)/lib/wb-utils
 SYSCONFDIR = $(DESTDIR)$(sysconfdir)
+BINDIR = $(DESTDIR)/$(prefix)/bin
+LIBDIR = $(DESTDIR)/$(prefix)/lib/wb-utils
+USBOTGDIR = $(LIBDIR)/wb-usb-otg
+NMSCDIR = $(DESTDIR)/$(prefix)/lib/NetworkManager/system-connections
 PREPARE_LIBDIR = $(LIBDIR)/prepare
 IMAGEUPDATE_POSTINST_DIR = $(DESTDIR)$(prefix)/lib/wb-image-update/postinst
 
 install:
 	install -Dm0644 utils/etc_wb_env.sh $(SYSCONFDIR)/wb_env.sh
+
+	install -m 0755 -d $(BINDIR) $(LIBDIR) $(PREPARE_LIBDIR) $(IMAGEUPDATE_POSTINST_DIR) $(USBOTGDIR) $(NMSCDIR)
 
 	install -Dm0644 -t $(LIBDIR) \
 		utils/lib/common.sh \
@@ -44,6 +48,18 @@ install:
 
 	install -Dm0755 -t $(IMAGEUPDATE_POSTINST_DIR) \
 		utils/lib/wb-image-update/postinst/10update-u-boot
+
+	install -m 0755 -t $(USBOTGDIR) \
+		utils/lib/wb-usb-otg/wb-usb-otg-start.sh \
+		utils/lib/wb-usb-otg/wb-usb-otg-stop.sh \
+		utils/lib/wb-usb-otg/check-wb7.sh
+
+	install -m 0644 -t $(USBOTGDIR) \
+		utils/lib/wb-usb-otg/mass_storage
+
+	install -m 0600 -t $(NMSCDIR) \
+		utils/lib/NetworkManager/system-connections/wb-ecm.nmconnection \
+		utils/lib/NetworkManager/system-connections/wb-rndis.nmconnection
 
 clean:
 	@echo Nothing to do
