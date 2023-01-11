@@ -82,37 +82,36 @@ config_reset() {
     rm ${g}/configs/c.1/mass_storage.$N
     if [ -L ${g}/configs/c.1/ecm.$N ]; then rm ${g}/configs/c.1/ecm.$N; fi
     if [ -L ${g}/configs/c.1/rndis.$N ]; then rm ${g}/configs/c.1/rndis.$N; fi
-
 }
 
 remove_usb_gadget() {
     log "Removing strings from configurations"
-    for dir in ${g}/configs/*/strings/*; do
-        [ -d $dir ] && rmdir $dir
+    for dir in "${g}"/configs/*/strings/*; do
+        [ -d "$dir" ] && rmdir "$dir"
     done
 
     log "Removing functions from configurations"
-    for func in ${g}/configs/*.*/*.*; do
-        [ -e $func ] && rm $func
+    for func in "${g}"/configs/*.*/*.*; do
+        [ -e "$func" ] && rm "$func"
     done
 
     log "Removing configurations"
-    for conf in ${g}/configs/*; do
-        [ -d $conf ] && rmdir $conf
+    for conf in "${g}"/configs/*; do
+        [ -d "$conf" ] && rmdir "$conf"
     done
 
     log "Removing functions"
-    for func in ${g}/functions/*.*; do
-        [ -d $func ] && rmdir $func
+    for func in "${g}"/functions/*.*; do
+        [ -d "$func" ] && rmdir "$func"
     done
 
     log "Removing strings"
-    for str in ${g}/strings/*; do
-        [ -d $str ] && rmdir $str
+    for str in "${g}"/strings/*; do
+        [ -d "$str" ] && rmdir "$str"
     done
 
     log "Removing gadget"
-    rmdir ${g}
+    rmdir "${g}"
 }
 
 config_rndis() {
@@ -138,10 +137,8 @@ enable_profile() {
     log "enabling profile $1"
     if [ "$1" == "ecm" ]; then
         config_ecm
-        iface="ecm0"
     else
         config_rndis
-        iface="rndis0"
     fi
     ln -s ${g}/functions/mass_storage.$N ${g}/configs/c.1/
     bind_device
