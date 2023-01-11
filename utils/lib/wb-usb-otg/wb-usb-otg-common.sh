@@ -138,8 +138,10 @@ enable_profile() {
     log "enabling profile $1"
     if [ "$1" == "ecm" ]; then
         config_ecm
+        iface="ecm0"
     else
         config_rndis
+        iface="rndis0"
     fi
     ln -s ${g}/functions/mass_storage.$N ${g}/configs/c.1/
     bind_device
