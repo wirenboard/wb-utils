@@ -1,7 +1,6 @@
 [Unit]
 Description=USB Debug Network
-After=NetworkManager.service
-PartOf=NetworkManager.service
+After=NetworkManager.service nginx.service
 
 [Service]
 Type=oneshot

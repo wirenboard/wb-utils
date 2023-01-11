@@ -12,6 +12,7 @@ PREPARE_LIBDIR = $(LIBDIR)/prepare
 IMAGEUPDATE_POSTINST_DIR = $(DESTDIR)$(prefix)/lib/wb-image-update/postinst
 USBOTGDIR = $(LIBDIR)/wb-usb-otg
 NMSCDIR = $(DESTDIR)$(prefix)/lib/NetworkManager/system-connections
+NMCONFDIR = $(DESTDIR)$(prefix)/lib/NetworkManager/conf.d
 
 install:
 	install -Dm0644 utils/etc_wb_env.sh $(SYSCONFDIR)/wb_env.sh
@@ -59,6 +60,9 @@ install:
 	install -Dm0600 -t $(NMSCDIR) \
 		utils/lib/NetworkManager/system-connections/wb-ecm.nmconnection \
 		utils/lib/NetworkManager/system-connections/wb-rndis.nmconnection
+
+	install -Dm0600 -t $(NMCONFDIR) \
+		utils/lib/NetworkManager/80-usbnetwork.conf
 
 clean:
 	@echo Nothing to do
