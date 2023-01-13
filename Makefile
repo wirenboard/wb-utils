@@ -15,8 +15,6 @@ IMAGEUPDATE_POSTINST_DIR = $(DESTDIR)$(prefix)/lib/wb-image-update/postinst
 install:
 	install -Dm0644 utils/etc_wb_env.sh $(SYSCONFDIR)/wb_env.sh
 
-	install -m 0755 -d $(BINDIR) $(LIBDIR) $(PREPARE_LIBDIR) $(IMAGEUPDATE_POSTINST_DIR) $(USBOTGDIR)
-
 	install -Dm0644 -t $(LIBDIR) \
 		utils/lib/common.sh \
 		utils/lib/hardware.sh \
