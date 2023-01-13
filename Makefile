@@ -52,12 +52,12 @@ install:
 		utils/lib/wb-usb-otg/wb-usb-otg-stop.sh \
 		utils/lib/wb-usb-otg/check-wb7.sh
 
-	utils/lib/wb-usb-otg/create-mass-storage-image.sh
+	build_scripts/create-mass-storage-image.sh utils/lib/wb-usb-otg/mass_storage_contents/ build_scripts/mass_storage.img
 	install -Dm0644 -t $(USBOTGDIR) \
-		utils/lib/wb-usb-otg/mass_storage.img
+		build_scripts/mass_storage.img
 
 clean:
-	rm -f utils/lib/wb-usb-otg/mass_storage.img
+	rm -f build_scripts/mass_storage.img
 
 .PHONY: install clean all
 
