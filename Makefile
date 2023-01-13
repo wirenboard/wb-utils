@@ -5,9 +5,9 @@ sysconfdir=/etc
 all:
 	@echo Nothing to do
 
+BINDIR = $(DESTDIR)$(prefix)/bin
+LIBDIR = $(DESTDIR)$(prefix)/lib/wb-utils
 SYSCONFDIR = $(DESTDIR)$(sysconfdir)
-BINDIR = $(DESTDIR)/$(prefix)/bin
-LIBDIR = $(DESTDIR)/$(prefix)/lib/wb-utils
 USBOTGDIR = $(LIBDIR)/wb-usb-otg
 PREPARE_LIBDIR = $(LIBDIR)/prepare
 IMAGEUPDATE_POSTINST_DIR = $(DESTDIR)$(prefix)/lib/wb-image-update/postinst
