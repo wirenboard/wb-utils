@@ -2,7 +2,7 @@
 
 . /usr/lib/wb-utils/wb-usb-otg/wb-usb-otg-common.sh
 
-trap "remove_usb_gadget; exit 1" ERR
+trap "config_reset; remove_usb_gadget; exit 1" ERR
 
 log "wb-usb-otg-start"
 setup_device
