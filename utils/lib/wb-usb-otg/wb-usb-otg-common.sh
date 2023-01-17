@@ -34,7 +34,9 @@ setup_usb() {
 setup_rndis() {
     mkdir -p ${USBGADGET_CONFIG}/functions/rndis.$USBDEV
     echo RNDIS   > ${USBGADGET_CONFIG}/functions/rndis.$USBDEV/os_desc/interface.rndis/compatible_id
-    echo 5162001 > ${USBGADGET_CONFIG}/functions/rndis.$USBDEV/os_desc/interface.rndis/sub_compatible_id
+    echo 5162001 > ${USBGADGET_CONFIG}/functions/rndis.$USBDEV/os_desc/interface.rndis/sub_compatible_id  # to match Windows
+    # fixed macs (to prevent randomly generating on each modprobe)
+    # https://www.kernel.org/doc/Documentation/usb/gadget-testing.txt for more info
     echo "1a:55:89:a2:69:44" > ${USBGADGET_CONFIG}/functions/rndis.$USBDEV/host_addr
     echo "1a:55:89:a2:69:43" > ${USBGADGET_CONFIG}/functions/rndis.$USBDEV/dev_addr
     echo $RNDIS_IFNAME > ${USBGADGET_CONFIG}/functions/rndis.$USBDEV/ifname
