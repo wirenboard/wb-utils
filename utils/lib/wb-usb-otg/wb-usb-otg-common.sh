@@ -3,7 +3,7 @@
 IMAGE_FILE=/usr/lib/wb-utils/wb-usb-otg/mass_storage.img
 USBDEV="usb0"
 USBGADGET_CONFIG=/sys/kernel/config/usb_gadget/g1
-RNDIS_IFNAME="rndis%d"
+RNDIS_IFNAME="dbg%d"
 
 log() {
     >&2 echo "${FUNCNAME[2]}: $*"

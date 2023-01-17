@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+IFACE=$1
+EVENT=$2
+
+NM_LEASESFILE="/var/lib/NetworkManager/dnsmasq-${IFACE}.leases"
+
+# On some systems mac for usb-device could be random
+# => manually renewing dhcp leases to avoid addrs overflow on debug-network connecting
+if [[ $IFACE == "dbg0" ]] && [[ $EVENT == "up" ]] && [[ -f $NM_LEASESFILE ]]
+then
+    echo "" > "$NM_LEASESFILE"
+fi
