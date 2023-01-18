@@ -9,5 +9,5 @@ NM_LEASESFILE="/var/lib/NetworkManager/dnsmasq-${IFACE}.leases"
 # => manually renewing dhcp leases to avoid addrs overflow on debug-network connecting
 if [[ $IFACE == "dbg0" ]] && [[ $EVENT == "up" ]] && [[ -f $NM_LEASESFILE ]]
 then
-    echo "" > "$NM_LEASESFILE"
+    rm "$NM_LEASESFILE"
 fi
