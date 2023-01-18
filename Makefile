@@ -8,10 +8,20 @@ all:
 BINDIR = $(DESTDIR)$(prefix)/bin
 LIBDIR = $(DESTDIR)$(prefix)/lib/wb-utils
 SYSCONFDIR = $(DESTDIR)$(sysconfdir)
+USBOTGDIR = $(LIBDIR)/wb-usb-otg
+MASS_STORAGE_FNAME = build_scripts/mass_storage.img
+MASS_STORAGE_CONTENT_DIR = utils/lib/wb-usb-otg/mass_storage_contents
+NM_DISPATCHER_DIR = $(DESTDIR)$(prefix)/lib/NetworkManager/dispatcher.d
 PREPARE_LIBDIR = $(LIBDIR)/prepare
 IMAGEUPDATE_POSTINST_DIR = $(DESTDIR)$(prefix)/lib/wb-image-update/postinst
 
-install:
+build_mass_storage: export wb_ipaddr := http://10.200.200.1
+build_mass_storage:
+	$(foreach file, $(wildcard $(MASS_STORAGE_CONTENT_DIR)/*.jinja), j2 -o $(basename $(file)) $(file);)
+	GLOBIGNORE=$(MASS_STORAGE_CONTENT_DIR)/*.jinja \
+		build_scripts/create-mass-storage-image.sh $(MASS_STORAGE_CONTENT_DIR)/ $(MASS_STORAGE_FNAME)
+
+install: build_mass_storage
 	install -Dm0644 utils/etc_wb_env.sh $(SYSCONFDIR)/wb_env.sh
 
 	install -Dm0644 -t $(LIBDIR) \
@@ -45,8 +55,20 @@ install:
 	install -Dm0755 -t $(IMAGEUPDATE_POSTINST_DIR) \
 		utils/lib/wb-image-update/postinst/10update-u-boot
 
+	install -Dm0755 -t $(USBOTGDIR) \
+		utils/lib/wb-usb-otg/wb-usb-otg-common.sh \
+		utils/lib/wb-usb-otg/wb-usb-otg-start.sh \
+		utils/lib/wb-usb-otg/wb-usb-otg-stop.sh \
+		utils/lib/wb-usb-otg/check-wb7.sh
+
+	install -Dm0644 -t $(USBOTGDIR) \
+		$(MASS_STORAGE_FNAME)
+
+	install -Dm0755 -t $(NM_DISPATCHER_DIR) \
+		utils/lib/wb-usb-otg/15-debug-network
+
 clean:
-	@echo Nothing to do
+	rm -f $(MASS_STORAGE_FNAME)
 
 .PHONY: install clean all
 

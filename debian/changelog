@@ -1,3 +1,9 @@
+wb-utils (4.6.0) stable; urgency=medium
+
+  * wb-usb-otg: introduce usb-network connection and mass-storage device
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Fri, 13 Jan 2023 13:00:12 +0300
+
 wb-utils (4.5.0) stable; urgency=medium
 
   * wb-gen-serial: add overridable factory serial support
