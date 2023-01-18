@@ -10,12 +10,16 @@ LIBDIR = $(DESTDIR)$(prefix)/lib/wb-utils
 SYSCONFDIR = $(DESTDIR)$(sysconfdir)
 USBOTGDIR = $(LIBDIR)/wb-usb-otg
 MASS_STORAGE_FNAME = build_scripts/mass_storage.img
+MASS_STORAGE_CONTENT_DIR = utils/lib/wb-usb-otg/mass_storage_contents
 NM_DISPATCHER_DIR = $(DESTDIR)$(prefix)/lib/NetworkManager/dispatcher.d
 PREPARE_LIBDIR = $(LIBDIR)/prepare
 IMAGEUPDATE_POSTINST_DIR = $(DESTDIR)$(prefix)/lib/wb-image-update/postinst
 
+build_mass_storage: export wb_ipaddr := http://10.200.200.1
 build_mass_storage:
-	build_scripts/create-mass-storage-image.sh utils/lib/wb-usb-otg/mass_storage_contents/ $(MASS_STORAGE_FNAME)
+	$(foreach file, $(wildcard $(MASS_STORAGE_CONTENT_DIR)/*.jinja), j2 -o $(basename $(file)) $(file);)
+	GLOBIGNORE=$(MASS_STORAGE_CONTENT_DIR)/*.jinja \
+		build_scripts/create-mass-storage-image.sh $(MASS_STORAGE_CONTENT_DIR)/ $(MASS_STORAGE_FNAME)
 
 install: build_mass_storage
 	install -Dm0644 utils/etc_wb_env.sh $(SYSCONFDIR)/wb_env.sh

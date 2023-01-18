@@ -19,4 +19,4 @@ echo "$IMAGE_FNAME: $size*$BS"
 dd if=/dev/zero of="$IMAGE_FNAME" bs=$BS seek=$size count=0
 
 mformat -i "$IMAGE_FNAME" -T $size -M $BS -v "WIRENBOARD"
-mcopy -i "$IMAGE_FNAME" "$CONTENTS_DIR"* ::
+GLOBIGNORE=$GLOBIGNORE; mcopy -i "$IMAGE_FNAME" "$CONTENTS_DIR"* ::
