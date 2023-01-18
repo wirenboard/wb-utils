@@ -13,7 +13,7 @@ fi
 
 set -e
 
-size=$(du --block-size=$BS -s "$CONTENTS_DIR" | awk '{print $1}')
+size=$(du -B $BS -s "$CONTENTS_DIR" | cut -f1)
 size=$((size+1))
 echo "$IMAGE_FNAME: $size*$BS"
 dd if=/dev/zero of="$IMAGE_FNAME" bs=$BS seek=$size count=0

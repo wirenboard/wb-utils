@@ -9,11 +9,15 @@ BINDIR = $(DESTDIR)$(prefix)/bin
 LIBDIR = $(DESTDIR)$(prefix)/lib/wb-utils
 SYSCONFDIR = $(DESTDIR)$(sysconfdir)
 USBOTGDIR = $(LIBDIR)/wb-usb-otg
+MASS_STORAGE_FNAME = build_scripts/mass_storage.img
 NM_DISPATCHER_DIR = $(DESTDIR)$(prefix)/lib/NetworkManager/dispatcher.d
 PREPARE_LIBDIR = $(LIBDIR)/prepare
 IMAGEUPDATE_POSTINST_DIR = $(DESTDIR)$(prefix)/lib/wb-image-update/postinst
 
-install:
+build_mass_storage:
+	build_scripts/create-mass-storage-image.sh utils/lib/wb-usb-otg/mass_storage_contents/ $(MASS_STORAGE_FNAME)
+
+install: build_mass_storage
 	install -Dm0644 utils/etc_wb_env.sh $(SYSCONFDIR)/wb_env.sh
 
 	install -Dm0644 -t $(LIBDIR) \
@@ -53,15 +57,14 @@ install:
 		utils/lib/wb-usb-otg/wb-usb-otg-stop.sh \
 		utils/lib/wb-usb-otg/check-wb7.sh
 
-	build_scripts/create-mass-storage-image.sh utils/lib/wb-usb-otg/mass_storage_contents/ build_scripts/mass_storage.img
 	install -Dm0644 -t $(USBOTGDIR) \
-		build_scripts/mass_storage.img
+		$(MASS_STORAGE_FNAME)
 
 	install -Dm0755 -t $(NM_DISPATCHER_DIR) \
 		utils/lib/wb-usb-otg/15-debug-network
 
 clean:
-	rm -f build_scripts/mass_storage.img
+	rm -f $(MASS_STORAGE_FNAME)
 
 .PHONY: install clean all
 
