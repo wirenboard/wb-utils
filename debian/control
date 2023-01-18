@@ -3,14 +3,14 @@ Maintainer: Evgeny Boger <boger@contactless.ru>
 Section: misc
 Priority: optional
 Standards-Version: 3.9.2
-Build-Depends: debhelper (>= 9), pkg-config
+Build-Depends: debhelper (>= 9), pkg-config, mtools, j2cli
 Homepage: https://github.com/wirenboard/wb-utils
 
 Package: wb-utils
 Architecture: all
 Depends: ${shlibs:Depends}, ${misc:Depends}, lsb-base (>= 4.1), u-boot-tools-wb (>= 2015.07+wb-3), inotify-tools, pv, jq,
-         nginx-extras, python3-wb-common (>= 2.0.0~~), wb-configs (>= 3.5.2), util-linux,
-         linux-image-wb2 (>= 4.9+wb20180808183130) | linux-image-wb6 (>= 5.10.35-wb108~~) | linux-image-wb7 (>= 5.10.35-wb108~~),
+         nginx-extras, python3-wb-common (>= 2.0.0~~), wb-configs (>= 3.10.1~~), util-linux,
+         linux-image-wb2 (>= 4.9+wb20180808183130) | linux-image-wb6 (>= 5.10.35-wb108~~) | linux-image-wb7 (>= 5.10.35-wb130~~),
          device-tree-compiler, parted, rsync, systemd (>= 243)
 Conflicts: wb-configs (<< 1.69.4)
 Breaks: wb-homa-ism-radio (<< 1.17.2), wb-rules-system (<< 1.6.1), wb-mqtt-serial (<< 1.47.2), wb-mqtt-homeui (<< 1.7.1)

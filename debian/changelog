@@ -1,8 +1,14 @@
-wb-utils (4.5.1) stable; urgency=medium
+wb-utils (4.6.1) stable; urgency=medium
 
   * wb7: blink red LED on shutdown
 
  -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Wed, 18 Jan 2023 17:24:28 +0600
+
+wb-utils (4.6.0) stable; urgency=medium
+
+  * wb-usb-otg: introduce usb-network connection and mass-storage device
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Fri, 13 Jan 2023 13:00:12 +0300
 
 wb-utils (4.5.0) stable; urgency=medium
 

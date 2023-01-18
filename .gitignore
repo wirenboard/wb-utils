@@ -36,3 +36,5 @@ wb-configs_*.*
 debian/wb-utils/
 adc/injection/lradc-set-current
 debian/debhelper-build-stamp
+
+build_scripts/mass_storage.img
