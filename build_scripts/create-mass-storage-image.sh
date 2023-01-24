@@ -14,9 +14,12 @@ fi
 set -e
 
 size=$(du -B $BS -s "$CONTENTS_DIR" | cut -f1)
-size=$((size+1))
+if (( $size < 1024 )); then
+    size=1024
+else
+    size=$(($size+1))
+fi
 echo "$IMAGE_FNAME: $size*$BS"
 dd if=/dev/zero of="$IMAGE_FNAME" bs=$BS seek=$size count=0
-
 mformat -i "$IMAGE_FNAME" -T $size -M $BS -v "WIRENBOARD"
 GLOBIGNORE=$GLOBIGNORE; mcopy -i "$IMAGE_FNAME" "$CONTENTS_DIR"* ::
