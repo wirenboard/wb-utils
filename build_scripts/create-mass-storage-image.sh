@@ -15,7 +15,7 @@ set -e
 
 size=$(du -B $BS -s "$CONTENTS_DIR" | cut -f1)
 if (( $size < 1024 )); then
-    size=1024
+    size=1024  # some hosts have problems with images smaller than 512KB
 else
     size=$(($size+1))
 fi
