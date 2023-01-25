@@ -1,6 +1,6 @@
 wb-utils (4.6.2) stable; urgency=medium
 
-  * Debug Network: fixed mass storage image
+  * Debug Network: fix mass storage image for Windows 10
 
  -- Aleksandr Kazadaev <aleksandr.kazadaev@wirenboard.com>  Wed, 25 Jan 2023 01:17:28 +0600
 
