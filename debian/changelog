@@ -1,3 +1,9 @@
+wb-utils (4.6.3) stable; urgency=medium
+
+  * Add firmware update instruction
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Thu, 26 Jan 2023 16:18:00 +0400
+
 wb-utils (4.6.2) stable; urgency=medium
 
   * Debug Network: fix mass storage image for Windows 10
