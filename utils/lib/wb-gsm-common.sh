@@ -610,8 +610,9 @@ function gsm_set_time() {
     fi
 }
 
-# WB7 and SIM A7600E-H/A7602E-H only
-function wb7_gsm_init() {
+
+# WB NetworkManager + ModemManager (NM+MM) only
+function mm_gsm_init() {
     if ! has_usb; then
         debug "No GSM modem present"
         exit 1
@@ -643,9 +644,9 @@ function wb7_gsm_init() {
     fi
 }
 
-# WB7 and SIM A7600E-H/A7602E-H only
-function wb7_on() {
-    wb7_gsm_init
+# Only toggling power & pwrkey gpios
+function mm_on() {
+    mm_gsm_init
 
     local gpio_gsm_status=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "status-gpios")
     local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
@@ -675,9 +676,9 @@ function wb7_on() {
     done
 }
 
-# WB7 and SIM A7600E-H/A7602E-H only
-function wb7_off() {
-    wb7_gsm_init
+# Only toggling power & pwrkey gpios
+function mm_off() {
+    mm_gsm_init
 
     local gpio_gsm_status=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "status-gpios")
     local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
@@ -711,13 +712,14 @@ function wb7_off() {
     gpio_set_value $gpio_gsm_power 0
 }
 
+# WB NM+MM stack supports only wbc-4g modems (a7600x model)
 function should_enable() {
     if has_usb; then
-        if of_machine_match "wirenboard,wirenboard-720" || of_machine_match "wirenboard,wirenboard-7xx"; then
+        if is_model "a7600x"; then
             debug "Should enable GSM modem"
             return 0
         else
-            debug "Not a WB7"
+            debug "Modem is not supported in WB NM+MM stack"
         fi
     else
         debug "No GSM modem present"

@@ -58,11 +58,11 @@ case "$1" in
     ;;
 
     "wb7_on" )
-        wb7_on
+        mm_on
     ;;
 
     "wb7_off" )
-        wb7_off
+        mm_off
     ;;
 
     "should_enable" )
