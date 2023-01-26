@@ -34,19 +34,6 @@ function is_at_over_usb() {
 }
 
 
-function check_is_not_driven_by_mm() {
-    # New wb gsm modems (wbc-4g) are supported in NetworkManager + ModemManager => wb-gsm actions are forbidden
-    # Whether modem is supported in MM or not is defined via udev rules by vid/pid
-    if systemctl is-active --quiet ModemManager; then
-        mmcli -S &> /dev/null
-        if mmcli -L | grep -q '/org/freedesktop/ModemManager'; then
-            >&2 echo "Modem is driven by ModemManager; exiting with rc: 1"
-            exit 1
-        fi
-    fi
-}
-
-
 function is_model() {
     local ret
     local model_to_search=$1
@@ -58,6 +45,12 @@ function is_model() {
     fi
 
     [[ $ret == $model_to_search ]]
+}
+
+
+function do_exit() {
+    kill -s TERM $WB_GSM_PID
+    exit 1
 }
 
 
@@ -75,15 +68,27 @@ function force_exit() {
     for (( i = 1; i < ${#FUNCNAME[@]} - 1; i++ )); do
         >&2 echo " $i: ${BASH_SOURCE[$i+1]}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(...)"
     done
-
-    kill -s TERM $WB_GSM_PID
-    exit 1
+    do_exit
 }
 
 function force_exit_handler() {
     has_usb && unlink_ports
     exit 1
 }
+
+
+function check_is_not_driven_by_mm() {
+    # New wb gsm modems (wbc-4g) are supported in NetworkManager + ModemManager => wb-gsm actions are forbidden
+    # Whether modem is supported in MM or not is defined via udev rules by vid/pid
+    if systemctl is-active --quiet ModemManager; then
+        mmcli -S &> /dev/null
+        if mmcli -L | grep -q '/org/freedesktop/ModemManager'; then
+            >&2 echo "Modem is driven by ModemManager; exiting with rc: 1"
+            do_exit
+        fi
+    fi
+}
+
 
 function get_modem_usb_devices() {
     # usb-port, modem connected to, is binded in device-tree
@@ -179,7 +184,6 @@ function init_usb_connection() {
     fi
 
     modem_at_ports=$(probe_usb_ports)
-    check_is_not_driven_by_mm  # the only possible place to cover "coldstart + MM_supported" case
 
     # any of modem's usb ports answered to AT
     if [[ -n "$modem_at_ports" ]]; then
@@ -315,9 +319,10 @@ function gsm_init() {
         fi
     fi
 
+    check_is_not_driven_by_mm
+
     if has_usb; then
         if [[ `gpio_get_value $gpio_gsm_status` -eq "1" ]]; then
-            check_is_not_driven_by_mm
             debug "USB modem is turned on already; probing ($PORT, ${USB_SYMLINK_MASK}*) ports"
             for port in $PORT ${USB_SYMLINK_MASK}[0-9]*; do
                 [[ -c $port ]] && [[ $(test_connection $port 2) == 0 ]] && {
@@ -535,6 +540,8 @@ function ensure_on() {
     if has_usb; then
         init_usb_connection
     fi
+
+    check_is_not_driven_by_mm
 
     set_speed
 
