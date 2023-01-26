@@ -34,6 +34,19 @@ function is_at_over_usb() {
 }
 
 
+function check_is_not_driven_by_mm() {
+    # New wb gsm modems (wbc-4g) are supported in NetworkManager + ModemManager => wb-gsm actions are forbidden
+    # Whether modem is supported in MM or not is defined via udev rules by vid/pid
+    if systemctl is-active --quiet ModemManager; then
+        mmcli -S &> /dev/null
+        if mmcli -L | grep -q '/org/freedesktop/ModemManager'; then
+            >&2 echo "Modem is driven by ModemManager; exiting with rc: 1"
+            exit 1
+        fi
+    fi
+}
+
+
 function is_model() {
     local ret
     local model_to_search=$1
@@ -166,6 +179,8 @@ function init_usb_connection() {
     fi
 
     modem_at_ports=$(probe_usb_ports)
+    check_is_not_driven_by_mm  # the only possible place to cover "coldstart + MM_supported" case
+
     # any of modem's usb ports answered to AT
     if [[ -n "$modem_at_ports" ]]; then
 
@@ -302,6 +317,7 @@ function gsm_init() {
 
     if has_usb; then
         if [[ `gpio_get_value $gpio_gsm_status` -eq "1" ]]; then
+            check_is_not_driven_by_mm
             debug "USB modem is turned on already; probing ($PORT, ${USB_SYMLINK_MASK}*) ports"
             for port in $PORT ${USB_SYMLINK_MASK}[0-9]*; do
                 [[ -c $port ]] && [[ $(test_connection $port 2) == 0 ]] && {
@@ -440,6 +456,8 @@ function switch_off() {
     local gpio_gsm_status=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "status-gpios")
     local gsm_power_type=$(of_prop_required of_get_prop_ulong $OF_GSM_NODE "power-type")
     local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
+
+    check_is_not_driven_by_mm
 
     [[ -n $gpio_gsm_status ]] && [[ "`gpio_get_value $gpio_gsm_status`" = "0" ]] && {
         debug "Modem is already OFF"
