@@ -57,11 +57,11 @@ case "$1" in
         imei_sn
     ;;
 
-    "wb7_on" )
+    "mm_on" )
         mm_on
     ;;
 
-    "wb7_off" )
+    "mm_off" )
         mm_off
     ;;
 
@@ -70,6 +70,6 @@ case "$1" in
     ;;
 
     * )
-        echo "USAGE: $0 reset|toggle|on|restart_if_broken|off|set_speed|init_baud|imei|imei_sn|wb7_on|wb7_off";
+        echo "USAGE: $0 reset|toggle|on|restart_if_broken|off|set_speed|init_baud|imei|imei_sn|mm_on|mm_off";
     ;;
 esac
