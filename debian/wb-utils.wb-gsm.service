@@ -1,6 +1,7 @@
 [Unit]
 Description=Power on GSM modem
 Wants=wb-hwconf-manager.service
+Before=network-pre.target
 After=wb-hwconf-manager.service
 
 [Service]
