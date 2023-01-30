@@ -537,11 +537,11 @@ function ensure_on() {
         sleep 2
     fi
 
+    check_is_not_driven_by_mm
+
     if has_usb; then
         init_usb_connection
     fi
-
-    check_is_not_driven_by_mm
 
     set_speed
 
