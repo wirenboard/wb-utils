@@ -77,19 +77,6 @@ function force_exit_handler() {
 }
 
 
-function check_is_not_driven_by_mm() {
-    # New wb gsm modems (wbc-4g) are supported in NetworkManager + ModemManager => wb-gsm actions are forbidden
-    # Whether modem is supported in MM or not is defined via udev rules by vid/pid
-    if systemctl is-active --quiet ModemManager; then
-        mmcli -S &> /dev/null
-        if mmcli -L | grep -q '/org/freedesktop/ModemManager'; then
-            >&2 echo "Modem is driven by ModemManager; exiting with rc: 1"
-            do_exit
-        fi
-    fi
-}
-
-
 function get_modem_usb_devices() {
     # usb-port, modem connected to, is binded in device-tree
     # returns all tty devices on this port
@@ -102,6 +89,22 @@ function get_modem_usb_devices() {
         fi
     done
     [[ -z $usb_root ]] && echo $usb_root || echo $(ls -R $usb_root* | grep -o 'tty[a-zA-Z0-9]\+$' | sort -u)
+}
+
+
+function check_is_not_driven_by_mm() {
+    # New wb gsm modems (wbc-4g) are supported in NetworkManager + ModemManager => wb-gsm actions are forbidden
+    # Whether modem is supported in MM or not is defined via udev rules by vid/pid (which set specific MM udev tags)
+    # https://www.freedesktop.org/software/ModemManager/api/1.10.0/ModemManager-Common-udev-tags.html
+    local usb_at_ports=$(get_modem_usb_devices)
+
+    for portname in $usb_at_ports; do
+        local udev_props=$(udevadm info -n $portname -q property)
+        if ! echo $udev_props | grep -q -e "ID_MM_PORT_IGNORE=1" -e "ID_MM_DEVICE_IGNORE=1"; then
+            >&2 echo "$portname is driven by ModemManager; exiting with rc: 1"
+            do_exit
+        fi
+    done
 }
 
 
