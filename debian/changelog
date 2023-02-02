@@ -1,3 +1,9 @@
+wb-utils (4.7.0) stable; urgency=medium
+
+  * wb-gsm: exit 1 for operations on modems, driven by ModemManager
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Thu, 26 Jan 2023 22:05:43 +0300
+
 wb-utils (4.6.2) stable; urgency=medium
 
   * Debug Network: fix mass storage image for Windows 10

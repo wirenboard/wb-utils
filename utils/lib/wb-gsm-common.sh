@@ -48,6 +48,12 @@ function is_model() {
 }
 
 
+function do_exit() {
+    kill -s TERM $WB_GSM_PID
+    exit 1
+}
+
+
 function force_exit() {
     # exitting (to where the trap to TERM signal placed) from any inner-func (with turning GSM_POWER off if available)
     # default trap to ERR waits a caller to finish, which sometimes is not suitable
@@ -62,15 +68,14 @@ function force_exit() {
     for (( i = 1; i < ${#FUNCNAME[@]} - 1; i++ )); do
         >&2 echo " $i: ${BASH_SOURCE[$i+1]}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(...)"
     done
-
-    kill -s TERM $WB_GSM_PID
-    exit 1
+    do_exit
 }
 
 function force_exit_handler() {
     has_usb && unlink_ports
     exit 1
 }
+
 
 function get_modem_usb_devices() {
     # usb-port, modem connected to, is binded in device-tree
@@ -84,6 +89,22 @@ function get_modem_usb_devices() {
         fi
     done
     [[ -z $usb_root ]] && echo $usb_root || echo $(ls -R $usb_root* | grep -o 'tty[a-zA-Z0-9]\+$' | sort -u)
+}
+
+
+function check_is_not_driven_by_mm() {
+    # New wb gsm modems (wbc-4g) are supported in NetworkManager + ModemManager => wb-gsm actions are forbidden
+    # Whether modem is supported in MM or not is defined via udev rules by vid/pid (which set specific MM udev tags)
+    # https://www.freedesktop.org/software/ModemManager/api/1.10.0/ModemManager-Common-udev-tags.html
+    local usb_at_ports=$(get_modem_usb_devices)
+
+    for portname in $usb_at_ports; do
+        local udev_props=$(udevadm info -n $portname -q property)
+        if ! echo $udev_props | grep -q -e "ID_MM_PORT_IGNORE=1" -e "ID_MM_DEVICE_IGNORE=1"; then
+            >&2 echo "$portname is driven by ModemManager; exiting with rc: 1"
+            do_exit
+        fi
+    done
 }
 
 
@@ -166,6 +187,7 @@ function init_usb_connection() {
     fi
 
     modem_at_ports=$(probe_usb_ports)
+
     # any of modem's usb ports answered to AT
     if [[ -n "$modem_at_ports" ]]; then
 
@@ -299,6 +321,8 @@ function gsm_init() {
             debug "Exported and toggled SIMSELECT (gpio$gpio_gsm_simselect -> $simselect_val)"
         fi
     fi
+
+    check_is_not_driven_by_mm
 
     if has_usb; then
         if [[ `gpio_get_value $gpio_gsm_status` -eq "1" ]]; then
@@ -441,6 +465,8 @@ function switch_off() {
     local gsm_power_type=$(of_prop_required of_get_prop_ulong $OF_GSM_NODE "power-type")
     local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
 
+    check_is_not_driven_by_mm
+
     [[ -n $gpio_gsm_status ]] && [[ "`gpio_get_value $gpio_gsm_status`" = "0" ]] && {
         debug "Modem is already OFF"
         return 0
@@ -513,6 +539,8 @@ function ensure_on() {
     else
         sleep 2
     fi
+
+    check_is_not_driven_by_mm
 
     if has_usb; then
         init_usb_connection
@@ -610,8 +638,9 @@ function gsm_set_time() {
     fi
 }
 
-# WB7 and SIM A7600E-H/A7602E-H only
-function wb7_gsm_init() {
+
+# WB NetworkManager + ModemManager (NM+MM) only
+function mm_gsm_init() {
     if ! has_usb; then
         debug "No GSM modem present"
         exit 1
@@ -643,9 +672,9 @@ function wb7_gsm_init() {
     fi
 }
 
-# WB7 and SIM A7600E-H/A7602E-H only
-function wb7_on() {
-    wb7_gsm_init
+# Only toggling power & pwrkey gpios
+function mm_on() {
+    mm_gsm_init
 
     local gpio_gsm_status=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "status-gpios")
     local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
@@ -675,9 +704,9 @@ function wb7_on() {
     done
 }
 
-# WB7 and SIM A7600E-H/A7602E-H only
-function wb7_off() {
-    wb7_gsm_init
+# Only toggling power & pwrkey gpios
+function mm_off() {
+    mm_gsm_init
 
     local gpio_gsm_status=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "status-gpios")
     local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
@@ -711,13 +740,14 @@ function wb7_off() {
     gpio_set_value $gpio_gsm_power 0
 }
 
+# WB NM+MM stack supports only wbc-4g modems (a7600x model)
 function should_enable() {
     if has_usb; then
-        if of_machine_match "wirenboard,wirenboard-720" || of_machine_match "wirenboard,wirenboard-7xx"; then
+        if is_model "a7600x"; then
             debug "Should enable GSM modem"
             return 0
         else
-            debug "Not a WB7"
+            debug "Modem is not supported in WB NM+MM stack"
         fi
     else
         debug "No GSM modem present"
