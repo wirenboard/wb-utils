@@ -1,3 +1,9 @@
+wb-utils (3.7.0-wb108) stable; urgency=medium
+
+  * Set 127.0.0.1 IP for hostname
+
+ -- Petr Krasnoshchekov <petr.krasnoshchekov@wirenboard.com>  Fri, 03 Feb 2023 13:22:19 +0500
+
 wb-utils (3.7.0-wb107) stable; urgency=medium
 
   * wb-gsm: backport journald-logging (journalctl -t wb-gsm)
