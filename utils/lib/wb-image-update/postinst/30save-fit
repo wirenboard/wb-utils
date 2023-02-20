@@ -1,0 +1,46 @@
+#!/bin/bash -e
+
+# Called from install_update.sh with arguments
+# /path/to/script /path/to/new/rootfs [flag1 [flag2 ...]]
+#
+# This script may run in Busybox initramfs environment,
+# so if you need some special tools or features, use ones from rootfs.
+#
+# /dev, /proc and /sys are already bind-mounted
+# from host system to rootfs tree.
+
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 path/to/rootfs [flag1 [flag2 ...]]"
+    exit 2
+fi
+
+shift
+FLAGS="$*"
+
+flag_set() {
+	echo "$FLAGS" | grep -- "--$1" >/dev/null 2>&1
+}
+
+WB_RESTORE_DIR="/mnt/data/.wb-restore"
+TARGET_FIT="$WB_RESTORE_DIR/factoryreset.fit"
+
+if ! flag_set "factoryreset" ; then
+    echo "Skipping FIT save"
+    exit
+fi
+
+if [ -n "$FIT" ]; then
+    echo "Using FIT filename $FIT from env"
+else
+    echo "Failed to find FIT, exiting FIT save procedure"
+fi
+
+if [ "$TARGET_FIT" -ef "$FIT" ]; then
+    echo "Updating from device FIT, nothing to copy here"
+else
+    echo "Copying FIT from $FIT into factory reset default"
+    mkdir -p "$WB_RESTORE_DIR"
+    cp -f "$FIT" "$TARGET_FIT"
+
+    echo "Done"
+fi
