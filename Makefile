@@ -53,7 +53,9 @@ install: build_mass_storage
 		utils/bin/wb-run-update
 
 	install -Dm0755 -t $(IMAGEUPDATE_POSTINST_DIR) \
-		utils/lib/wb-image-update/postinst/10update-u-boot
+		utils/lib/wb-image-update/postinst/10update-u-boot \
+		utils/lib/wb-image-update/postinst/20log-factoryreset \
+		utils/lib/wb-image-update/postinst/30save-fit
 
 	install -Dm0755 -t $(USBOTGDIR) \
 		utils/lib/wb-usb-otg/wb-usb-otg-common.sh \

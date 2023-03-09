@@ -1,3 +1,9 @@
+wb-utils (4.8.1-70549e24-001) stable; urgency=medium
+
+  * add postinst scripts to log factory resets and to save this FIT
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Wed, 29 Mar 2023 14:39:31 +0600
+
 wb-utils (4.8.1) stable; urgency=medium
 
   * Fix fwupdate-service stuck on unsuccessful update
