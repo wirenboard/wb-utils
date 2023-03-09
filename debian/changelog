@@ -1,3 +1,9 @@
+wb-utils (4.7.1) stable; urgency=medium
+
+  * Update environment variables on modem setup
+
+ -- Petr Krasnoshchekov <petr.krasnoshchekov@wirenboard.com>  Thu, 09 Mar 2023 09:08:06 +0500
+
 wb-utils (4.7.0) stable; urgency=medium
 
   * wb-gsm: exit 1 for operations on modems, driven by ModemManager
