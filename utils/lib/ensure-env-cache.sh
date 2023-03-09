@@ -1,5 +1,8 @@
 #!/bin/bash
 
+source "/usr/lib/wb-utils/common.sh"
+wb_source "of"
+
 WB_ENV_CACHE="${WB_ENV_CACHE:-/var/run/wb_env.cache}"
 WB_OF_ROOT="/wirenboard"
 
@@ -23,6 +26,14 @@ if [[ -e "$WB_ENV_CACHE" ]]; then
     # Collect last modification time from /proc/device-tree/wirenboard
     # recursively and check if cache is newer
     DT_WIRENBOARD_LAST_CHANGE="$(find "/proc/device-tree/$WB_OF_ROOT" -type f -printf "%Ts\n" | sort | tail -1)"
+
+    # Collect last modification time from /proc/device-tree/alias/wbc_modem
+    of_has_prop "aliases" "wbc_modem" && OF_GSM_NODE=$(of_get_prop_str "aliases" "wbc_modem") || OF_GSM_NODE="wirenboard/gsm"
+    DT_MODEM_LAST_CHANGE="$(find "/proc/device-tree/$OF_GSM_NODE" -type f -printf "%Ts\n" | sort | tail -1)"
+    if [[ "$DT_MODEM_LAST_CHANGE" -gt "$DT_WIRENBOARD_LAST_CHANGE" ]]; then
+        DT_WIRENBOARD_LAST_CHANGE=$DT_MODEM_LAST_CHANGE
+    fi
+
     CACHE_LAST_CHANGE="$(stat -c"%X" "$WB_ENV_CACHE")"
 
     # Remove cache file if device tree was updated. It is safe to do here, we have lock
@@ -33,9 +44,6 @@ fi
 
 if [[ ! -e "$WB_ENV_CACHE" ]]; then
 	ENV_TMP=$(mktemp)
-
-    source "/usr/lib/wb-utils/common.sh"
-	wb_source "of"
 
 	{
 		if [[ -z "$FORCE_WB_VERSION" ]] && of_node_exists "${WB_OF_ROOT}"; then
