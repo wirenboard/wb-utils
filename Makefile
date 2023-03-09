@@ -50,7 +50,9 @@ install:
 		utils/bin/wb-run-update
 
 	install -m 0755 -t $(IMAGEUPDATE_POSTINST_DIR) \
-		utils/lib/wb-image-update/postinst/10update-u-boot
+		utils/lib/wb-image-update/postinst/10update-u-boot \
+		utils/lib/wb-image-update/postinst/20log-factoryreset \
+		utils/lib/wb-image-update/postinst/30save-fit
 
 clean:
 	@echo Nothing to do
