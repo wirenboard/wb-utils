@@ -1,3 +1,9 @@
+wb-utils (4.8.0) stable; urgency=medium
+
+  * wb-gsm: stop MM if launched from script; warn user otherwise
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Tue, 14 Mar 2023 15:53:12 +0300
+
 wb-utils (4.7.1) stable; urgency=medium
 
   * Update environment variables on modem setup
