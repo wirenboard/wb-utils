@@ -77,7 +77,7 @@ function force_exit_handler() {
 }
 
 function is_called_from_terminal() {
-    [[ $(cat /proc/$PPID/comm) = "bash" ]]
+    [[ ! -z $WB_GSM_INTERACTIVE ]]
 }
 
 function get_modem_usb_devices() {
