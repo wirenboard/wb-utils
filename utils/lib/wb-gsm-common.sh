@@ -77,7 +77,7 @@ function force_exit_handler() {
 }
 
 function is_called_from_terminal() {
-    [[ ! -z $WB_GSM_INTERACTIVE ]]
+    [[ ! -z $WBGSM_INTERACTIVE ]]
 }
 
 function get_modem_usb_devices() {
@@ -94,6 +94,22 @@ function get_modem_usb_devices() {
     [[ -z $usb_root ]] && echo $usb_root || echo $(ls -R $usb_root* | grep -o 'tty[a-zA-Z0-9]\+$' | sort -u)
 }
 
+function is_driven_by_mm() {
+    # Whether modem is supported in MM or not is defined via udev rules by vid/pid (which set specific MM udev tags)
+    # https://www.freedesktop.org/software/ModemManager/api/1.10.0/ModemManager-Common-udev-tags.html
+    # Now only wbc-4g modems are supported in ModemManager
+    local usb_at_ports=$(get_modem_usb_devices)
+
+    for portname in $usb_at_ports; do
+        local udev_props=$(udevadm info -n $portname -q property)
+        if ! echo $udev_props | grep -q -e "ID_MM_PORT_IGNORE=1" -e "ID_MM_DEVICE_IGNORE=1"; then
+            debug "Modem ($portname) is possibly driven by ModemManager"
+            return 0
+        fi
+    done
+    debug "Modem is NOT driven by ModemManager"
+    return 1
+}
 
 function handle_mm() {
     # ModemManager is new default way to communicate with modems.
@@ -105,22 +121,27 @@ function handle_mm() {
 
     if systemctl is-active --quiet service $service_name; then
 
-        if is_called_from_terminal; then
-            >&2 cat <<EOF
+        if is_driven_by_mm; then
+
+            if is_called_from_terminal; then
+                >&2 cat <<EOF
 ##############################################################################
 
     Calling wb-gsm manually is not recommended. Use $service_name instead.
 
     If you really want to use wb-gsm now, stop $service_name before:
                     run "systemctl stop $service_name"
+                    or unset WBGSM_INTERACTIVE env variable
 
 ##############################################################################
 EOF
-            do_exit
+                debug "Exiting: $service_name is active"
+                do_exit
 
-        else
-            debug "implicit call detected; stopping $service_name to provide compatibility"
-            systemctl stop $service_name
+            else
+                debug "Implicit call detected; stopping $service_name to provide compatibility"
+                systemctl stop $service_name
+            fi
         fi
     fi
 }

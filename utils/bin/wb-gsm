@@ -2,11 +2,7 @@
 
 JOURNALD_PREFIX="wb-gsm"
 
-is_interactive=$WB_GSM_INTERACTIVE
-
 . /usr/lib/wb-utils/wb-gsm-common.sh
-
-WB_GSM_INTERACTIVE=$is_interactive
 
 WB_GSM_PID=$$
 trap "force_exit_handler" TERM
