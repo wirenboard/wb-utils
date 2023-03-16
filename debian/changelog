@@ -4,6 +4,12 @@ wb-utils (4.8.0) stable; urgency=medium
 
  -- Vladimir Romanov <v.romanov@wirenboard.ru>  Tue, 14 Mar 2023 15:53:12 +0300
 
+wb-utils (4.7.2) stable; urgency=medium
+
+  * wb-gsm: add is-acquired-by-pppd workaround
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Thu, 16 Mar 2023 22:21:36 +0300
+
 wb-utils (4.7.1) stable; urgency=medium
 
   * Update environment variables on modem setup
