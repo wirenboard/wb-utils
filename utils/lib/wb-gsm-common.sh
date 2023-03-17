@@ -149,7 +149,7 @@ EOF
 function is_acquired_by_pppd() {
     # sometimes, when launched from init-section of pppd, serial port could be already acquired by pppd
     # we assume, if parent's ppid is in fuser's output, this is this case
-    echo $(/bin/fuser $1) | grep -q "$(ps -o ppid= -p $PPID)"
+    echo $(/bin/fuser $1 2>&1) | grep -q "$(ps -o ppid= -p $PPID)"
 }
 
 function test_connection() {
@@ -157,7 +157,7 @@ function test_connection() {
         /usr/bin/timeout --signal=SIGKILL --preserve-status $2 /usr/sbin/chat -v   TIMEOUT $2 ABORT "ERROR" ABORT "BUSY" "" AT OK "" > $1 < $1
         RC=$?
     else
-        if is_acquired_by_pppd; then
+        if is_acquired_by_pppd $1; then
             debug "$1 seems to be acquired by pppd; treating as free"
             RC=0
         else
@@ -166,7 +166,7 @@ function test_connection() {
         fi
     fi
 
-    debug "(port:$1 ($(readlink -f $1)); timeout:$2) => $RC"
+    debug "(port:$1($(readlink -f $1)); timeout:$2) => $RC"
     echo $RC
 }
 
