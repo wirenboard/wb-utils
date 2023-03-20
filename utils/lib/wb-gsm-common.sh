@@ -76,6 +76,9 @@ function force_exit_handler() {
     exit 1
 }
 
+function is_called_from_terminal() {
+    [[ ! -z $WBGSM_INTERACTIVE ]]
+}
 
 function get_modem_usb_devices() {
     # usb-port, modem connected to, is binded in device-tree
@@ -91,20 +94,58 @@ function get_modem_usb_devices() {
     [[ -z $usb_root ]] && echo $usb_root || echo $(ls -R $usb_root* | grep -o 'tty[a-zA-Z0-9]\+$' | sort -u)
 }
 
-
-function check_is_not_driven_by_mm() {
-    # New wb gsm modems (wbc-4g) are supported in NetworkManager + ModemManager => wb-gsm actions are forbidden
+function is_driven_by_mm() {
     # Whether modem is supported in MM or not is defined via udev rules by vid/pid (which set specific MM udev tags)
     # https://www.freedesktop.org/software/ModemManager/api/1.10.0/ModemManager-Common-udev-tags.html
+    # Now only wbc-4g modems are supported in ModemManager
     local usb_at_ports=$(get_modem_usb_devices)
 
     for portname in $usb_at_ports; do
         local udev_props=$(udevadm info -n $portname -q property)
         if ! echo $udev_props | grep -q -e "ID_MM_PORT_IGNORE=1" -e "ID_MM_DEVICE_IGNORE=1"; then
-            >&2 echo "$portname is driven by ModemManager; exiting with rc: 1"
-            do_exit
+            debug "Modem ($portname) is possibly driven by ModemManager"
+            return 0
         fi
     done
+    debug "Modem is NOT driven by ModemManager"
+    return 1
+}
+
+function handle_mm() {
+    # ModemManager is new default way to communicate with modems.
+    # To provide compatibility with old scenarios:
+    #   warn user if wb-gsm launched manually
+    #   stop ModemManager otherwise
+
+    local service_name="ModemManager"
+
+    if systemctl is-active --quiet service $service_name; then
+
+        if is_driven_by_mm; then
+
+            if is_called_from_terminal; then
+                >&2 cat <<EOF
+##############################################################################
+
+    Calling wb-gsm manually is not recommended. Use $service_name instead.
+
+    If you really want to use wb-gsm now, stop $service_name before:
+                    run "systemctl stop $service_name"
+
+    To continue using wb-gsm instead of $service_name, add to /root/.bashrc:
+                    export WBGSM_INTERACTIVE=
+
+##############################################################################
+EOF
+                debug "Exiting: $service_name is active"
+                do_exit
+
+            else
+                debug "Implicit call detected; stopping $service_name to provide compatibility"
+                systemctl stop $service_name
+            fi
+        fi
+    fi
 }
 
 function is_acquired_by_pppd() {
@@ -332,7 +373,7 @@ function gsm_init() {
         fi
     fi
 
-    check_is_not_driven_by_mm
+    handle_mm
 
     if has_usb; then
         if [[ `gpio_get_value $gpio_gsm_status` -eq "1" ]]; then
@@ -475,7 +516,7 @@ function switch_off() {
     local gsm_power_type=$(of_prop_required of_get_prop_ulong $OF_GSM_NODE "power-type")
     local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
 
-    check_is_not_driven_by_mm
+    handle_mm
 
     [[ -n $gpio_gsm_status ]] && [[ "`gpio_get_value $gpio_gsm_status`" = "0" ]] && {
         debug "Modem is already OFF"
@@ -550,7 +591,7 @@ function ensure_on() {
         sleep 2
     fi
 
-    check_is_not_driven_by_mm
+    handle_mm
 
     if has_usb; then
         init_usb_connection
