@@ -131,7 +131,9 @@ function handle_mm() {
 
     If you really want to use wb-gsm now, stop $service_name before:
                     run "systemctl stop $service_name"
-                    or unset WBGSM_INTERACTIVE env variable
+
+    To continue using wb-gsm instead of $service_name, add to /root/.bashrc:
+                    export WBGSM_INTERACTIVE=
 
 ##############################################################################
 EOF
