@@ -2,6 +2,150 @@
 
 set -e
 
+if [ ! -e /proc/self ]; then
+    mount -t proc proc /proc
+fi
+
+if [ ! -e /dev/fd ]; then
+    ln -s /proc/self/fd /dev/fd
+fi
+
+if [ ! -e /etc/mtab ]; then
+    ln -s /proc/self/mounts /etc/mtab || true
+fi
+
+ensure_tools() {
+    if [ -z "$TOOLPATH" ]; then
+        export TOOLPATH=$(mktemp -d)
+        mkdir -p "$TOOLPATH/proc" "$TOOLPATH/dev" "$TOOLPATH/etc" "$TOOLPATH/tmp"
+        mount -t proc proc "$TOOLPATH/proc"
+        ln -s /proc/self/mounts "$TOOLPATH/etc/mtab"
+        mount --bind /dev "$TOOLPATH/dev"
+
+        info "Temp toolpath: $TOOLPATH"
+
+        fit_blob_data rootfs | tar xz -C "$TOOLPATH" ./var/lib/wb-image-update/deps.tar.gz
+        tar xzf "$TOOLPATH/var/lib/wb-image-update/deps.tar.gz" -C "$TOOLPATH"
+    fi
+}
+
+run_tool() {
+    ensure_tools
+    chroot "$TOOLPATH" "$@"
+}
+
+disk_layout_is_ab() {
+    [ "$(blockdev --getsz /dev/mmcblk0p2)" -eq "$(blockdev --getsz /dev/mmcblk0p3)" ]
+}
+
+set_size() {
+    sed "s#^\\($1.*size=\\s\\+\\)[0-9]\\+\\(.*\\)#\\1 $2\\2#"
+}
+
+set_start() {
+    sed "s#^\\($1.*start=\\s\\+\\)[0-9]\\+\\(.*\\)#\\1 $2\\2#"
+}
+
+ensure_enlarged_rootfs_parttable() {
+    if ! disk_layout_is_ab; then
+        info "Partition table seems to be changed already, continue"
+        return 0
+    fi
+
+    info "Unmounting everything"
+    umount /dev/mmcblk0p2 >/dev/null 2>&1 || true
+    umount /dev/mmcblk0p3 >/dev/null 2>&1 || true
+    umount /dev/mmcblk0p6 >/dev/null 2>&1 || true
+
+    info "Checking and repairing filesystem on /dev/mmcblk0p2"
+    run_tool e2fsck -f -p /dev/mmcblk0p2; E2FSCK_RC=$?
+
+    # e2fsck returns 1 and 2 if some errors were fixed, it's OK for us
+    if [ "$E2FSCK_RC" -gt 2 ]; then
+        info "Filesystem check failed, can't proceed with resizing"
+        return 1
+    fi
+
+    info "Backing up old MBR (and partition table)"
+    local mbr_backup
+    mbr_backup=$(mktemp)
+    dd if=/dev/mmcblk0 of="$mbr_backup" bs=512 count=1 || {
+        info "Failed to save MBR backup"
+        return 1
+    }
+
+    # Classic layout:
+    #
+    # label: dos
+    # label-id: 0x3f9de3f0
+    # device: /dev/mmcblk0
+    # unit: sectors
+    # sector-size: 512
+    #
+    # /dev/mmcblk0p1 : start=        2048, size=       32768, type=53
+    # /dev/mmcblk0p2 : start=       34816, size=     2097152, type=83
+    # /dev/mmcblk0p3 : start=     2131968, size=     2097152, type=83
+    # /dev/mmcblk0p4 : start=     4229120, size=   117913600, type=5
+    # /dev/mmcblk0p5 : start=     4231168, size=      524288, type=82
+    # /dev/mmcblk0p6 : start=     4757504, size=   117385216, type=83  # differs between models
+    #
+    # New layout with mmcblk0p3 size == 4 blocks:
+    #
+    # ...  # unchanged
+    # /dev/mmcblk0p2 : start=       34816, size=     4194300, type=83
+    # /dev/mmcblk0p3 : start=     4229116, size=           4, type=83
+    # /dev/mmcblk0p4 : start=     4229120, size=   117913600, type=5
+    # ...  # unchanged
+    #
+    # All this sfdisk magic is here to keep label-id and other partitions safe and sound
+
+    info "Creating a new parition table"
+    ROOTFS_START_BLOCKS=34816
+    ROOTFS_SIZE_BLOCKS=4194300
+
+    TEMP_DUMP="$(mktemp)"
+    info "New disk dump will be saved in $TEMP_DUMP"
+
+    sfdisk --dump /dev/mmcblk0 | \
+        set_size  /dev/mmcblk0p2 "$ROOTFS_SIZE_BLOCKS" | \
+        set_start /dev/mmcblk0p3 "$((ROOTFS_START_BLOCKS + ROOTFS_SIZE_BLOCKS))" | \
+        set_size  /dev/mmcblk0p3 4 | \
+        tee "$TEMP_DUMP" | \
+        sfdisk -f /dev/mmcblk0 >/dev/null || {
+
+        info "New parttable creation failed, restoring saved MBR backup"
+        dd if="$mbr_backup" of=/dev/mmcblk0 oflag=direct conv=notrunc || true
+        sync
+        blockdev --rereadpt /dev/mmcblk0 || true
+        return 1
+    }
+
+    sync
+    blockdev --rereadpt /dev/mmcblk0 || true
+
+    if [ "$(blockdev --getsz /dev/mmcblk0p2)" != "$ROOTFS_SIZE_BLOCKS" ]; then
+        info "New parttable is not applied, restoring saved MBR backup and exit"
+        dd if="$mbr_backup" of=/dev/mmcblk0 oflag=direct conv=notrunc || true
+        sync
+        blockdev --rereadpt /dev/mmcblk0 || true
+        die "Failed to apply a new partition table"
+    fi
+
+    info "Expanding filesystem on this partition"
+    local e2fs_undofile
+    e2fs_undofile=$(mktemp)
+    run_tool resize2fs -z "$e2fs_undofile" /dev/mmcblk0p2 || {
+        info "Filesystem expantion failed, restoring everything"
+        run_tool e2undo "$e2fs_undofile" /dev/mmcblk0p2 || true
+        dd if="$mbr_backup" of=/dev/mmcblk0 oflag=direct conv=notrunc || true
+        sync
+        blockdev --rereadpt /dev/mmcblk0 || true
+        return 1
+    }
+
+    info "Repartition is done!"
+}
+
 # FIXME: transitional definitions which are being moved to wb-run-update
 HIDDENFS_PART=/dev/mmcblk0p1
 HIDDENFS_OFFSET=$((8192*512))  # 8192 blocks of 512 bytes
@@ -60,55 +204,66 @@ case "$PART" in
 	2)
 		PART=3
 		PART_NOW=2
-		PARTLABEL=rootfs1
 		;;
 	3)
 		PART=2
 		PART_NOW=3
-		PARTLABEL=rootfs0
 		;;
 	*)
 		flag_set from-initramfs && {
 			info "Update is started from initramfs and unable to determine active rootfs partition, will overwrite rootfs0"
 			PART=2
 			PART_NOW=3
-			PARTLABEL=rootfs0
 		} || {
 			die "Unable to determine second rootfs partition (current is $PART)"
 		}
 		;;
 esac
+
+if flag_set "factoryreset" && ! flag_set "no-repartition"; then
+    if ensure_enlarged_rootfs_parttable; then
+        info "rootfs enlarged!"
+    else
+        info "Repartition failed, continuing without it"
+    fi
+fi
+
+# separate this from previous if to make it work
+# without factoryreset after repartition
+if ! disk_layout_us_ab; then
+
+    # TODO: maybe remove it when web update will work
+    if ! flag_set from-initramfs; then
+        die "Web UI update does not work after repartition, please use USB drive!"
+    fi
+
+    info "Configuring environment for repartitioned eMMC"
+    PART=2
+    PART_NOW=nosuchpartition
+fi
+
 ROOT_PART=/dev/${ROOT_DEV}p${PART}
 info "Will install to $ROOT_PART"
 
 rm -rf "$MNT" && mkdir "$MNT" || die "Unable to create mountpoint $MNT"
 
-flag_set "from-initramfs" && {
-    actual_rootfs=/dev/${ROOT_DEV}p${PART_NOW}
-    info "Check if partition table is correct"
-    [[ -e $ROOT_PART ]] && [[ -e $actual_rootfs ]] || {
-        die "rootfs partition doesn't exist, looks like partitions table is broken. Give up."
-    }
-    info "Temporarily mount actual rootfs $actual_rootfs to check os-release"
-    mount -t ext4 $actual_rootfs $MNT 2>&1 >/dev/null && {
-        sync
-        ACTUAL_DEB_RELEASE="$(MNT="$MNT" bash -c 'source "$MNT/etc/os-release"; echo $VERSION_CODENAME')"
-        umount -f $actual_rootfs 2>&1 >/dev/null || true
-    } || true
-}
-
-# determine if new partition is unformatted
-mount -t ext4 $ROOT_PART $MNT 2>&1 >/dev/null || {
-    info "Unable to mount root partition, formatting $ROOT_PART"
-    mkfs_ext4 $ROOT_PART $PARTLABEL || die "mkfs.ext4 failed"
-}
-
-umount -f $ROOT_PART 2>&1 >/dev/null || true # just for sure
+actual_rootfs=/dev/${ROOT_DEV}p${PART_NOW}
+if flag_set from-initramfs ; then
+    if [[ -e "$actual_rootfs" ]]; then
+        info "Temporarily mount actual rootfs $actual_rootfs to check os-release"
+        mount -t ext4 $actual_rootfs $MNT 2>&1 >/dev/null && {
+            sync
+            ACTUAL_DEB_RELEASE="$(MNT="$MNT" bash -c 'source "$MNT/etc/os-release"; echo $VERSION_CODENAME')"
+            umount -f $actual_rootfs 2>&1 >/dev/null || true
+        } || true
+    fi
+else
+    ACTUAL_DEB_RELEASE="$(bash -c 'source "/etc/os-release"; echo $VERSION_CODENAME')"
+fi
 
 info "Mounting $ROOT_PART at $MNT"
 mount -t ext4 "$ROOT_PART" "$MNT" 2>&1 >/dev/null|| die "Unable to mount root filesystem"
 
-[[ -z "$ACTUAL_DEB_RELEASE" ]] && ACTUAL_DEB_RELEASE="$(bash -c 'source "/etc/os-release"; echo $VERSION_CODENAME')"
 upcoming_deb_release="$(fit_prop_string / release-target | sed 's/wb[[:digit:]]\+\///')"
 info "Debian: $ACTUAL_DEB_RELEASE -> $upcoming_deb_release"
 if [ "$ACTUAL_DEB_RELEASE" = "bullseye" ] && [ "$upcoming_deb_release" = "stretch" ]; then

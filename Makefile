@@ -61,6 +61,7 @@ install: build_mass_storage
 		utils/lib/wb-image-update/postinst/30save-fit
 
 	install -Dm0755 -t $(FIT_FILES_DIR) \
+		utils/lib/wb-image-update/fit/build.sh \
 		utils/lib/wb-image-update/fit/install_update.sh
 
 	install -Dm0755 -t $(USBOTGDIR) \
