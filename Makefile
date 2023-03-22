@@ -13,7 +13,10 @@ MASS_STORAGE_FNAME = build_scripts/mass_storage.img
 MASS_STORAGE_CONTENT_DIR = utils/lib/wb-usb-otg/mass_storage_contents
 NM_DISPATCHER_DIR = $(DESTDIR)$(prefix)/lib/NetworkManager/dispatcher.d
 PREPARE_LIBDIR = $(LIBDIR)/prepare
-IMAGEUPDATE_POSTINST_DIR = $(DESTDIR)$(prefix)/lib/wb-image-update/postinst
+
+IMAGEUPDATE_DIR=$(DESTDIR)$(prefix)/lib/wb-image-update
+IMAGEUPDATE_POSTINST_DIR = $(IMAGEUPDATE_DIR)/postinst
+FIT_FILES_DIR=$(IMAGEUPDATE_DIR)/fit
 
 build_mass_storage: export wb_ipaddr := http://10.200.200.1
 build_mass_storage:
@@ -56,6 +59,9 @@ install: build_mass_storage
 		utils/lib/wb-image-update/postinst/10update-u-boot \
 		utils/lib/wb-image-update/postinst/20log-factoryreset \
 		utils/lib/wb-image-update/postinst/30save-fit
+
+	install -Dm0755 -t $(FIT_FILES_DIR) \
+		utils/lib/wb-image-update/fit/install_update.sh
 
 	install -Dm0755 -t $(USBOTGDIR) \
 		utils/lib/wb-usb-otg/wb-usb-otg-common.sh \

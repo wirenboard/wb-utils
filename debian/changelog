@@ -1,3 +1,10 @@
+wb-utils (4.8.1-70549e24-002) stable; urgency=medium
+
+  * move install_update.sh script for FIT images to this package
+  * add rootfs enlarge/shrink feature prototype
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Wed, 22 Mar 2023 15:11:31 +0600
+
 wb-utils (4.8.1-70549e24-001) stable; urgency=medium
 
   * add postinst scripts to log factory resets and to save this FIT
