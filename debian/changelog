@@ -1,3 +1,10 @@
+wb-utils (4.9.0) stable; urgency=medium
+
+  * move install_update.sh script for FIT images to this package
+  * add rootfs repartition on factory reset feature
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Wed, 22 Mar 2023 15:11:31 +0600
+
 wb-utils (4.8.2) stable; urgency=medium
 
   * wb-gsm: add recommendation about ModemManager to logs
