@@ -130,8 +130,8 @@ die() {
 	local msg=${*:-"Failed"}
 	>&2 echo "!!! $msg"
 	mqtt_status "ERROR $msg"
-	mqtt_status "IDLE"
 	rm_fit
+	mqtt_status "IDLE"
 	[[ $? == 0 ]] && exit 1 || exit $?
 }
 
@@ -174,7 +174,7 @@ fit_blob_verify_hash() {
 	local sha1_expected=`fit_blob_hash $name`
 
 	info "Checking SHA1 hash of $name"
-	
+
 	local blob_size=`fit_blob_size rootfs`
 	local tmp=`mktemp -p $TMPDIR`
 	(
