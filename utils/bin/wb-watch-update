@@ -1,10 +1,16 @@
 #!/bin/bash
+# vim: set noexpandtab:
 #set -x
-WATCH_DIR="/var/www/uploads"
 UPDATE_FIT_END_SIGNATURE="__WB_UPDATE_FIT_END__"
 UPDATE_LOG="/var/log/update.log"
 
 PID_FILE="/var/run/wb-watch-update.pid"
+
+AB_WATCH_DIR="/var/www/uploads"
+SINGLE_WATCH_DIR="/mnt/data/.wb-update"
+
+WATCH_DIR_SYMLINK="/var/run/wb-watch-update.dir"
+
 cleanup() {
 	[[ -f "$PID_FILE" ]] && kill `cat "$PID_FILE"` 2>/dev/null
 	rm -f "$PID_FILE"
@@ -28,6 +34,10 @@ mqtt_status() {
 	mosquitto_pub -r -t /firmware/status -m "$*"
 }
 
+mqtt_log_retain() {
+	mosquitto_pub -t /firmware/log -m "$*" -r
+}
+
 mqtt_log() {
 	mosquitto_pub -t /firmware/log -m "$*"
 }
@@ -35,6 +45,55 @@ mqtt_log() {
 mqtt_log_pipe() {
 	mosquitto_pub -t /firmware/log -l
 }
+
+mqtt_log_reset() {
+	mosquitto_pub -t /firmware/log -m "" -r
+}
+
+DEFAULT_STATUS="IDLE"
+
+maybe_publish_singlemode_update_status() {
+	local logfile="$SINGLE_WATCH_DIR/state/update.log"
+	local statusfile="$SINGLE_WATCH_DIR/state/update.status"
+
+	if [ -e "$statusfile" ]; then
+		if [ -e "$logfile" ]; then
+			log "Seems like update just have been done, printing logs and saving it in retained"
+			log "Saved status: $(cat "$statusfile")"
+			log "Please reload page if there is no 'Done' button"
+
+			mqtt_log_retain "$({
+				echo ">>> Installation logs:"
+				sed -e 's/^INFO /%%% /' -e 's/^REBOOT.*$/%%% (reboot)/' < "$logfile"
+			})"
+		fi
+
+		# This is a combined status example. It should not be used anywhere
+		# but in this tool in order to preseve compatibility.
+		#
+		# See app/scripts/react-directives/firmware-update/store.js in homeui
+		# to know more about it.
+
+		DEFAULT_STATUS="$({
+			cat "$statusfile"
+			echo -ne "\nIDLE"
+		})"
+		rm -rf "$statusfile"
+	fi
+}
+
+if [ "$(blockdev --getsz /dev/mmcblk0p2)" -ne "$(blockdev --getsz /dev/mmcblk0p3)" ]; then
+	log "using single rootfs update mode"
+	WATCH_DIR="$SINGLE_WATCH_DIR"
+else
+	log "using legacy A/B update mode"
+	WATCH_DIR="$AB_WATCH_DIR"
+fi
+
+maybe_publish_singlemode_update_status
+mkdir -p "$WATCH_DIR"
+chown www-data:www-data "$WATCH_DIR"
+ln -snf "$WATCH_DIR" "$WATCH_DIR_SYMLINK"
 
 LAST_FIT=''
 
@@ -47,7 +106,7 @@ LAST_FIT=''
 trap cleanup EXIT
 
 # wait for mosquitto to open socket
-while ! mqtt_status "IDLE"; do
+while ! mqtt_status "$DEFAULT_STATUS"; do
     sleep 1
 done
 
@@ -57,6 +116,8 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
 	# Prevent endless loop
 	[[ "$FIT" != "$LAST_FIT" ]] || continue
 	LAST_FIT=$FIT
+
+	mqtt_log_reset
 
 	# Ensure that image was received completely
 	check_fully_received $FIT || {
@@ -82,6 +143,11 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
 		LAST_FIT=""
 	fi
 
+	if [ -e "$SINGLE_WATCH_DIR/state/update.status" ] ; then
+		log "Exiting wb-watch-update, restart is required by FIT"
+		exit 0
+	fi
+	
 	rm -f $FIT
 done
 }
