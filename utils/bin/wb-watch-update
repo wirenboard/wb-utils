@@ -65,6 +65,7 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
 		mqtt_status "ERROR $msg"
 		mqtt_status "IDLE"
 		rm -f $FIT
+		LAST_FIT=""
 		continue
 	}
 
@@ -76,6 +77,10 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
 	mqtt_log "$msg"
 
 	wb-run-update $FIT 2>&1 | tee -a "$UPDATE_LOG" | mqtt_log_pipe
+	if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+		FIT=""
+		LAST_FIT=""
+	fi
 
 	rm -f $FIT
 done
