@@ -36,6 +36,12 @@ mqtt_log_pipe() {
 	mosquitto_pub -t /firmware/log -l
 }
 
+# FIXME: do not start service if A/B update scheme is broken
+if [ "$(blockdev --getsz /dev/mmcblk0p2)" -ne "$(blockdev --getsz /dev/mmcblk0p3)" ]; then
+    echo "rootfs devices are not equal in size, A/B scheme is currently broken, stopping service"
+    exit 0
+fi
+
 LAST_FIT=''
 
 (
