@@ -46,6 +46,14 @@ set_start() {
     sed "s#^\\($1.*start=\\s\\+\\)[0-9]\\+\\(.*\\)#\\1 $2\\2#"
 }
 
+type mkfs_ext4 2>/dev/null | grep -q 'shell function' || {
+    mkfs_ext4() {
+        local part=$1
+        local label=$2
+
+        yes | mkfs.ext4 -L "$label" -E stride=2,stripe-width=1024 -b 4096 "$part"
+    }
+}
 ensure_enlarged_rootfs_parttable() {
     if ! disk_layout_is_ab; then
         info "Partition table seems to be changed already, continue"
@@ -146,6 +154,126 @@ ensure_enlarged_rootfs_parttable() {
     info "Repartition is done!"
 }
 
+ensure_ab_rootfs_parttable() {
+    if disk_layout_is_ab; then
+        info "Partition table seems to be A/B, continue"
+        return 0
+    fi
+
+    info "Unmounting everything"
+    umount /dev/mmcblk0p2 >/dev/null 2>&1 || true
+    umount /dev/mmcblk0p3 >/dev/null 2>&1 || true
+    umount /dev/mmcblk0p6 >/dev/null 2>&1 || true
+
+    info "Checking and repairing filesystem on /dev/mmcblk0p2"
+    run_tool e2fsck -f -p /dev/mmcblk0p2; E2FSCK_RC=$?
+
+    # e2fsck returns 1 and 2 if some errors were fixed, it's OK for us
+    if [ "$E2FSCK_RC" -gt 2 ]; then
+        info "Filesystem check failed, can't proceed with resizing"
+        return 1
+    fi
+
+    info "Shrinking filesystem on /dev/mmcblk0p2"
+    local e2fs_undofile
+    e2fs_undofile=$(mktemp)
+    run_tool resize2fs -z "$e2fs_undofile" /dev/mmcblk0p2 262144 || {
+        info "Filesystem expantion failed, restoring everything"
+        run_tool e2undo "$e2fs_undofile" /dev/mmcblk0p2 || true
+        sync
+        return 1
+    }
+
+    info "Backing up old MBR (and partition table)"
+    local mbr_backup
+    mbr_backup=$(mktemp)
+    dd if=/dev/mmcblk0 of="$mbr_backup" bs=512 count=1 || {
+        info "Failed to save MBR backup"
+        return 1
+    }
+
+    # Classic layout:
+    #
+    # label: dos
+    # label-id: 0x3f9de3f0
+    # device: /dev/mmcblk0
+    # unit: sectors
+    # sector-size: 512
+    #
+    # /dev/mmcblk0p1 : start=        2048, size=       32768, type=53
+    # /dev/mmcblk0p2 : start=       34816, size=     2097152, type=83
+    # /dev/mmcblk0p3 : start=     2131968, size=     2097152, type=83
+    # /dev/mmcblk0p4 : start=     4229120, size=   117913600, type=5
+    # /dev/mmcblk0p5 : start=     4231168, size=      524288, type=82
+    # /dev/mmcblk0p6 : start=     4757504, size=   117385216, type=83  # differs between models
+    #
+    # All this sfdisk magic is here to keep label-id and other partitions safe and sound
+
+    info "Creating a new parition table"
+    ROOTFS_START_BLOCKS=34816
+    ROOTFS_SIZE_BLOCKS=2097152
+
+    TEMP_DUMP="$(mktemp)"
+    info "New disk dump will be saved in $TEMP_DUMP"
+
+    sfdisk --dump /dev/mmcblk0 | \
+        set_size  /dev/mmcblk0p2 "$ROOTFS_SIZE_BLOCKS" | \
+        set_start /dev/mmcblk0p3 "$((ROOTFS_START_BLOCKS + ROOTFS_SIZE_BLOCKS))" | \
+        set_size  /dev/mmcblk0p3 "$ROOTFS_SIZE_BLOCKS" | \
+        tee "$TEMP_DUMP" | \
+        sfdisk -f /dev/mmcblk0 >/dev/null || {
+
+        info "New parttable creation failed, restoring saved MBR backup"
+        dd if="$mbr_backup" of=/dev/mmcblk0 oflag=direct conv=notrunc || true
+        sync
+        blockdev --rereadpt /dev/mmcblk0 || true
+        return 1
+    }
+
+    sync
+    blockdev --rereadpt /dev/mmcblk0 || true
+
+    if [ "$(blockdev --getsz /dev/mmcblk0p2)" != "$ROOTFS_SIZE_BLOCKS" ]; then
+        info "New parttable is not applied, restoring saved MBR backup and exit"
+        dd if="$mbr_backup" of=/dev/mmcblk0 oflag=direct conv=notrunc || true
+        sync
+        blockdev --rereadpt /dev/mmcblk0 || true
+        die "Failed to apply a new partition table"
+    fi
+
+    info "Creating filesystem on second partition"
+    mkfs_ext4 /dev/mmcblk0p3 "rootfs" || {
+        info "Creating new filesystem on second partition failed!"
+        info "Restoring saved MBR backup and exit"
+        dd if="$mbr_backup" of=/dev/mmcblk0 oflag=direct conv=notrunc || true
+        sync
+        blockdev --rereadpt /dev/mmcblk0 || true
+        die "Failed to create filesystem on new rootfs, exiting"
+    }
+
+    info "Repartition is done!"
+}
+
+cleanup_rootfs() {
+    local ROOT_PART="$1"
+    local mountpoint
+    mountpoint="$(mktemp -d)"
+
+    mount -t ext4 "$ROOT_PART" "$mountpoint" >/dev/null 2>&1 || die "Unable to mount root filesystem"
+
+    info "Cleaning up $ROOT_PART"
+    rm -rf /tmp/empty && mkdir /tmp/empty
+    if which rsync >/dev/null; then
+        info "Cleaning up using rsync"
+        rsync -a --delete /tmp/empty/ "$mountpoint" || die "Failed to cleanup rootfs"
+    else
+        info "Can't find rsync, cleaning up using rm -rf (may be slower)"
+        rm -rf $mountpoint/..?* $mountpoint/.[!.]* $mountpoint/* || die "Failed to cleanup rootfs"
+    fi
+
+    umount "$mountpoint" || true
+}
+
 # FIXME: transitional definitions which are being moved to wb-run-update
 HIDDENFS_PART=/dev/mmcblk0p1
 HIDDENFS_OFFSET=$((8192*512))  # 8192 blocks of 512 bytes
@@ -159,14 +287,6 @@ type fit_prop_string 2>/dev/null | grep -q 'shell function' || {
     }
 }
 
-type mkfs_ext4 2>/dev/null | grep -q 'shell function' || {
-    mkfs_ext4() {
-        local part=$1
-        local label=$2
-
-        yes | mkfs.ext4 -L "$label" -E stride=2,stripe-width=1024 -b 4096 "$part"
-    }
-}
 
 
 check_compatible() {
@@ -220,17 +340,32 @@ case "$PART" in
 		;;
 esac
 
+RESTORE_AB_FLAG=
+if flag_set from-initramfs && [ -e "$(dirname "$FIT")/restore_ab_rootfs" ];  then
+    RESTORE_AB_FLAG=true
+fi
+
 if flag_set "factoryreset" && ! flag_set "no-repartition"; then
-    if ensure_enlarged_rootfs_parttable; then
-        info "rootfs enlarged!"
+    if [ -n "$RESTORE_AB_FLAG" ]; then
+        cleanup_rootfs /dev/mmcblk0p2
+        info "restoring A/B scheme as requested"
+        if ensure_ab_rootfs_parttable; then
+            info "A/B scheme restored!"
+        else
+            die "Failed to restore A/B scheme"
+        fi
     else
-        info "Repartition failed, continuing without it"
+        if ensure_enlarged_rootfs_parttable; then
+            info "rootfs enlarged!"
+        else
+            info "Repartition failed, continuing without it"
+        fi
     fi
 fi
 
 # separate this from previous if to make it work
 # without factoryreset after repartition
-if ! disk_layout_us_ab; then
+if ! disk_layout_is_ab; then
 
     # TODO: maybe remove it when web update will work
     if ! flag_set from-initramfs; then
@@ -295,15 +430,7 @@ EOF
     fi
 fi
 
-info "Cleaning up $ROOT_PART"
-rm -rf /tmp/empty && mkdir /tmp/empty
-if which rsync >/dev/null; then
-    info "Cleaning up using rsync"
-    rsync -a --delete /tmp/empty/ $MNT || die "Failed to cleanup rootfs"
-else
-    info "Can't find rsync, cleaning up using rm -rf (may be slower)"
-    rm -rf $MNT/..?* $MNT/.[!.]* $MNT/* || die "Failed to cleanup rootfs"
-fi
+cleanup_rootfs "$ROOT_PART"
 
 info "Extracting files to new rootfs"
 pushd "$MNT"
