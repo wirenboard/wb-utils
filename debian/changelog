@@ -1,3 +1,9 @@
+wb-utils (4.8.2) stable; urgency=medium
+
+  * wb-gsm: add recommendation about ModemManager to logs
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Thu, 30 Mar 2023 23:43:19 +0300
+
 wb-utils (4.8.1) stable; urgency=medium
 
   * Fix fwupdate-service stuck on unsuccessful update

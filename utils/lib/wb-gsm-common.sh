@@ -119,9 +119,10 @@ function handle_mm() {
 
     local service_name="ModemManager"
 
-    if systemctl is-active --quiet service $service_name; then
+    if is_driven_by_mm; then
+        debug "wb-gsm is becoming deprecated. Use $service_name instead"
 
-        if is_driven_by_mm; then
+        if systemctl is-active --quiet service $service_name; then
 
             if is_called_from_terminal; then
                 >&2 cat <<EOF
