@@ -2,6 +2,14 @@
 #set -e
 #set -x
 
+# This script will be greatly simplified in the future, so please
+#
+#   DO NOT ADD ANY NEW FEATURES HERE!
+#
+# A great place for the new update features is
+# utils/lib/wb-image-update/fit/install_image.sh file
+# in this repository.
+
 TMPDIR="/dev/shm"
 FIT=""
 FLAGS=""

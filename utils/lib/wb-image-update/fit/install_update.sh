@@ -14,6 +14,21 @@ if [ ! -e /etc/mtab ]; then
     ln -s /proc/self/mounts /etc/mtab || true
 fi
 
+UPDATE_DIR="$(dirname "$FIT")"
+UPDATE_STATUS_FILE="$UPDATE_DIR/update.status"
+UPDATE_LOG_FILE="$UPDATE_DIR/update.status"
+
+if flag_set from-webupdate; then
+    info "Web UI-triggered update detected, forwarding logs and status to files"
+
+    mqtt_status() {
+        echo "$*" >> "$UPDATE_LOG_FILE"
+        echo "$*" > "$UPDATE_STATUS_FILE"
+    }
+
+    rm -rf "$UPDATE_LOG_FILE"
+fi
+
 ensure_tools() {
     if [ -z "$TOOLPATH" ]; then
         export TOOLPATH=$(mktemp -d)
@@ -367,9 +382,20 @@ fi
 # without factoryreset after repartition
 if ! disk_layout_is_ab; then
 
-    # TODO: maybe remove it when web update will work
     if ! flag_set from-initramfs; then
-        die "Web UI update does not work after repartition, please use USB drive!"
+        # FIXME: check U-boot version here before performing update
+
+        info "Single rootfs scheme detected, reboot system to perform update"
+        info "Watch logs in the debug console, or here after procedure end"
+
+        # write error note by default in the update status file,
+        # it will be overwritten if update script is started properly after reboot
+        echo "ERROR Nothing happened after reboot, maybe U-boot is outdated?" > "$UPDATE_STATUS_FILE"
+
+        sync; sync
+        mqtt_status REBOOT
+        trap EXIT
+        reboot
     fi
 
     info "Configuring environment for repartitioned eMMC"
