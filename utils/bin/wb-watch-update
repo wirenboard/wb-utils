@@ -101,6 +101,7 @@ LAST_FIT=''
 	echo "$BASHPID" > "$PID_FILE"
 	2>/dev/null exec inotifywait -m -r \
 		--exclude $WATCH_DIR/state/ \
+		--exclude $WATCH_DIR/install_update.flags \
 		--event close_write $WATCH_DIR/ \
 ) | {
 trap cleanup EXIT
@@ -131,7 +132,7 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
 	}
 
 	# Remove old updates, we won't run it anyway
-	cleanup_watch_dir -not -name ${EVENT_FILE}
+	cleanup_watch_dir -not -name ${EVENT_FILE} -not -name install_update.flags
 
 	msg="Received good update FIT $FIT, starting update"
 	log "$msg"

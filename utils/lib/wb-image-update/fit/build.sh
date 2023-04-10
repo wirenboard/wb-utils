@@ -68,3 +68,5 @@ mkdir -p /var/lib/wb-image-update
 
 cp /usr/lib/wb-image-update/fit/install_update.sh /var/lib/wb-image-update/install_update.sh
 cd "$BUILDDIR" && tar cvzf /var/lib/wb-image-update/deps.tar.gz .
+
+echo "+single-rootfs " > /var/lib/wb-image-update/firmware-compatible
