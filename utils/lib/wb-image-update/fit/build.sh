@@ -8,6 +8,14 @@ if ! which policy-rc.d; then
     exit 1
 fi
 
+. /usr/lib/wb-utils/wb_env.sh
+wb_source "of"
+
+if ! of_machine_match "wirenboard,wirenboard-720"; then
+    echo "Single rootfs scheme is not supported on this target, skipping install_update.sh build"
+    exit 0
+fi
+
 BUILDDIR="$(mktemp -d)"
 
 cleanup() {
