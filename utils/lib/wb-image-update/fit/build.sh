@@ -1,7 +1,17 @@
 #!/bin/bash
 set -e
 
-# This script runs on image creation stage and builds install_update.sh
+# This script runs during rootfs build.
+#
+# It collects all the files (and their binary deps) needed for install_update.sh
+# (such as resize2fs and e2fsck) which are not present in a bootlet.
+#
+# These files are archived in /var/lib/wb-image-update/deps.tar.gz.
+# install_update.sh extracts this archive from rootfs tarball and
+# use its contents as chroot environment to run resize2fs and e2fsck.
+#
+# Image builder script takes install_update.sh from /var/lib/wb-image-update
+# (so it may be modified during rootfs build), so this script puts it there too.
 
 if ! which policy-rc.d; then
     echo "You don't need this, please go away"
