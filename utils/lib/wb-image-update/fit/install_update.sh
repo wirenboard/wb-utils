@@ -573,6 +573,18 @@ run_postinst() {
     umount "$ROOTFS_MNT/sys"
 }
 
+copy_this_fit_to_factory() {
+    local mnt
+    mnt=$(mktemp -d)
+
+    info "Copying $FIT to factory default location as requested"
+
+    mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
+    cp "$FIT" "$mnt/.wb-restore/factoryreset.fit"
+    umount "$mnt" || true
+    sync; sync
+}
+
 maybe_reboot() {
     if ! flag_set no-reboot; then
         info "Reboot system"
@@ -666,6 +678,10 @@ fi
 
 if ! flag_set no-postinst; then
     run_postinst "$MNT"
+fi
+
+if flag_set copy-to-factory; then
+    copy_this_fit_to_factory
 fi
 
 info "Switching to new rootfs"
