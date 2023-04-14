@@ -93,12 +93,14 @@ prepare_env() {
 
     UPDATE_DIR="$(dirname "$FIT")"
 
-	# FLAGS variable is defined in wb-run-update
-	# This is a hack to pass more flags from installation media for debugging
-	flags_file="$(dirname "$FIT")/install_update.flags"
-	if [ -e "$flags_file" ]; then
-		FLAGS+=" $(cat "$flags_file") "
-	fi
+    # FLAGS variable is defined in wb-run-update
+    # This is a hack to pass more flags from installation media for debugging
+    flags_file="$(dirname "$FIT")/install_update.flags"
+    if [ -e "$flags_file" ]; then
+        ADDITIONAL_FLAGS=$(cat "$flags_file")
+        info "Using flags from $flags_file: $ADDITIONAL_FLAGS"
+        FLAGS="$FLAGS $(ADDITIONAL_FLAGS) "
+    fi
 
     UPDATE_STATUS_FILE="$UPDATE_DIR/state/update.status"
     UPDATE_LOG_FILE="$UPDATE_DIR/state/update.log"
@@ -392,7 +394,7 @@ ensure_uboot_ready_for_webupd() {
 
 check_compatible() {
     local fit_compat
-	fit_compat=$(fit_prop_string / compatible)
+    fit_compat=$(fit_prop_string / compatible)
     [[ -z "$fit_compat" || "$fit_compat" == "unknown" ]] && return 0
     for compat in $(tr < /proc/device-tree/compatible  '\000' '\n'); do
         [[ "$fit_compat" == "$compat" ]] && return 0
