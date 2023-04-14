@@ -40,6 +40,10 @@ fatal() {
     local retcode=$?
     local msg="$*"
 
+    if [ "$retcode" -eq 0 ]; then
+        retcode=1
+    fi
+
     if flag_set from-initramfs; then
         >&2 echo "!!! $msg"
         if flag_set from-webupdate; then
@@ -99,8 +103,9 @@ prepare_env() {
     if [ -e "$flags_file" ]; then
         ADDITIONAL_FLAGS=$(cat "$flags_file")
         info "Using flags from $flags_file: $ADDITIONAL_FLAGS"
-        FLAGS="$FLAGS $(ADDITIONAL_FLAGS) "
+        FLAGS="$FLAGS $ADDITIONAL_FLAGS "
     fi
+
 
     UPDATE_STATUS_FILE="$UPDATE_DIR/state/update.status"
     UPDATE_LOG_FILE="$UPDATE_DIR/state/update.log"
@@ -649,7 +654,12 @@ if ! flag_set from-initramfs; then
     if ! disk_layout_is_ab; then
         update_after_reboot
     fi
+else
+    if flag_set fail-in-bootlet; then
+        fatal "Update failed by request"
+    fi
 fi
+
 
 if flag_set "factoryreset" && ! flag_set "no-repartition"; then
     maybe_repartition

@@ -122,6 +122,7 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
 
 	# Prevent endless loop
 	[[ "$FIT" != "$LAST_FIT" ]] || continue
+	[[ -e "$FIT" ]] || continue
 	LAST_FIT=$FIT
 
 	mqtt_log_reset
