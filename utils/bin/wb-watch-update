@@ -101,7 +101,6 @@ LAST_FIT=''
 	echo "$BASHPID" > "$PID_FILE"
 	2>/dev/null exec inotifywait -m -r \
 		--exclude $WATCH_DIR/state/ \
-		--exclude $WATCH_DIR/install_update.flags \
 		--event close_write $WATCH_DIR/ \
 ) | {
 trap cleanup EXIT
@@ -113,6 +112,13 @@ done
 
 while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
 	FIT="${EVENT_DIR}${EVENT_FILE}"
+
+	# skip install_update.flags file event, it may be used for debugging
+	case "$FIT" in
+	*install_update.flags)
+		continue
+		;;
+	esac
 
 	# Prevent endless loop
 	[[ "$FIT" != "$LAST_FIT" ]] || continue

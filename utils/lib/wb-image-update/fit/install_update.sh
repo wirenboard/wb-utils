@@ -100,10 +100,11 @@ prepare_env() {
 		FLAGS+=" $(cat "$flags_file") "
 	fi
 
+    UPDATE_STATUS_FILE="$UPDATE_DIR/state/update.status"
+    UPDATE_LOG_FILE="$UPDATE_DIR/state/update.log"
+
     if flag_set from-webupdate; then
         info "Web UI-triggered update detected, forwarding logs and status to files"
-        UPDATE_STATUS_FILE="$UPDATE_DIR/state/update.status"
-        UPDATE_LOG_FILE="$UPDATE_DIR/state/update.log"
 
         mqtt_status() {
             echo "$*" >> "$UPDATE_LOG_FILE"
@@ -611,11 +612,12 @@ update_after_reboot() {
 
     # write error note by default in the update status file,
     # it will be overwritten if update script is started properly after reboot
-    echo "ERROR Nothing happened after reboot, maybe U-boot is outdated?" > "$UPDATE_DIR/state/update.status"
+    echo "ERROR Nothing happened after reboot, maybe U-boot is outdated?" > "$UPDATE_STATUS_FILE"
 
     fw_setenv wb_webupd 1
 
-    maybe_reboot
+    trap_add maybe_reboot EXIT
+    exit 0
 }
 
 #---------------------------------------- main ----------------------------------------
@@ -692,4 +694,4 @@ info "Done!"
 rm_fit
 led_success || true
 
-maybe_reboot
+trap_add maybe_reboot EXIT
