@@ -115,7 +115,7 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
 
 	# skip install_update.flags file event, it may be used for debugging
 	case "$FIT" in
-	*install_update.flags)
+	*install_update.*|)
 		continue
 		;;
 	esac
