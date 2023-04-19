@@ -139,7 +139,7 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
 	}
 
 	# Remove old updates, we won't run it anyway
-	cleanup_watch_dir -not -name ${EVENT_FILE} -not -name install_update.flags
+	cleanup_watch_dir -not -name ${EVENT_FILE} -not -name 'install_update.*'
 
 	msg="Received good update FIT $FIT, starting update"
 	log "$msg"
