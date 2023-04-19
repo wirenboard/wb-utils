@@ -82,6 +82,9 @@ print_centered_box() {
 }
 
 prepare_env() {
+    # shellcheck disable=SC2016  # we want to keep $'...' here
+    trap_add 'fatal "Error at line $LINENO ($BASH_COMMAND)"' ERR
+
     # fix mounts in bootlet environment
     if [ ! -e /proc/self ]; then
         mount -t proc proc /proc
@@ -121,6 +124,25 @@ prepare_env() {
         rm -rf "$UPDATE_LOG_FILE"
     fi
 
+    # we need to do it before /dev/mmcblk0p6 is unmounted, just in case
+    if flag_set external-script && [ -z "$IS_IN_EXTERNAL_SCRIPT" ]; then
+        EXTERNAL_SCRIPT="$(dirname "$FIT")/install_update.sh"
+        info "--external-script flag is set, looking for external script in $EXTERNAL_SCRIPT"
+        if [ -e "$EXTERNAL_SCRIPT" ]; then
+            info "Running external script from $EXTERNAL_SCRIPT"
+
+            trap EXIT  # reset all traps, allow external script to set its own
+            IS_IN_EXTERNAL_SCRIPT=1
+            source "$EXTERNAL_SCRIPT" || fatal "External script failed"
+            IS_IN_EXTERNAL_SCRIPT=
+
+            info "Returned from external script, exiting"
+            exit 0
+        else
+            fatal "External script not found"
+        fi
+    fi
+
     type fit_prop_string 2>/dev/null | grep -q 'shell function' || {
         fit_prop_string() {
             fit_prop "$@" | tr -d '\0'
@@ -140,7 +162,7 @@ prepare_env() {
     umount "$ROOTFS1_PART" >/dev/null 2>&1 || true
     umount "$ROOTFS2_PART" >/dev/null 2>&1 || true
 
-    if ! flag_set from-webupdate; then
+    if ! flag_set from-webupdate && ! flag_set from-emmc-factoryreset; then
         umount "$DATA_PART" >/dev/null 2>&1 || true
     fi
 }
@@ -166,6 +188,53 @@ run_tool() {
     chroot "$TOOLPATH" "$@"
 }
 
+is_assoc_array() {
+    [[ "$(declare -p "$1" 2>/dev/null)" =~ "declare -A" ]]
+}
+
+push_umount() {
+    if ! is_assoc_array SAVED_MOUNTPOINTS; then
+        declare -g -A SAVED_MOUNTPOINTS
+    fi
+
+    local part=$1
+    local mountpoint
+    mountpoint=$(mount | grep "$part" | awk '{print $3}')
+
+    for mountpoint in $(mount | grep "$part" | awk '{print $3}'); do
+        info "Unmounting $mountpoint and saving its mountpoint"
+        umount "$mountpoint"
+        SAVED_MOUNTPOINTS["$mountpoint"]="$part"
+    done
+}
+
+pop_mounts() {
+    if ! is_assoc_array SAVED_MOUNTPOINTS; then
+        info "No old mountpoints to restore"
+        return
+    fi
+
+    for mountpoint in "${!SAVED_MOUNTPOINTS[@]}"; do
+        local part="${SAVED_MOUNTPOINTS[$mountpoint]}"
+        info "Restoring mount of $part to $mountpoint"
+        mount "$part" "$mountpoint"
+    done
+
+    unset SAVED_MOUNTPOINTS
+}
+
+reload_parttable() {
+    push_umount "$ROOTFS1_PART"
+    push_umount "$ROOTFS2_PART"
+    push_umount "$DATA_PART"
+
+    blockdev --rereadpt "$ROOTDEV"; RC=$?
+
+    pop_mounts || true
+
+    return $RC
+}
+
 disk_layout_is_ab() {
     [ "$(blockdev --getsz "$ROOTFS1_PART")" -eq "$(blockdev --getsz "$ROOTFS2_PART")" ]
 }
@@ -183,6 +252,8 @@ ensure_enlarged_rootfs_parttable() {
         info "Partition table seems to be changed already, continue"
         return 0
     fi
+
+    info "Enlarging first rootfs partition"
 
     info "Checking and repairing filesystem on $ROOTFS1_PART"
     run_tool e2fsck -f -p "$ROOTFS1_PART"; E2FSCK_RC=$?
@@ -238,23 +309,23 @@ ensure_enlarged_rootfs_parttable() {
         sfdisk_set_start "$ROOTFS2_PART" "$((ROOTFS_START_BLOCKS + ROOTFS_SIZE_BLOCKS))" | \
         sfdisk_set_size  "$ROOTFS2_PART" 4 | \
         tee "$TEMP_DUMP" | \
-        sfdisk -f "$ROOTDEV" >/dev/null || {
+        sfdisk -f "$ROOTDEV" --no-reread >/dev/null || {
 
         info "New parttable creation failed, restoring saved MBR backup"
         dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
         sync
-        blockdev --rereadpt "$ROOTDEV" || true
+        reload_parttable
         return 1
     }
 
     sync
-    blockdev --rereadpt "$ROOTDEV" || true
+    reload_parttable
 
     if [ "$(blockdev --getsz "$ROOTFS1_PART")" != "$ROOTFS_SIZE_BLOCKS" ]; then
         info "New parttable is not applied, restoring saved MBR backup and exit"
         dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
         sync
-        blockdev --rereadpt "$ROOTDEV" || true
+        reload_parttable
         fatal "Failed to apply a new partition table"
     fi
 
@@ -266,7 +337,7 @@ ensure_enlarged_rootfs_parttable() {
         run_tool e2undo "$e2fs_undofile" "$ROOTFS1_PART" || true
         dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
         sync
-        blockdev --rereadpt "$ROOTDEV" || true
+        reload_parttable
         return 1
     }
 
@@ -278,6 +349,10 @@ ensure_ab_rootfs_parttable() {
         info "Partition table seems to be A/B, continue"
         return 0
     fi
+
+    info "Restoring A/B partition table"
+
+    cleanup_rootfs "$ROOTFS1_PART"
 
     info "Checking and repairing filesystem on $ROOTFS1_PART"
     run_tool e2fsck -f -p "$ROOTFS1_PART"; E2FSCK_RC=$?
@@ -335,23 +410,23 @@ ensure_ab_rootfs_parttable() {
         sfdisk_set_start "$ROOTFS2_PART" "$((ROOTFS_START_BLOCKS + ROOTFS_SIZE_BLOCKS))" | \
         sfdisk_set_size  "$ROOTFS2_PART" "$ROOTFS_SIZE_BLOCKS" | \
         tee "$TEMP_DUMP" | \
-        sfdisk -f "$ROOTDEV" >/dev/null || {
+        sfdisk -f "$ROOTDEV" --no-reread >/dev/null || {
 
         info "New parttable creation failed, restoring saved MBR backup"
         dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
         sync
-        blockdev --rereadpt "$ROOTDEV" || true
+        reload_parttable
         return 1
     }
 
     sync
-    blockdev --rereadpt "$ROOTDEV" || true
+    reload_parttable
 
     if [ "$(blockdev --getsz "$ROOTFS1_PART")" != "$ROOTFS_SIZE_BLOCKS" ]; then
         info "New parttable is not applied, restoring saved MBR backup and exit"
         dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
         sync
-        blockdev --rereadpt "$ROOTDEV" || true
+        reload_parttable
         fatal "Failed to apply a new partition table"
     fi
 
@@ -361,7 +436,7 @@ ensure_ab_rootfs_parttable() {
         info "Restoring saved MBR backup and exit"
         dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
         sync
-        blockdev --rereadpt "$ROOTDEV" || true
+        reload_parttable
         fatal "Failed to create filesystem on new rootfs, exiting"
     }
 
@@ -434,7 +509,6 @@ select_new_partition() {
 
 maybe_repartition() {
     if flag_set restore-ab-rootfs ; then
-        cleanup_rootfs "$ROOTFS1_PART"
         info "restoring A/B scheme as requested"
         if ensure_ab_rootfs_parttable; then
             info "A/B scheme restored!"
@@ -512,7 +586,7 @@ mount_rootfs() {
     info "Mounting $ROOT_PART at $MNT"
     mount -t ext4 "$ROOT_PART" "$MNT" >/dev/null 2>&1 || fatal "Unable to mount root filesystem"
 
-    trap_add "info 'Unmounting rootfs'; umount -f $MNT >/dev/null 2>&1 || true ; sync; sync" EXIT
+    trap_add "info 'Unmounting rootfs'; umount -f $MNT >/dev/null 2>&1 || true ; sync" EXIT
 }
 
 extract_rootfs() {
@@ -590,20 +664,71 @@ copy_this_fit_to_factory() {
     mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
     cp "$FIT" "$mnt/.wb-restore/factoryreset.fit"
     umount "$mnt" || true
-    sync; sync
+    sync
+}
+
+maybe_update_current_factory_fit() {
+    local mnt
+    mnt=$(mktemp -d)
+    mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
+
+    # check if current fit supports +single-rootfs feature
+    CURRENT_FACTORY_FIT="$mnt/.wb-restore/factoryreset.fit"
+
+    if ! FIT="$CURRENT_FACTORY_FIT" fw_compatible single-rootfs; then
+        info "Current factory FIT does not support single-rootfs feature, saving this FIT to use as bootlet"
+        info "Old factory FIT will be kept as factoryreset.original.fit and will still be used to restore firmware"
+
+        mv "$mnt/.wb-restore/factoryreset.fit" "$mnt/.wb-restore/factoryreset.original.fit"
+        cp "$FIT" "$mnt/.wb-restore/factoryreset.fit"
+    else
+        info "Current factory FIT supports single-rootfs feature, keeping it"
+    fi
+
+    umount "$mnt" || true
+    sync
+}
+
+maybe_trigger_original_factory_fit() {
+    local mnt
+    mnt=$(mktemp -d)
+    mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
+
+    # check if current fit supports +single-rootfs feature
+    ORIGINAL_FACTORY_FIT="$mnt/.wb-restore/factoryreset.original.fit"
+
+    if [ -e "$ORIGINAL_FACTORY_FIT" ]; then
+        info "Original factory FIT exists, ensuring A/B rootfs scheme and use it to restore firmware"
+        ensure_ab_rootfs_parttable || fatal "Failed to restore A/B rootfs scheme"
+
+        info "Decoding current flags from '$FLAGS'"
+        read -r -a FLAGS_ARRAY <<< "$FLAGS" || fatal "Failed to decode flags"
+
+        info "Restoring original firmware from $ORIGINAL_FACTORY_FIT, flags ${FLAGS_ARRAY[*]}"
+        wb-run-update "${FLAGS_ARRAY[@]}" --no-remove --no-confirm --original-factory-fit "$ORIGINAL_FACTORY_FIT" || fatal "Failed to restore firmware from original FIT"
+
+        info "Original factory FIT restored, rebooting system"
+        trap_add maybe_reboot EXIT
+        exit 0
+    fi
+
+    umount "$mnt" || true
+    sync
 }
 
 maybe_reboot() {
     if ! flag_set no-reboot; then
         info "Reboot system"
         mqtt_status REBOOT
-        sync; sync
+        sync
 
         if flag_set from-initramfs; then
             reboot -f
         else
             reboot
         fi
+    else
+        info "Reboot is suppressed by flag --no-reboot, just exiting"
     fi
     exit 0
 }
@@ -627,6 +752,17 @@ update_after_reboot() {
     exit 0
 }
 
+fw_compatible() {
+    local feature="$1"
+    local fw_compat
+    fw_compat=$(fit_prop_string / firmware-compatible)
+
+    case "$fw_compat" in
+        *"+$feature "*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 #---------------------------------------- main ----------------------------------------
 
 prepare_env
@@ -634,6 +770,10 @@ prepare_env
 # --fail flag allows to simulate failed update for testing purposes
 if flag_set fail; then
     fatal "Update failed by request"
+fi
+
+if flag_set from-emmc-factoryreset; then
+    maybe_trigger_original_factory_fit
 fi
 
 if flag_set force-compatible; then
@@ -696,7 +836,10 @@ fi
 
 if flag_set copy-to-factory; then
     copy_this_fit_to_factory
+elif flag_set factoryreset; then
+    maybe_update_current_factory_fit
 fi
+
 
 info "Switching to new rootfs"
 fw_setenv mmcpart "$PART"
