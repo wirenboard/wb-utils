@@ -837,7 +837,12 @@ fi
 if flag_set copy-to-factory; then
     copy_this_fit_to_factory
 elif flag_set factoryreset; then
-    maybe_update_current_factory_fit
+    # factory FIT will be replaced already in postinst scripts in this release,
+    # so disable current FIT update feature in order to guarantee that
+    # there will no legacy factory FIT there
+    #
+    #maybe_update_current_factory_fit
+    true  # command placeholder to make elif work
 fi
 
 
