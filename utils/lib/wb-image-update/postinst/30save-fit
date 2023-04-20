@@ -52,3 +52,9 @@ else
 
     echo "Done"
 fi
+
+ORIGINAL_FIT="$WB_RESTORE_DIR/factoryreset.original.fit"
+if [ -f "$ORIGINAL_FIT" ]; then
+    echo "Removing unused original FIT $ORIGINAL_FIT"
+    rm -f "$ORIGINAL_FIT"
+fi
