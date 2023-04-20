@@ -1,3 +1,9 @@
+wb-utils (4.9.1) stable; urgency=medium
+
+  * wb-image-update: get FIT bootlet during rootfs creation
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Fri, 21 Apr 2023 01:11:16 +0600
+
 wb-utils (4.9.0) stable; urgency=medium
 
   * move install_update.sh script for FIT images to this package
