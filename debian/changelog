@@ -1,8 +1,13 @@
 wb-utils (4.8.1-70549e24-001) stable; urgency=medium
 
+  * Backported enlarged rootfs support from wb-2304 testing
+      * move install_update.sh script for FIT images to this package
+      * add rootfs repartition on factory reset feature
+      * add single rootfs update scheme support
+
   * add postinst scripts to log factory resets and to save this FIT
 
- -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Wed, 29 Mar 2023 14:39:31 +0600
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Thu, 20 Apr 2023 17:54:44 +0600
 
 wb-utils (4.8.1) stable; urgency=medium
 
