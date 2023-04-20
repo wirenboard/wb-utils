@@ -88,3 +88,10 @@ cp /usr/lib/wb-image-update/fit/install_update.sh /var/lib/wb-image-update/insta
 cd "$BUILDDIR" && tar cvzf /var/lib/wb-image-update/deps.tar.gz .
 
 echo "+single-rootfs " > /var/lib/wb-image-update/firmware-compatible
+
+# FIXME: install bootlet image as deb package
+BOOTLET_ZIMAGE=/var/lib/wb-image-update/zImage
+if [[ ! -e "$BOOTLET_ZIMAGE" ]]; then
+    echo "Bootlet zImage not found, getting one from S3"
+    wget -o "$BOOTLET_ZIMAGE" http://fw-releases.wirenboard.com/utils/build-image/zImage.wb7
+fi
