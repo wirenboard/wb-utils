@@ -22,7 +22,15 @@ flag_set() {
 	echo "$FLAGS" | grep -- "--$1" >/dev/null 2>&1
 }
 
-WB_RESTORE_DIR="/mnt/data/.wb-restore/.logs"
+DATA_MOUNT=$(mktemp -d)
+mount /dev/mmcblk0p6 "$DATA_MOUNT" || {
+    echo "Failed to mount /dev/mmcblk0p6 to $DATA_MOUNT"
+    exit 1
+}
+
+trap 'umount $DATA_MOUNT; rmdir $DATA_MOUNT' EXIT
+
+WB_RESTORE_DIR="$DATA_MOUNT/.wb-restore/.logs"
 
 if flag_set "factoryreset" ; then
     echo "Saving information about this factory reset"

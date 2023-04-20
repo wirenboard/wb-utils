@@ -21,13 +21,21 @@ flag_set() {
 	echo "$FLAGS" | grep -- "--$1" >/dev/null 2>&1
 }
 
-WB_RESTORE_DIR="/mnt/data/.wb-restore"
-TARGET_FIT="$WB_RESTORE_DIR/factoryreset.fit"
-
 if ! flag_set "factoryreset" ; then
     echo "Skipping FIT save"
     exit
 fi
+
+DATA_MOUNT=$(mktemp -d)
+mount /dev/mmcblk0p6 "$DATA_MOUNT" || {
+    echo "Failed to mount /dev/mmcblk0p6 to $DATA_MOUNT"
+    exit 1
+}
+
+trap 'umount $DATA_MOUNT; rmdir $DATA_MOUNT' EXIT
+
+WB_RESTORE_DIR="$DATA_MOUNT/.wb-restore"
+TARGET_FIT="$WB_RESTORE_DIR/factoryreset.fit"
 
 if [ -n "$FIT" ]; then
     echo "Using FIT filename $FIT from env"
