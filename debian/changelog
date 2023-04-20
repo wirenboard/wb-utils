@@ -4,6 +4,7 @@ wb-utils (4.8.1-70549e24-001) stable; urgency=medium
       * move install_update.sh script for FIT images to this package
       * add rootfs repartition on factory reset feature
       * add single rootfs update scheme support
+      * get zImage from S3 during rootfs build
 
   * add postinst scripts to log factory resets and to save this FIT
 
