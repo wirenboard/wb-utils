@@ -508,18 +508,23 @@ select_new_partition() {
 }
 
 maybe_repartition() {
-    if flag_set restore-ab-rootfs ; then
-        info "restoring A/B scheme as requested"
-        if ensure_ab_rootfs_parttable; then
-            info "A/B scheme restored!"
-        else
-            fatal "Failed to restore A/B scheme"
-        fi
-    else
+    # WARNING: this is wb-2304 stable release backport!
+    #
+    # In newer releases this function enlarges rootfs by default.
+
+    if flag_set force-enlarge-rootfs ; then
+        info "Enlarging this rootfs as you requested, even though it's a stable wb-2304 image"
         if ensure_enlarged_rootfs_parttable; then
             info "rootfs enlarged!"
         else
             info "Repartition failed, continuing without it"
+        fi
+    else
+        info "This is a stable wb-2304 image, ensuring A/B scheme"
+        if ensure_ab_rootfs_parttable; then
+            info "A/B scheme restored!"
+        else
+            fatal "Failed to restore A/B scheme"
         fi
     fi
 }
