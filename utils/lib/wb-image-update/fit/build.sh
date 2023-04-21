@@ -93,5 +93,5 @@ echo "+single-rootfs " > /var/lib/wb-image-update/firmware-compatible
 BOOTLET_ZIMAGE=/var/lib/wb-image-update/zImage
 if [[ ! -e "$BOOTLET_ZIMAGE" ]]; then
     echo "Bootlet zImage not found, getting one from S3"
-    wget -o "$BOOTLET_ZIMAGE" http://fw-releases.wirenboard.com/utils/build-image/zImage.wb7
+    wget -O "$BOOTLET_ZIMAGE" http://fw-releases.wirenboard.com/utils/build-image/zImage.wb7
 fi
