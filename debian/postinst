@@ -2,5 +2,10 @@
 set -e
 #DEBHELPER#
 
+if [[ -e "/usr/sbin/policy-rc.d" ]] && [[ "$(cat /usr/sbin/policy-rc.d)" == "exit 101" ]]; then
+    echo "rootfs building mode, preparing FIT install script"
+    /usr/lib/wb-image-update/fit/build.sh
+fi
+
 /usr/lib/wb-utils/prepare/wb-prepare.sh fix_hosts
 exit 0
