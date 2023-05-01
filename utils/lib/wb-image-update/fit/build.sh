@@ -92,6 +92,12 @@ echo "+single-rootfs " > /var/lib/wb-image-update/firmware-compatible
 # FIXME: install bootlet image as deb package
 BOOTLET_ZIMAGE=/var/lib/wb-image-update/zImage
 if [[ ! -e "$BOOTLET_ZIMAGE" ]]; then
+    BOOTLET_URL="http://fw-releases.wirenboard.com/utils/build-image/zImage.wb7"
+    SHA256_URL="$BOOTLET_URL.sha256"
+
     echo "Bootlet zImage not found, getting one from S3"
     wget -O "$BOOTLET_ZIMAGE" http://fw-releases.wirenboard.com/utils/build-image/zImage.wb7
+
+    echo "Checking SHA256 sum"
+    echo "$(wget -O- "$SHA256_URL")  $BOOTLET_ZIMAGE" | sha256sum -c
 fi
