@@ -1,3 +1,9 @@
+wb-utils (4.9.4) stable; urgency=medium
+
+  * do not fail during rootfs build explicitly
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Tue, 02 May 2023 18:50:48 +0600
+
 wb-utils (4.9.3) stable; urgency=medium
 
   * replace broken factory reset fit during installation
