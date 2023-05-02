@@ -1,3 +1,9 @@
+wb-utils (4.9.5) stable; urgency=medium
+
+  * add more info about broken FIT image, allow offline updates
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Tue, 02 May 2023 20:49:11 +0600
+
 wb-utils (4.9.4) stable; urgency=medium
 
   * do not fail during rootfs build explicitly

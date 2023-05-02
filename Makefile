@@ -55,6 +55,9 @@ install: build_mass_storage
 		utils/bin/wb-watch-update \
 		utils/bin/wb-run-update
 
+	install -Dm0755 -t $(IMAGEUPDATE_DIR) \
+		utils/lib/wb-image-update/fix-broken-fit.sh
+
 	install -Dm0755 -t $(IMAGEUPDATE_POSTINST_DIR) \
 		utils/lib/wb-image-update/postinst/10update-u-boot
 
