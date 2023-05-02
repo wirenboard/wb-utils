@@ -2,6 +2,7 @@ wb-utils (4.8.2-wb102) stable; urgency=medium
 
   * replace broken factory reset fit during installation
   * do not fail during rootfs build explicitly
+  * add more info about broken FIT image, allow offline updates
 
  -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Tue, 02 May 2023 16:42:35 +0600
 
