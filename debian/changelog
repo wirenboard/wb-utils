@@ -1,3 +1,9 @@
+wb-utils (4.8.2-wb101) stable; urgency=medium
+
+  * wb-image-update: fix zImage download during rootfs creation
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Mon, 01 May 2023 18:16:19 +0600
+
 wb-utils (4.8.2-wb100) stable; urgency=medium
 
   * move install_update.sh script for FIT images to this package
