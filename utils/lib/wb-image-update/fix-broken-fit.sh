@@ -5,7 +5,10 @@ set -e
 . /usr/lib/wb-utils/wb_env.sh
 wb_source "of"
 
-if of_machine_match "wirenboard,wirenboard-720"; then
+# FIXME: wirenboard,wirenboard-720 is obsolete, use wirenboard,wirenboard-7xx instead.
+# It requires wirenboard-7xx entries in older DTS.
+# See https://wirenboard.bitrix24.ru/workgroups/group/218/tasks/task/view/61070/
+if of_machine_match "wirenboard,wirenboard-7xx" || of_machine_match "wirenboard,wirenboard-720"; then
     # replace broken factoryreset FITs
     FACTORYRESET_FIT="/mnt/data/.wb-restore/factoryreset.fit"
 
