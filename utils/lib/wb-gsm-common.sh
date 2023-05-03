@@ -317,16 +317,18 @@ function is_neoway_m660a() {
 }
 
 
-function gsm_present() {
-    of_has_prop $OF_GSM_NODE "power-type" && [[ $(of_get_prop_ulong $OF_GSM_NODE "power-type") != "0" ]]
+function gsm_check_present() {
+    if of_node_exists $OF_GSM_NODE && of_has_prop $OF_GSM_NODE "power-type" && [[ $(of_get_prop_ulong $OF_GSM_NODE "power-type") != "0" ]]; then
+        debug "Modem is enabled in DT ($OF_GSM_NODE)"
+    else
+        errmsg="Modem is not present. It should be enabled in hardware modules configuration"
+        debug "$errmsg"
+        [[ -z $DEBUG ]] && >&2 echo "$errmsg"
+        exit 1
+    fi
 }
 
 function gsm_init() {
-    if ! gsm_present; then
-        debug "No GSM modem present, exiting"
-        exit 1
-    fi
-
     if ! is_at_over_usb; then
         # UART is always present (even if modem is turned off)
         if [[ ! -c "$PORT" || ! -r "$PORT" || ! -w "$PORT" ]]; then
