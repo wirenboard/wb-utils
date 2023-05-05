@@ -1,3 +1,10 @@
+wb-utils (4.9.6) stable; urgency=medium
+
+  * fix FIT image install via wb-run-update with single rootfs from random
+    location
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Fri, 05 May 2023 12:58:34 +0600
+
 wb-utils (4.9.5) stable; urgency=medium
 
   * add more info about broken FIT image, allow offline updates
