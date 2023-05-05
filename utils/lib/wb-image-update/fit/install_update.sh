@@ -747,7 +747,21 @@ update_after_reboot() {
     mkdir -p "$(dirname "$UPDATE_STATUS_FILE")"
     mkdir -p "$(dirname "$UPDATE_LOG_FILE")"
 
-    mv "$FIT" "$WEBUPD_DIR/webupd.fit"
+    TARGET_UPDATE_FILE="$WEBUPD_DIR/webupd.fit"
+
+    if [[ "$TARGET_UPDATE_FILE" -ef "$FIT" ]]; then
+        if flag_set no-remove; then
+            # FIXME: pass --no-remove to bootlet via flags file
+            fatal "Flag --no-remove is ignored for $FIT, it is after-reboot FIT location"
+        fi
+    else
+        if flag_set no-remove; then
+            info "Flag --no-remove is set, keeping $FIT"
+            cp "$FIT" "$TARGET_UPDATE_FILE"
+        else
+            mv "$FIT" "$TARGET_UPDATE_FILE"
+        fi
+    fi
 
     # write error note by default in the update status file,
     # it will be overwritten if update script is started properly after reboot
