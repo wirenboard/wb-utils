@@ -1,3 +1,10 @@
+wb-utils (4.8.2-wb105) stable; urgency=medium
+
+  * fix FIT image install via wb-run-update with single rootfs from random
+    location
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Tue, 25 Jul 2023 18:56:28 +0600
+
 wb-utils (4.8.2-wb104) stable; urgency=medium
 
   * of: evaluate gpiochips regardless of wb-env.cache
