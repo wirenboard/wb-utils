@@ -10,6 +10,7 @@ trap "force_exit_handler" TERM
 debug "Called from pid $PPID ($(cat /proc/$PPID/comm))"
 
 guess_of_node
+gsm_check_present
 
 case "$1" in
     "reset" )

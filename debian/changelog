@@ -1,3 +1,9 @@
+wb-utils (4.9.7) stable; urgency=medium
+
+  * wb-gsm: add error message if modem is not configured
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Fri, 12 May 2023 10:26:02 +0300
+
 wb-utils (4.9.6) stable; urgency=medium
 
   * fix FIT image install via wb-run-update with single rootfs from random
