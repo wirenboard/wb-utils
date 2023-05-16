@@ -1,5 +1,13 @@
 #!/bin/bash
 
+WB_ENV_CACHE="${WB_ENV_CACHE:-/var/run/wb_env.cache}"
+
+if [[ -f $WB_ENV_CACHE ]]; then
+    set -a
+    source "$WB_ENV_CACHE"
+    set +a
+fi
+
 bin2ulong() {
 	local -a bytes
 
@@ -70,7 +78,7 @@ __of_node_path() {
 __of_get_prop() {
 	local node="$(__of_node_path "$1")"
 	local prop="$2"
-	
+
 	cat "$node/$prop"
 }
 
@@ -101,7 +109,7 @@ of_node_children() {
 #	name glob
 of_node_props() {
 	local node="$(__of_node_path "$1")"
-	
+
 	find "$node" -maxdepth 1 -type f \( ! -iname "name" \) -printf '%f\n'
 }
 
@@ -225,7 +233,7 @@ fi #############################################################################
 #	node
 of_node_compatible() {
 	local node="${1:-}"
-	
+
 	of_get_prop_str "$node" compatible
 }
 
