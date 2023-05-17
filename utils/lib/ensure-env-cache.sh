@@ -9,6 +9,12 @@ WB_OF_ROOT="/wirenboard"
 WB_ENV_LOCK="${WB_ENV_LOCK:-/var/run/wb_env.lock}"
 LOCK_TIMEOUT=180
 
+WB_ENV_HASH="${WB_ENV_HASH:-/var/run/wb_env.hash}"
+
+get_hash() {
+    find $* -type f | xargs cksum | cksum
+}
+
 # create lockfile on descriptor 100 to make only one instance of wb_env.sh generate cache
 exec 100>"$WB_ENV_LOCK" || {
     echo "Failed to create lockfile $WB_ENV_LOCK, something is really wrong"
@@ -22,27 +28,21 @@ flock -w "$LOCK_TIMEOUT" 100 || {
 
 trap 'rm -f $WB_ENV_LOCK' EXIT
 
-if [[ -e "$WB_ENV_CACHE" ]]; then
-    # Collect last modification time from /proc/device-tree/wirenboard
-    # recursively and check if cache is newer
-    DT_WIRENBOARD_LAST_CHANGE="$(find "/proc/device-tree/$WB_OF_ROOT" -type f -printf "%Ts\n" | sort | tail -1)"
+DT_TO_CHECK="/proc/device-tree$WB_OF_ROOT"
+of_has_prop "aliases" "wbc_modem" && DT_TO_CHECK="$DT_TO_CHECK /proc/device-tree$(of_get_prop_str "aliases" "wbc_modem")"
 
-    # Collect last modification time from /proc/device-tree/alias/wbc_modem
-    of_has_prop "aliases" "wbc_modem" && OF_GSM_NODE=$(of_get_prop_str "aliases" "wbc_modem") || OF_GSM_NODE="wirenboard/gsm"
-    DT_MODEM_LAST_CHANGE="$(find "/proc/device-tree/$OF_GSM_NODE" -type f -printf "%Ts\n" | sort | tail -1)"
-    if [[ "$DT_MODEM_LAST_CHANGE" -gt "$DT_WIRENBOARD_LAST_CHANGE" ]]; then
-        DT_WIRENBOARD_LAST_CHANGE=$DT_MODEM_LAST_CHANGE
-    fi
-
-    CACHE_LAST_CHANGE="$(stat -c"%X" "$WB_ENV_CACHE")"
+if [[ -e "$WB_ENV_CACHE" && -e "$WB_ENV_HASH" ]]; then
+    actual_hash="$(get_hash $DT_TO_CHECK)"
+    stored_hash="$(cat $WB_ENV_HASH)"
 
     # Remove cache file if device tree was updated. It is safe to do here, we have lock
-    if [[ "$DT_WIRENBOARD_LAST_CHANGE" -gt "$CACHE_LAST_CHANGE" ]]; then
+    if [[ "$actual_hash" != "$stored_hash" ]]; then
         rm "$WB_ENV_CACHE" -f
     fi
 fi
 
-if [[ ! -e "$WB_ENV_CACHE" ]]; then
+# Fill wb_env.cache & renew wb_env.hash
+if [[ ! -e "$WB_ENV_CACHE" || ! -e "$WB_ENV_HASH" ]]; then
 	ENV_TMP=$(mktemp)
 
 	{
@@ -55,5 +55,5 @@ if [[ ! -e "$WB_ENV_CACHE" ]]; then
 			wb_source "wb_env_legacy"
 		fi
 	} > "$ENV_TMP" &&
-		mv "$ENV_TMP" "$WB_ENV_CACHE"
+		mv "$ENV_TMP" "$WB_ENV_CACHE" && get_hash "$DT_TO_CHECK" > "$WB_ENV_HASH"
 fi
