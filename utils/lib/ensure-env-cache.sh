@@ -11,8 +11,10 @@ LOCK_TIMEOUT=180
 
 WB_ENV_HASH="${WB_ENV_HASH:-/var/run/wb_env.hash}"
 
+declare -a DT_TO_CHECK
+
 get_hash() {
-    find $* -type f | xargs cksum | cksum
+    find "$@" -type f | xargs cksum | cksum
 }
 
 # create lockfile on descriptor 100 to make only one instance of wb_env.sh generate cache
@@ -28,12 +30,12 @@ flock -w "$LOCK_TIMEOUT" 100 || {
 
 trap 'rm -f $WB_ENV_LOCK' EXIT
 
-DT_TO_CHECK="/proc/device-tree$WB_OF_ROOT"
-of_has_prop "aliases" "wbc_modem" && DT_TO_CHECK="$DT_TO_CHECK /proc/device-tree$(of_get_prop_str "aliases" "wbc_modem")"
+DT_TO_CHECK=("/proc/device-tree$WB_OF_ROOT")
+of_has_prop "aliases" "wbc_modem" && DT_TO_CHECK+=("/proc/device-tree$(of_get_prop_str "aliases" "wbc_modem")")
 
 if [[ -e "$WB_ENV_CACHE" && -e "$WB_ENV_HASH" ]]; then
-    actual_hash="$(get_hash $DT_TO_CHECK)"
-    stored_hash="$(cat $WB_ENV_HASH)"
+    actual_hash="$(get_hash "${DT_TO_CHECK[@]}")"
+    stored_hash="$(cat "$WB_ENV_HASH")"
 
     # Remove cache file if device tree was updated. It is safe to do here, we have lock
     if [[ "$actual_hash" != "$stored_hash" ]]; then
@@ -55,5 +57,5 @@ if [[ ! -e "$WB_ENV_CACHE" || ! -e "$WB_ENV_HASH" ]]; then
 			wb_source "wb_env_legacy"
 		fi
 	} > "$ENV_TMP" &&
-		mv "$ENV_TMP" "$WB_ENV_CACHE" && get_hash "$DT_TO_CHECK" > "$WB_ENV_HASH"
+		mv "$ENV_TMP" "$WB_ENV_CACHE" && get_hash "${DT_TO_CHECK[@]}" > "$WB_ENV_HASH"
 fi
