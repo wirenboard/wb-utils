@@ -829,7 +829,7 @@ else
 fi
 
 
-if [[ ( flag_set "factoryreset" || flag_set "force-repartition" ) && ! flag_set "no-repartition" ]]; then
+if ( ( flag_set "factoryreset" || flag_set "force-repartition" ) && ! flag_set "no-repartition" ); then
     maybe_repartition
 fi
 
