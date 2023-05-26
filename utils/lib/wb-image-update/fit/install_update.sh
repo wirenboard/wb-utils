@@ -108,9 +108,13 @@ prepare_env() {
         info "Using flags from $flags_file: $ADDITIONAL_FLAGS"
         FLAGS="$FLAGS $ADDITIONAL_FLAGS "
     fi
-    if [ -e "$flags_file" && flag_set "remove-flag-file" ]; then
-        echo "Flag file $flags_file will be removed as requested by --remove-flag-file flag"
-        rm "$flags_file"
+    web_flags_file="$(dirname "$FIT")/web_update.flags"
+    if [ -e "$web_flags_file" ]; then
+        ADDITIONAL_FLAGS=$(cat "$web_flags_file")
+        info "Using flags from $web_flags_file: $ADDITIONAL_FLAGS"
+        FLAGS="$FLAGS $ADDITIONAL_FLAGS "
+        info "Removing web flags file $web_flags_file"
+        rm "$web_flags_file"
     fi
 
 
