@@ -108,6 +108,10 @@ prepare_env() {
         info "Using flags from $flags_file: $ADDITIONAL_FLAGS"
         FLAGS="$FLAGS $ADDITIONAL_FLAGS "
     fi
+    if [ -e "$flags_file" && flag_set "remove-flag-file" ]; then
+        echo "Flag file $flags_file will be removed as requested by --remove-flag-file flag"
+        rm "$flags_file"
+    fi
 
 
     UPDATE_STATUS_FILE="$WEBUPD_DIR/state/update.status"
@@ -822,7 +826,7 @@ else
 fi
 
 
-if flag_set "factoryreset" && ! flag_set "no-repartition"; then
+if [[ ( flag_set "factoryreset" || flag_set "force-repartition" ) && ! flag_set "no-repartition" ]]; then
     maybe_repartition
 fi
 
