@@ -9,7 +9,8 @@ PID_FILE="/var/run/wb-watch-update.pid"
 AB_WATCH_DIR="/var/www/uploads"
 SINGLE_WATCH_DIR="/mnt/data/.wb-update"
 
-WATCH_DIR_SYMLINK="/var/run/wb-watch-update.dir"
+# removed as now we watch both directories
+#WATCH_DIR_SYMLINK="/var/run/wb-watch-update.dir"
 
 cleanup() {
 	[[ -f "$PID_FILE" ]] && kill `cat "$PID_FILE"` 2>/dev/null
@@ -23,7 +24,9 @@ check_fully_received() {
 }
 
 cleanup_watch_dir() {
-	find $WATCH_DIR/ -maxdepth 1 -type f "$@" -delete
+#	find $WATCH_DIR/ -maxdepth 1 -type f "$@" -delete
+  find AB_WATCH_DIR/ -maxdepth 1 -type f "$@" -delete
+  find $SINGLE_WATCH_DIR/ -maxdepth 1 -type f "$@" -delete
 }
 
 log() {
@@ -82,26 +85,33 @@ maybe_publish_singlemode_update_status() {
 	fi
 }
 
-if [ "$(blockdev --getsz /dev/mmcblk0p2)" -ne "$(blockdev --getsz /dev/mmcblk0p3)" ]; then
-	log "using single rootfs update mode"
-	WATCH_DIR="$SINGLE_WATCH_DIR"
-else
-	log "using legacy A/B update mode"
-	WATCH_DIR="$AB_WATCH_DIR"
-fi
+#  removed as now we watch both directories
+
+#if [ "$(blockdev --getsz /dev/mmcblk0p2)" -ne "$(blockdev --getsz /dev/mmcblk0p3)" ]; then
+#	log "using single rootfs update mode"
+#	WATCH_DIR="$SINGLE_WATCH_DIR"
+#else
+#	log "using legacy A/B update mode"
+#	WATCH_DIR="$AB_WATCH_DIR"
+#fi
 
 maybe_publish_singlemode_update_status
-mkdir -p "$WATCH_DIR"
-chown www-data:www-data "$WATCH_DIR"
-ln -snf "$WATCH_DIR" "$WATCH_DIR_SYMLINK"
+# removed as now we watch both directories
+# mkdir -p "$WATCH_DIR"
+# chown www-data:www-data "$WATCH_DIR"
+# ln -snf "$WATCH_DIR" "$WATCH_DIR_SYMLINK"
+mkdir -p "$AB_WATCH_DIR"
+mkdir -p "$SINGLE_WATCH_DIR"
+chown www-data:www-data "$AB_WATCH_DIR"
+chown www-data:www-data "$SINGLE_WATCH_DIR"
 
 LAST_FIT=''
 
 (
 	echo "$BASHPID" > "$PID_FILE"
 	2>/dev/null exec inotifywait -m -r \
-		--exclude $WATCH_DIR/state/ \
-		--event close_write $WATCH_DIR/ \
+		--exclude "($AB_WATCH_DIR/state/|$SINGLE_WATCH_DIR/state/)" \
+		--event close_write $AB_WATCH_DIR/ $SINGLE_WATCH_DIR/ \
 ) | {
 trap cleanup EXIT
 

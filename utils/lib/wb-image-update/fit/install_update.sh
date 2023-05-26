@@ -828,6 +828,10 @@ else
     fi
 fi
 
+if ! flag_set from-initramfs && flag_set "force-repartition"; then
+    copy_this_fit_to_factory
+    update_after_reboot
+fi
 
 if ( ( flag_set "factoryreset" || flag_set "force-repartition" ) && ! flag_set "no-repartition" ); then
     maybe_repartition
