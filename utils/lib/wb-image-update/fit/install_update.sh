@@ -108,7 +108,7 @@ prepare_env() {
         info "Using flags from $flags_file: $ADDITIONAL_FLAGS"
         FLAGS="$FLAGS $ADDITIONAL_FLAGS "
     fi
-    web_flags_file="$(dirname "$FIT")/web_update.flags"
+    web_flags_file="$(dirname "$FIT")/install_update.web.flags"
     if [ -e "$web_flags_file" ]; then
         ADDITIONAL_FLAGS=$(cat "$web_flags_file")
         info "Using flags from $web_flags_file: $ADDITIONAL_FLAGS"
@@ -116,7 +116,6 @@ prepare_env() {
         info "Removing web flags file $web_flags_file"
         rm "$web_flags_file"
     fi
-
 
     UPDATE_STATUS_FILE="$WEBUPD_DIR/state/update.status"
     UPDATE_LOG_FILE="$WEBUPD_DIR/state/update.log"
