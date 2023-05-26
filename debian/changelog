@@ -1,3 +1,9 @@
+wb-utils (4.11.0) stable; urgency=medium
+
+  * install_update.sh: add support for install_update.web.flags file and --force-repartition flag
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Wed, 17 May 2023 13:49:47 +0300
+
 wb-utils (4.10.0) stable; urgency=medium
 
   * ensure-env-cache: rework wb_env.cache validation (hash instead of modify-time)
