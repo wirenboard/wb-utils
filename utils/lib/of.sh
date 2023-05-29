@@ -2,12 +2,6 @@
 
 WB_ENV_CACHE="${WB_ENV_CACHE:-/var/run/wb_env.cache}"
 
-if [[ -f $WB_ENV_CACHE ]]; then
-    set -a
-    source "$WB_ENV_CACHE"
-    set +a
-fi
-
 bin2ulong() {
 	local -a bytes
 
@@ -227,6 +221,9 @@ of_find_gpiochips() {
 	done
 }
 fi #############################################################################
+
+# Evaluate gpiochips regardless of wb-env.cache
+of_find_gpiochips
 
 # Get compatible list of node, one item per line
 # Args:
