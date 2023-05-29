@@ -220,9 +220,6 @@ of_find_gpiochips() {
 }
 fi #############################################################################
 
-# Evaluate gpiochips regardless of wb-env.cache
-of_find_gpiochips
-
 # Get compatible list of node, one item per line
 # Args:
 #	node
@@ -362,3 +359,6 @@ of_get_prop_gpionum() {
 
 	of_gpio_to_num $(of_get_prop_gpio "$1" "$2" | index "$index")
 }
+
+# Evaluate gpiochips regardless of wb-env.cache
+of_find_gpiochips
