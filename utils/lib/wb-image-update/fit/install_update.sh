@@ -113,9 +113,10 @@ prepare_env() {
         ADDITIONAL_FLAGS=$(cat "$web_flags_file")
         info "Using flags from $web_flags_file: $ADDITIONAL_FLAGS"
         FLAGS="$FLAGS $ADDITIONAL_FLAGS "
-        # disabled as we use update with reboot
-        # info "Removing web flags file $web_flags_file"
-        # rm "$web_flags_file"
+        if flag_set from-initramfs; then
+            info "Removing web flags file $web_flags_file"
+            rm "$web_flags_file"
+        fi
     fi
 
     UPDATE_STATUS_FILE="$WEBUPD_DIR/state/update.status"
