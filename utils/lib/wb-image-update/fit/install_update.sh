@@ -829,7 +829,7 @@ else
 fi
 
 if ! flag_set from-initramfs && flag_set "force-repartition"; then
-    copy_this_fit_to_factory
+    maybe_update_current_factory_fit
     update_after_reboot
 fi
 
