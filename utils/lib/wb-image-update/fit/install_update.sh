@@ -697,13 +697,6 @@ maybe_update_current_factory_fit() {
         info "Current factory FIT supports single-rootfs feature, keeping it"
     fi
 
-    # copy web update flags if present
-#    web_flags_file="$(dirname "$FIT")/install_update.web.flags"
-#    if [ -e "$web_flags_file" ]; then
-#        info "Copying web update flags from $web_flags_file"
-#        cp "$web_flags_file" "$mnt/.wb-restore/install_update.web.flags"
-#    fi
-
     umount "$mnt" || true
     sync
 }

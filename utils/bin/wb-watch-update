@@ -9,9 +9,6 @@ PID_FILE="/var/run/wb-watch-update.pid"
 AB_WATCH_DIR="/var/www/uploads"
 SINGLE_WATCH_DIR="/mnt/data/.wb-update"
 
-# removed as now we watch both directories
-#WATCH_DIR_SYMLINK="/var/run/wb-watch-update.dir"
-
 cleanup() {
 	[[ -f "$PID_FILE" ]] && kill `cat "$PID_FILE"` 2>/dev/null
 	rm -f "$PID_FILE"
@@ -24,7 +21,6 @@ check_fully_received() {
 }
 
 cleanup_watch_dir() {
-#	find $WATCH_DIR/ -maxdepth 1 -type f "$@" -delete
   find AB_WATCH_DIR/ -maxdepth 1 -type f "$@" -delete
   find $SINGLE_WATCH_DIR/ -maxdepth 1 -type f "$@" -delete
 }
@@ -85,21 +81,8 @@ maybe_publish_singlemode_update_status() {
 	fi
 }
 
-#  removed as now we watch both directories
-
-#if [ "$(blockdev --getsz /dev/mmcblk0p2)" -ne "$(blockdev --getsz /dev/mmcblk0p3)" ]; then
-#	log "using single rootfs update mode"
-#	WATCH_DIR="$SINGLE_WATCH_DIR"
-#else
-#	log "using legacy A/B update mode"
-#	WATCH_DIR="$AB_WATCH_DIR"
-#fi
-
 maybe_publish_singlemode_update_status
-# removed as now we watch both directories
-# mkdir -p "$WATCH_DIR"
-# chown www-data:www-data "$WATCH_DIR"
-# ln -snf "$WATCH_DIR" "$WATCH_DIR_SYMLINK"
+
 mkdir -p "$AB_WATCH_DIR"
 mkdir -p "$SINGLE_WATCH_DIR"
 chown www-data:www-data "$AB_WATCH_DIR"
