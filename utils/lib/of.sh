@@ -1,7 +1,5 @@
 #!/bin/bash
 
-WB_ENV_CACHE="${WB_ENV_CACHE:-/var/run/wb_env.cache}"
-
 bin2ulong() {
 	local -a bytes
 

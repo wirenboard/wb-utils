@@ -1,8 +1,14 @@
-wb-utils (4.10.0) stable; urgency=medium
+wb-utils (4.10.1) stable; urgency=medium
 
   * of: evaluate gpiochips regardless of wb-env.cache
 
  -- Vladimir Romanov <v.romanov@wirenboard.ru>  Mon, 29 May 2023 10:21:45 +0300
+
+wb-utils (4.10.0) stable; urgency=medium
+
+  * ensure-env-cache: rework wb_env.cache validation (hash instead of modify-time)
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Wed, 17 May 2023 13:49:47 +0300
 
 wb-utils (4.9.7) stable; urgency=medium
 
