@@ -5,7 +5,7 @@
 override_dh_installsystemd:
 	dh_installsystemd --name=wb-prepare --no-start --no-restart-after-upgrade --no-restart-on-upgrade
 	dh_installsystemd --name=wb-init --no-start --no-restart-after-upgrade --no-restart-on-upgrade
-	dh_installsystemd --name=wb-watch-update --no-start --no-restart-after-upgrade --no-restart-on-upgrade
+	dh_installsystemd --name=wb-watch-update
 	dh_installsystemd --name=wb-gsm
 	dh_installsystemd --name=wb-usb-otg
 
@@ -19,6 +19,6 @@ override_dh_systemd_enable:
 override_dh_systemd_start:
 	dh_systemd_start --name=wb-prepare --no-start wb-prepare.service
 	dh_systemd_start --name=wb-init --no-start wb-init.service
-	dh_systemd_start --name=wb-watch-update --no-start wb-watch-update.service
+	dh_systemd_start --name=wb-watch-update wb-watch-update.service
 	dh_systemd_start --name=wb-gsm wb-gsm.service
 	dh_systemd_start --name=wb-usb-otg wb-usb-otg.service
