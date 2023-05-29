@@ -113,8 +113,9 @@ prepare_env() {
         ADDITIONAL_FLAGS=$(cat "$web_flags_file")
         info "Using flags from $web_flags_file: $ADDITIONAL_FLAGS"
         FLAGS="$FLAGS $ADDITIONAL_FLAGS "
-        info "Removing web flags file $web_flags_file"
-        rm "$web_flags_file"
+        # disabled as we use update with reboot
+        # info "Removing web flags file $web_flags_file"
+        # rm "$web_flags_file"
     fi
 
     UPDATE_STATUS_FILE="$WEBUPD_DIR/state/update.status"
@@ -693,6 +694,13 @@ maybe_update_current_factory_fit() {
         cp "$FIT" "$mnt/.wb-restore/factoryreset.fit"
     else
         info "Current factory FIT supports single-rootfs feature, keeping it"
+    fi
+
+    # copy web update flags if present
+    web_flags_file="$(dirname "$FIT")/install_update.web.flags"
+    if [ -e "$web_flags_file" ]; then
+        info "Copying web update flags from $web_flags_file"
+        cp "$web_flags_file" "$mnt/.wb-restore/install_update.web.flags"
     fi
 
     umount "$mnt" || true
