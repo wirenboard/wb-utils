@@ -21,7 +21,7 @@ check_fully_received() {
 }
 
 cleanup_watch_dir() {
-  find AB_WATCH_DIR/ -maxdepth 1 -type f "$@" -delete
+  find $AB_WATCH_DIR/ -maxdepth 1 -type f "$@" -delete
   find $SINGLE_WATCH_DIR/ -maxdepth 1 -type f "$@" -delete
 }
 
