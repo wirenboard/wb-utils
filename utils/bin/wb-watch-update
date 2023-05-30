@@ -9,6 +9,23 @@ PID_FILE="/var/run/wb-watch-update.pid"
 AB_WATCH_DIR="/var/www/uploads"
 SINGLE_WATCH_DIR="/mnt/data/.wb-update"
 
+# added to read FIT compatibility flags
+fit_prop() {
+	local node=$1
+	local prop=$2
+
+	local tmp=`fit_info -f $FIT -n $node -p $prop`
+	local len=`sed -rn 's#LEN: (.*)#\1#p' <<< "$tmp"`
+	local off=`sed -rn 's#OFF: (.*)#\1#p' <<< "$tmp"`
+	[[ -n "$len" && -n "$off" ]] || return 1
+	#dd if=$FIT skip=$off count=$len iflag=skip_bytes,count_bytes 2>/dev/null
+	tail -c +$((off + 1)) $FIT 2>/dev/null | head -c $len 2>/dev/null
+}
+
+fit_prop_string() {
+	fit_prop "$@" | tr -d '\0'
+}
+
 fw_compatible() {
     local feature="$1"
     local fw_compat
