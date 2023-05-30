@@ -9,6 +9,17 @@ PID_FILE="/var/run/wb-watch-update.pid"
 AB_WATCH_DIR="/var/www/uploads"
 SINGLE_WATCH_DIR="/mnt/data/.wb-update"
 
+fw_compatible() {
+    local feature="$1"
+    local fw_compat
+    fw_compat=$(fit_prop_string / firmware-compatible)
+
+    case "$fw_compat" in
+        *"+$feature "*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 cleanup() {
 	[[ -f "$PID_FILE" ]] && kill `cat "$PID_FILE"` 2>/dev/null
 	rm -f "$PID_FILE"
@@ -137,6 +148,14 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
 	msg="Received good update FIT $FIT, starting update"
 	log "$msg"
 	mqtt_log "$msg"
+
+  if ! fw_compatible force-repartition; then
+      web_flags_file="$(dirname "$FIT")/install_update.web.flags"
+      if [ -e "$web_flags_file" ]; then
+          log "force-repartition flag not supported by FIT, removing $web_flags_file"
+          rm -f "$web_flags_file"
+      fi
+  fi
 
 	wb-run-update $FIT 2>&1 | tee -a "$UPDATE_LOG" | mqtt_log_pipe
 	if [[ ${PIPESTATUS[0]} -ne 0 ]]; then

@@ -88,6 +88,7 @@ cp /usr/lib/wb-image-update/fit/install_update.sh /var/lib/wb-image-update/insta
 cd "$BUILDDIR" && tar cvzf /var/lib/wb-image-update/deps.tar.gz .
 
 echo "+single-rootfs " > /var/lib/wb-image-update/firmware-compatible
+echo "+force-repartition " > /var/lib/wb-image-update/firmware-compatible
 
 # FIXME: install bootlet image as deb package
 BOOTLET_ZIMAGE=/var/lib/wb-image-update/zImage
