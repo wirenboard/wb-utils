@@ -1,3 +1,9 @@
+wb-utils (4.8.2-wb104) stable; urgency=medium
+
+  * of: evaluate gpiochips regardless of wb-env.cache
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Wed, 31 May 2023 12:20:37 +0300
+
 wb-utils (4.8.2-wb103) stable; urgency=medium
 
   * ensure-env-cache: rework wb_env.cache validation (hash instead of modify-time)
