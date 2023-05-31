@@ -70,7 +70,7 @@ __of_node_path() {
 __of_get_prop() {
 	local node="$(__of_node_path "$1")"
 	local prop="$2"
-	
+
 	cat "$node/$prop"
 }
 
@@ -101,7 +101,7 @@ of_node_children() {
 #	name glob
 of_node_props() {
 	local node="$(__of_node_path "$1")"
-	
+
 	find "$node" -maxdepth 1 -type f \( ! -iname "name" \) -printf '%f\n'
 }
 
@@ -225,7 +225,7 @@ fi #############################################################################
 #	node
 of_node_compatible() {
 	local node="${1:-}"
-	
+
 	of_get_prop_str "$node" compatible
 }
 
@@ -359,3 +359,6 @@ of_get_prop_gpionum() {
 
 	of_gpio_to_num $(of_get_prop_gpio "$1" "$2" | index "$index")
 }
+
+# Evaluate gpiochips regardless of wb-env.cache
+of_find_gpiochips
