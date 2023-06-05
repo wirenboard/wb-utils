@@ -688,7 +688,7 @@ maybe_update_current_factory_fit() {
     CURRENT_FACTORY_FIT="$mnt/.wb-restore/factoryreset.fit"
 
     if ! FIT="$CURRENT_FACTORY_FIT" fw_compatible single-rootfs; then
-        info "Current factory FIT does not support single-rootfs feature, saving this FIT to use as bootlet"
+        info "Temporarily storing this update as factory FIT to use as bootlet"
         info "Old factory FIT will be kept as factoryreset.original.fit and will still be used to restore firmware"
 
         mv "$mnt/.wb-restore/factoryreset.fit" "$mnt/.wb-restore/factoryreset.original.fit"
@@ -749,7 +749,7 @@ update_after_reboot() {
     ensure_uboot_ready_for_webupd
 
     info "Watch logs in the debug console, or in $UPDATE_LOG_FILE"
-    info "Single rootfs scheme detected, reboot system to perform update"
+    info "Rebooting system to install update"
     info "Waiting for Wiren Board to boot again..."
 
     mkdir -p "$WEBUPD_DIR"
