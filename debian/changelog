@@ -1,3 +1,9 @@
+wb-utils (4.11.0) stable; urgency=medium
+
+  * install_update.sh: add support for install_update.web.flags file and --force-repartition flag
+
+ -- Aleksandr Kazadaev <aleksandr.kazadaev@wirenboard.com>  Tue, 06 Jun 2023 00:11:47 +0600
+
 wb-utils (4.10.1) stable; urgency=medium
 
   * of: evaluate gpiochips regardless of wb-env.cache

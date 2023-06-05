@@ -108,7 +108,16 @@ prepare_env() {
         info "Using flags from $flags_file: $ADDITIONAL_FLAGS"
         FLAGS="$FLAGS $ADDITIONAL_FLAGS "
     fi
-
+    web_flags_file="$(dirname "$FIT")/install_update.web.flags"
+    if [ -e "$web_flags_file" ]; then
+        ADDITIONAL_FLAGS=$(cat "$web_flags_file")
+        info "Using flags from $web_flags_file: $ADDITIONAL_FLAGS"
+        FLAGS="$FLAGS $ADDITIONAL_FLAGS "
+        if flag_set from-initramfs; then
+            info "Removing web flags file $web_flags_file"
+            rm "$web_flags_file"
+        fi
+    fi
 
     UPDATE_STATUS_FILE="$WEBUPD_DIR/state/update.status"
     UPDATE_LOG_FILE="$WEBUPD_DIR/state/update.log"
@@ -679,7 +688,7 @@ maybe_update_current_factory_fit() {
     CURRENT_FACTORY_FIT="$mnt/.wb-restore/factoryreset.fit"
 
     if ! FIT="$CURRENT_FACTORY_FIT" fw_compatible single-rootfs; then
-        info "Current factory FIT does not support single-rootfs feature, saving this FIT to use as bootlet"
+        info "Storing this update as factory FIT to use as bootlet"
         info "Old factory FIT will be kept as factoryreset.original.fit and will still be used to restore firmware"
 
         mv "$mnt/.wb-restore/factoryreset.fit" "$mnt/.wb-restore/factoryreset.original.fit"
@@ -740,7 +749,7 @@ update_after_reboot() {
     ensure_uboot_ready_for_webupd
 
     info "Watch logs in the debug console, or in $UPDATE_LOG_FILE"
-    info "Single rootfs scheme detected, reboot system to perform update"
+    info "Rebooting system to install update"
     info "Waiting for Wiren Board to boot again..."
 
     mkdir -p "$WEBUPD_DIR"
@@ -821,8 +830,12 @@ else
     fi
 fi
 
+if ! flag_set from-initramfs && flag_set "force-repartition"; then
+    maybe_update_current_factory_fit
+    update_after_reboot
+fi
 
-if flag_set "factoryreset" && ! flag_set "no-repartition"; then
+if ( ( flag_set "factoryreset" || flag_set "force-repartition" ) && ! flag_set "no-repartition" ); then
     maybe_repartition
 fi
 

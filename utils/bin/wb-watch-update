@@ -9,7 +9,33 @@ PID_FILE="/var/run/wb-watch-update.pid"
 AB_WATCH_DIR="/var/www/uploads"
 SINGLE_WATCH_DIR="/mnt/data/.wb-update"
 
-WATCH_DIR_SYMLINK="/var/run/wb-watch-update.dir"
+# added to read FIT compatibility flags
+fit_prop() {
+	local node=$1
+	local prop=$2
+
+	local tmp=`fit_info -f $FIT -n $node -p $prop`
+	local len=`sed -rn 's#LEN: (.*)#\1#p' <<< "$tmp"`
+	local off=`sed -rn 's#OFF: (.*)#\1#p' <<< "$tmp"`
+	[[ -n "$len" && -n "$off" ]] || return 1
+	#dd if=$FIT skip=$off count=$len iflag=skip_bytes,count_bytes 2>/dev/null
+	tail -c +$((off + 1)) $FIT 2>/dev/null | head -c $len 2>/dev/null
+}
+
+fit_prop_string() {
+	fit_prop "$@" | tr -d '\0'
+}
+
+fw_compatible() {
+    local feature="$1"
+    local fw_compat
+    fw_compat=$(fit_prop_string / firmware-compatible)
+
+    case "$fw_compat" in
+        *"+$feature "*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
 
 cleanup() {
 	[[ -f "$PID_FILE" ]] && kill `cat "$PID_FILE"` 2>/dev/null
@@ -23,7 +49,8 @@ check_fully_received() {
 }
 
 cleanup_watch_dir() {
-	find $WATCH_DIR/ -maxdepth 1 -type f "$@" -delete
+  find $AB_WATCH_DIR/ -maxdepth 1 -type f "$@" -delete
+  find $SINGLE_WATCH_DIR/ -maxdepth 1 -type f "$@" -delete
 }
 
 log() {
@@ -82,26 +109,20 @@ maybe_publish_singlemode_update_status() {
 	fi
 }
 
-if [ "$(blockdev --getsz /dev/mmcblk0p2)" -ne "$(blockdev --getsz /dev/mmcblk0p3)" ]; then
-	log "using single rootfs update mode"
-	WATCH_DIR="$SINGLE_WATCH_DIR"
-else
-	log "using legacy A/B update mode"
-	WATCH_DIR="$AB_WATCH_DIR"
-fi
-
 maybe_publish_singlemode_update_status
-mkdir -p "$WATCH_DIR"
-chown www-data:www-data "$WATCH_DIR"
-ln -snf "$WATCH_DIR" "$WATCH_DIR_SYMLINK"
+
+mkdir -p "$AB_WATCH_DIR"
+mkdir -p "$SINGLE_WATCH_DIR"
+chown www-data:www-data "$AB_WATCH_DIR"
+chown www-data:www-data "$SINGLE_WATCH_DIR"
 
 LAST_FIT=''
 
 (
 	echo "$BASHPID" > "$PID_FILE"
 	2>/dev/null exec inotifywait -m -r \
-		--exclude $WATCH_DIR/state/ \
-		--event close_write $WATCH_DIR/ \
+		--exclude "($AB_WATCH_DIR/state/|$SINGLE_WATCH_DIR/state/)" \
+		--event close_write $AB_WATCH_DIR/ $SINGLE_WATCH_DIR/ \
 ) | {
 trap cleanup EXIT
 
@@ -144,6 +165,16 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
 	msg="Received good update FIT $FIT, starting update"
 	log "$msg"
 	mqtt_log "$msg"
+
+  if ! fw_compatible force-repartition; then
+      web_flags_file="$(dirname "$FIT")/install_update.web.flags"
+      if [ -e "$web_flags_file" ]; then
+          msg="force-repartition flag not supported by FIT, removing $web_flags_file"
+          log "$msg"
+          mqtt_log "$msg"
+          rm -f "$web_flags_file"
+      fi
+  fi
 
 	wb-run-update $FIT 2>&1 | tee -a "$UPDATE_LOG" | mqtt_log_pipe
 	if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
