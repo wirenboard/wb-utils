@@ -688,7 +688,7 @@ maybe_update_current_factory_fit() {
     CURRENT_FACTORY_FIT="$mnt/.wb-restore/factoryreset.fit"
 
     if ! FIT="$CURRENT_FACTORY_FIT" fw_compatible single-rootfs; then
-        info "Temporarily storing this update as factory FIT to use as bootlet"
+        info "Storing this update as factory FIT to use as bootlet"
         info "Old factory FIT will be kept as factoryreset.original.fit and will still be used to restore firmware"
 
         mv "$mnt/.wb-restore/factoryreset.fit" "$mnt/.wb-restore/factoryreset.original.fit"
