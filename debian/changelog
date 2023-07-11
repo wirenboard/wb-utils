@@ -1,3 +1,9 @@
+wb-utils (4.11.1) stable; urgency=medium
+
+  * wb-gsm: fix checking that a modem is controlled by ModemManager
+
+ -- Petr Krasnoshchekov <petr.krasnoshchekov@wirenboard.com>  Thu, 06 Jul 2023 16:32:05 +0500
+
 wb-utils (4.11.0) stable; urgency=medium
 
   * install_update.sh: add support for install_update.web.flags file and --force-repartition flag
