@@ -7,7 +7,7 @@ After=wb-hwconf-manager.service
 [Service]
 Type=oneshot
 ExecStart=wb-gsm mm_on
-ExecStopPost=wb-gsm mm_off
+ExecStop=wb-gsm mm_off
 ExecCondition=wb-gsm should_enable
 RemainAfterExit=yes
 
