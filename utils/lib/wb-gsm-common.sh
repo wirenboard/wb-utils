@@ -102,12 +102,9 @@ function is_driven_by_mm() {
 
     for portname in $usb_at_ports; do
         local udev_props=$(udevadm info -n $portname -q property)
-        local exit_code=$?
-        if [[ exit_code == 0 ]]; then
-            if ! echo $udev_props | grep -q -e "ID_MM_PORT_IGNORE=1" -e "ID_MM_DEVICE_IGNORE=1"; then
-                debug "Modem ($portname) is possibly driven by ModemManager"
-                return 0
-            fi
+        if ! echo $udev_props | grep -q -e "ID_MM_PORT_IGNORE=1" -e "ID_MM_DEVICE_IGNORE=1"; then
+            debug "Modem ($portname) is possibly driven by ModemManager"
+            return 0
         fi
     done
     debug "Modem is NOT driven by ModemManager"
