@@ -91,10 +91,11 @@ mkdir -p /var/lib/wb-image-update
 cp /usr/lib/wb-image-update/fit/install_update.sh /var/lib/wb-image-update/install_update.sh
 cd "$BUILDDIR" && tar cvzf /var/lib/wb-image-update/deps.tar.gz .
 
-echo "+single-rootfs " > /var/lib/wb-image-update/firmware-compatible
-echo "+force-repartition " >> /var/lib/wb-image-update/firmware-compatible
+echo -n "+single-rootfs " > /var/lib/wb-image-update/firmware-compatible
+echo -n "+force-repartition " >> /var/lib/wb-image-update/firmware-compatible
 
 # FIXME: install bootlet image as deb package
+if [[ "$TARGET" == "wb7" ]]; then
 BOOTLET_ZIMAGE=/var/lib/wb-image-update/zImage
 if [[ ! -e "$BOOTLET_ZIMAGE" ]]; then
     BOOTLET_URL="http://fw-releases.wirenboard.com/utils/build-image/zImage.$TARGET"
@@ -105,4 +106,5 @@ if [[ ! -e "$BOOTLET_ZIMAGE" ]]; then
 
     echo "Checking SHA256 sum"
     echo "$(wget -O- "$SHA256_URL")  $BOOTLET_ZIMAGE" | sha256sum -c
+fi
 fi
