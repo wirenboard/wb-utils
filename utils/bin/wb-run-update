@@ -2,6 +2,14 @@
 #set -e
 #set -x
 
+# This script will be greatly simplified in the future, so please
+#
+#   DO NOT ADD ANY NEW FEATURES HERE!
+#
+# A great place for the new update features is
+# utils/lib/wb-image-update/fit/install_image.sh file
+# in this repository.
+
 TMPDIR="/dev/shm"
 FIT=""
 FLAGS=""
@@ -159,9 +167,9 @@ die() {
 	local ret=$?
 	local msg=${*:-"Failed"}
 	>&2 echo "!!! $msg"
+	rm_fit
 	mqtt_status "ERROR $msg"
 	mqtt_status "IDLE"
-	rm_fit
 	[[ $? == 0 ]] && exit 1 || exit $?
 }
 
@@ -219,6 +227,36 @@ fit_blob_verify_hash() {
 		die "SHA1 of $name doesn't match (expected $sha1_expected, got $sha1_calculated)"
 }
 
+disk_layout_is_ab() {
+    local ROOTFS1_PART=/dev/mmcblk0p2
+    local ROOTFS2_PART=/dev/mmcblk0p3
+    [ "$(blockdev --getsz "$ROOTFS1_PART")" -eq "$(blockdev --getsz "$ROOTFS2_PART")" ]
+}
+
+fw_compatible() {
+    local feature="$1"
+    local fw_compat
+    fw_compat=$(fit_prop_string / firmware-compatible)
+
+    case "$fw_compat" in
+        *"+$feature "*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+check_firmware_compatible() {
+    if flag_set force-fw-compatible; then
+        info "Firmware compatibility check skipped"
+        return
+    fi
+
+    if ! disk_layout_is_ab && ! fw_compatible "single-rootfs"; then
+        die "Firmware is not compatible with single-rootfs layout"
+    fi
+
+    info "Firmware seems to be compatible with this controller"
+}
+
 led_process
 
 >&2 cat <<EOF
@@ -262,6 +300,8 @@ flag_set factoryreset && {
 		info "Factory reset is now supported only from initramfs environment"
 	fi
 }
+
+check_firmware_compatible
 
 info "Extracting install script"
 INSTALL_SCRIPT=`mktemp -p $TMPDIR`
