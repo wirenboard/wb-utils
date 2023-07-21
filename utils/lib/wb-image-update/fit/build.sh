@@ -97,7 +97,7 @@ echo -n "+force-repartition " >> /var/lib/wb-image-update/firmware-compatible
 # FIXME: install bootlet image and DTB as deb package
 download_bootlet_file() {
     local FILE=$1
-    local FILEPATH="/var/lib/wb-image-update/$FILE.$TARGET"
+    local FILEPATH="/var/lib/wb-image-update/$FILE"
     if [[ ! -e "$FILEPATH" ]]; then
         BOOTLET_URL="http://fw-releases.wirenboard.com/utils/build-image/$FILE.$TARGET"
         SHA256_URL="$BOOTLET_URL.sha256"
@@ -106,7 +106,7 @@ download_bootlet_file() {
         wget -O "$FILEPATH" "$BOOTLET_URL"
 
         echo "Checking SHA256 sum"
-        echo "$(wget -O- "$SHA256_URL")  $FILEPATH" | sha256sum -c
+        echo "$(wget -O- "$SHA256_URL") $FILEPATH" | sha256sum -c
     fi
 }
 
