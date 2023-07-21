@@ -94,15 +94,21 @@ cd "$BUILDDIR" && tar cvzf /var/lib/wb-image-update/deps.tar.gz .
 echo -n "+single-rootfs " > /var/lib/wb-image-update/firmware-compatible
 echo -n "+force-repartition " >> /var/lib/wb-image-update/firmware-compatible
 
-# FIXME: install bootlet image as deb package
-BOOTLET_ZIMAGE=/var/lib/wb-image-update/zImage
-if [[ ! -e "$BOOTLET_ZIMAGE" ]]; then
-    BOOTLET_URL="http://fw-releases.wirenboard.com/utils/build-image/zImage.$TARGET"
-    SHA256_URL="$BOOTLET_URL.sha256"
+# FIXME: install bootlet image and DTB as deb package
+download_bootlet_file() {
+    local FILE=$1
+    local FILEPATH="/var/lib/wb-image-update/$FILE.$TARGET"
+    if [[ ! -e "$FILEPATH" ]]; then
+        BOOTLET_URL="http://fw-releases.wirenboard.com/utils/build-image/$FILE.$TARGET"
+        SHA256_URL="$BOOTLET_URL.sha256"
 
-    echo "Bootlet zImage not found, getting one from S3"
-    wget -O "$BOOTLET_ZIMAGE" "$BOOTLET_URL"
+        echo "Bootlet $FILE not found, getting one from S3"
+        wget -O "$FILEPATH" "$BOOTLET_URL"
 
-    echo "Checking SHA256 sum"
-    echo "$(wget -O- "$SHA256_URL")  $BOOTLET_ZIMAGE" | sha256sum -c
-fi
+        echo "Checking SHA256 sum"
+        echo "$(wget -O- "$SHA256_URL")  $FILEPATH" | sha256sum -c
+    fi
+}
+
+download_bootlet_file zImage
+download_bootlet_file boot.dtb
