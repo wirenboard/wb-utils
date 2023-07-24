@@ -687,7 +687,11 @@ maybe_update_current_factory_fit() {
     # check if current fit supports +single-rootfs feature
     CURRENT_FACTORY_FIT="$mnt/.wb-restore/factoryreset.fit"
 
-    if ! FIT="$CURRENT_FACTORY_FIT" fw_compatible single-rootfs; then
+    if [[ ! -e "$CURRENT_FACTORY_FIT" ]]; then
+        info "No factory FIT found, storing this update as factory FIT to use as bootlet"
+        mkdir -p "$mnt/.wb-restore"
+        cp "$FIT" "$mnt/.wb-restore/factoryreset.fit"
+    elif ! FIT="$CURRENT_FACTORY_FIT" fw_compatible single-rootfs; then
         info "Storing this update as factory FIT to use as bootlet"
         info "Old factory FIT will be kept as factoryreset.original.fit and will still be used to restore firmware"
 
