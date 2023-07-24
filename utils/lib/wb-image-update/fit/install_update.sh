@@ -478,7 +478,7 @@ cleanup_rootfs() {
 ensure_uboot_ready_for_webupd() {
     local version
     version=$(awk '{ print $2 }' /proc/device-tree/chosen/u-boot-version | sed 's/-g[0-9a-f]\+$//')
-    if dpkg --compare-versions "$version" lt "2021.10-wb1.5.0~~"; then
+    if dpkg --compare-versions "$version" lt "2021.10-wb1.6.0~~"; then
         info "Flashed U-boot version is too old, updating it before reboot"
         u-boot-install-wb -f || fatal "Failed to update U-boot"
     fi
