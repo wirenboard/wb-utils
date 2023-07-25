@@ -98,7 +98,7 @@ prepare_env() {
         ln -s /proc/self/mounts /etc/mtab || true
     fi
 
-    UPDATE_DIR="$(dirname "$FIT")"
+    WEBUPD_DIR="/mnt/data/.wb-update"
 
     # FLAGS variable is defined in wb-run-update
     # This is a hack to pass more flags from installation media for debugging
@@ -110,11 +110,14 @@ prepare_env() {
     fi
 
 
-    UPDATE_STATUS_FILE="$UPDATE_DIR/state/update.status"
-    UPDATE_LOG_FILE="$UPDATE_DIR/state/update.log"
+    UPDATE_STATUS_FILE="$WEBUPD_DIR/state/update.status"
+    UPDATE_LOG_FILE="$WEBUPD_DIR/state/update.log"
 
     if flag_set from-webupdate; then
         info "Web UI-triggered update detected, forwarding logs and status to files"
+
+        mkdir -p "$(dirname "$UPDATE_STATUS_FILE")"
+        mkdir -p "$(dirname "$UPDATE_LOG_FILE")"
 
         mqtt_status() {
             echo "$*" >> "$UPDATE_LOG_FILE"
@@ -745,7 +748,25 @@ update_after_reboot() {
     info "Single rootfs scheme detected, reboot system to perform update"
     info "Waiting for Wiren Board to boot again..."
 
-    mv "$FIT" "$UPDATE_DIR/webupd.fit"
+    mkdir -p "$WEBUPD_DIR"
+    mkdir -p "$(dirname "$UPDATE_STATUS_FILE")"
+    mkdir -p "$(dirname "$UPDATE_LOG_FILE")"
+
+    TARGET_UPDATE_FILE="$WEBUPD_DIR/webupd.fit"
+
+    if [[ "$TARGET_UPDATE_FILE" -ef "$FIT" ]]; then
+        if flag_set no-remove; then
+            # FIXME: pass --no-remove to bootlet via flags file
+            fatal "Flag --no-remove is ignored for $FIT, it is after-reboot FIT location"
+        fi
+    else
+        if flag_set no-remove; then
+            info "Flag --no-remove is set, keeping $FIT"
+            cp "$FIT" "$TARGET_UPDATE_FILE"
+        else
+            mv "$FIT" "$TARGET_UPDATE_FILE"
+        fi
+    fi
 
     # write error note by default in the update status file,
     # it will be overwritten if update script is started properly after reboot
