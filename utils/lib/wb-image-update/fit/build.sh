@@ -21,7 +21,7 @@ fi
 . /usr/lib/wb-utils/wb_env.sh
 wb_source "of"
 
-if of_machine_match "wirenboard,wirenboard-720"; then
+if of_machine_match "wirenboard,wirenboard-7xx" || of_machine_match "wirenboard,wirenboard-720"; then
     TARGET=wb7
 elif of_machine_match "contactless,imx6ul-wirenboard60"; then
     TARGET=wb6
