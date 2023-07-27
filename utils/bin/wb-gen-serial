@@ -77,6 +77,15 @@ def get_custom_serial():
         return None
 
 
+def get_serial_from_dt():
+    path = "/proc/device-tree/wirenboard/serial-number"
+    if os.path.isfile(path):
+        with open(path, "r") as f:
+            return f.read().strip().removesuffix("\x00")
+    else:
+        return None
+
+
 def pack_long(num):
     ret = ""
     while num > 0:
@@ -173,6 +182,10 @@ def _get_serial_2():
 
 
 def get_serial(version=2):
+    serial_from_dt = get_serial_from_dt()
+    if serial_from_dt is not None:
+        return serial_from_dt
+
     custom = get_custom_serial()
     if custom is not None:
         return custom
