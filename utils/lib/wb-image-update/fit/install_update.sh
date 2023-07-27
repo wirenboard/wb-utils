@@ -478,7 +478,7 @@ cleanup_rootfs() {
 ensure_uboot_ready_for_webupd() {
     local version
     version=$(awk '{ print $2 }' /proc/device-tree/chosen/u-boot-version | sed 's/-g[0-9a-f]\+$//')
-    if dpkg --compare-versions "$version" lt "2021.10-wb1.5.0~~"; then
+    if dpkg --compare-versions "$version" lt "2021.10-wb1.6.0~~"; then
         info "Flashed U-boot version is too old, updating it before reboot"
         u-boot-install-wb -f || fatal "Failed to update U-boot"
     fi
@@ -687,7 +687,11 @@ maybe_update_current_factory_fit() {
     # check if current fit supports +single-rootfs feature
     CURRENT_FACTORY_FIT="$mnt/.wb-restore/factoryreset.fit"
 
-    if ! FIT="$CURRENT_FACTORY_FIT" fw_compatible single-rootfs; then
+    if [[ ! -e "$CURRENT_FACTORY_FIT" ]]; then
+        info "No factory FIT found, storing this update as factory FIT to use as bootlet"
+        mkdir -p "$mnt/.wb-restore"
+        cp "$FIT" "$mnt/.wb-restore/factoryreset.fit"
+    elif ! FIT="$CURRENT_FACTORY_FIT" fw_compatible single-rootfs; then
         info "Storing this update as factory FIT to use as bootlet"
         info "Old factory FIT will be kept as factoryreset.original.fit and will still be used to restore firmware"
 

@@ -1,3 +1,9 @@
+wb-utils (4.12.0) stable; urgency=medium
+
+  * add extended rootfs support for wb6
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Thu, 13 Jul 2023 19:10:15 +0600
+
 wb-utils (4.11.2) stable; urgency=medium
 
   * wb-gsm: fix generation of serial number for WB6 with modem

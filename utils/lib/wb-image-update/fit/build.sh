@@ -21,7 +21,11 @@ fi
 . /usr/lib/wb-utils/wb_env.sh
 wb_source "of"
 
-if ! of_machine_match "wirenboard,wirenboard-720"; then
+if of_machine_match "wirenboard,wirenboard-7xx" || of_machine_match "wirenboard,wirenboard-720"; then
+    TARGET=wb7
+elif of_machine_match "contactless,imx6ul-wirenboard60"; then
+    TARGET=wb6
+else
     echo "Single rootfs scheme is not supported on this target, skipping install_update.sh build"
     exit 0
 fi
@@ -87,18 +91,24 @@ mkdir -p /var/lib/wb-image-update
 cp /usr/lib/wb-image-update/fit/install_update.sh /var/lib/wb-image-update/install_update.sh
 cd "$BUILDDIR" && tar cvzf /var/lib/wb-image-update/deps.tar.gz .
 
-echo "+single-rootfs " > /var/lib/wb-image-update/firmware-compatible
-echo "+force-repartition " >> /var/lib/wb-image-update/firmware-compatible
+echo -n "+single-rootfs " > /var/lib/wb-image-update/firmware-compatible
+echo -n "+force-repartition " >> /var/lib/wb-image-update/firmware-compatible
 
-# FIXME: install bootlet image as deb package
-BOOTLET_ZIMAGE=/var/lib/wb-image-update/zImage
-if [[ ! -e "$BOOTLET_ZIMAGE" ]]; then
-    BOOTLET_URL="http://fw-releases.wirenboard.com/utils/build-image/zImage.wb7"
-    SHA256_URL="$BOOTLET_URL.sha256"
+# FIXME: install bootlet image and DTB as deb package
+download_bootlet_file() {
+    local FILE=$1
+    local FILEPATH="/var/lib/wb-image-update/$FILE"
+    if [[ ! -e "$FILEPATH" ]]; then
+        BOOTLET_URL="http://fw-releases.wirenboard.com/utils/build-image/$FILE.$TARGET"
+        SHA256_URL="$BOOTLET_URL.sha256"
 
-    echo "Bootlet zImage not found, getting one from S3"
-    wget -O "$BOOTLET_ZIMAGE" http://fw-releases.wirenboard.com/utils/build-image/zImage.wb7
+        echo "Bootlet $FILE not found, getting one from S3"
+        wget -O "$FILEPATH" "$BOOTLET_URL"
 
-    echo "Checking SHA256 sum"
-    echo "$(wget -O- "$SHA256_URL")  $BOOTLET_ZIMAGE" | sha256sum -c
-fi
+        echo "Checking SHA256 sum"
+        echo "$(wget -O- "$SHA256_URL") $FILEPATH" | sha256sum -c
+    fi
+}
+
+download_bootlet_file zImage
+download_bootlet_file boot.dtb
