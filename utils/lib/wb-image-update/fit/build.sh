@@ -75,7 +75,7 @@ FROM_ROOTFS=(
     /sbin/resize2fs
     /sbin/e2undo
     /sbin/e2fsck
-    /sbin/e4defrag
+    /usr/sbin/e4defrag
 )
 
 for file in "${FROM_ROOTFS[@]}"; do
