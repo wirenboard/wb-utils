@@ -10,7 +10,7 @@ LIBDIR = $(DESTDIR)/$(prefix)/lib/wb-utils
 PREPARE_LIBDIR = $(LIBDIR)/prepare
 RTC_LIBDIR = $(LIBDIR)/wb-gsm-rtc
 
-IMAGEUPDATE_DIR=$(DESTDIR)$(prefix)/lib/wb-image-update
+IMAGEUPDATE_DIR=$(DESTDIR)/$(prefix)/lib/wb-image-update
 IMAGEUPDATE_POSTINST_DIR = $(IMAGEUPDATE_DIR)/postinst
 FIT_FILES_DIR=$(IMAGEUPDATE_DIR)/fit
 
