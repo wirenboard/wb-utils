@@ -62,7 +62,7 @@ setup_device() {
 }
 
 bind_device() {
-    echo musb-hdrc.2.auto > ${USBGADGET_CONFIG}/UDC
+    ls /sys/class/udc | head -1 > ${USBGADGET_CONFIG}/UDC
 }
 
 unbind_device() {
