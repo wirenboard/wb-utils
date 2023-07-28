@@ -62,7 +62,13 @@ setup_device() {
 }
 
 bind_device() {
-    ls /sys/class/udc | head -1 > ${USBGADGET_CONFIG}/UDC
+    	COUNT_OF_FILES=$(($(ls -1 | wc -l)))
+	if [[ $COUNT_OF_FILES -eq 0 ]]
+	then
+		log "ERROR! There are no files in /sys/class/udc, unable to bind device"
+	else
+    	ls /sys/class/udc | head -1 > ${USBGADGET_CONFIG}/UDC
+    fi
 }
 
 unbind_device() {
