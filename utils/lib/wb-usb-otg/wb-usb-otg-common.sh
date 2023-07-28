@@ -62,7 +62,7 @@ setup_device() {
 }
 
 bind_device() {
-    	COUNT_OF_FILES=$(($(ls -1 | wc -l)))
+    	COUNT_OF_FILES=$(($(ls /sys/class/udc -1 | wc -l)))
 	if [[ $COUNT_OF_FILES -eq 0 ]]
 	then
 		log "ERROR! There are no files in /sys/class/udc, unable to bind device"
