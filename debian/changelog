@@ -1,8 +1,14 @@
-wb-utils (4.13.0) stable; urgency=medium
+wb-utils (4.14.0) stable; urgency=medium
 
   * wb-gen-serial: look into standart Linux place
 
- -- Vladimir Romanov <v.romanov@wirenboard.ru>  Thu, 27 Jul 2023 15:56:21 +0600
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Wed, 02 Aug 2023 18:43:21 +0600
+
+wb-utils (4.13.0) stable; urgency=medium
+
+  * Replace fixed udc name to first filename from /sys/class/udc
+
+ -- Ekaterina Volkova <ekaterina.volkova@wirenboard.ru>  Fri, 28 Jul 2023 09:24:38 +0300
 
 wb-utils (4.12.0) stable; urgency=medium
 
