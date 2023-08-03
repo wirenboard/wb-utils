@@ -6,6 +6,7 @@ import os
 import random
 import string
 import sys
+from pathlib import Path
 
 from wb_common import gsm, wifi
 from wb_common.uid import (
@@ -117,7 +118,7 @@ def dt_is_compatible(compatible_str):
     return compatible_str in compatible_with
 
 
-def _get_serial_2():
+def generate_serial_number():
     """
     Since WB 6.7, a gsm modem has become a module => one board could have different modems
     Modem's IMEI shouldn't be involved into WB's SN-generating process
@@ -172,21 +173,41 @@ def _get_serial_2():
     return pack_long(serial_reduced)
 
 
-def get_serial(version=2):
+def sn_is_default_cpuid(sn):
+    """
+    If the serial number was not generated during the production stage, Linux fills it with a default one from cpuid_serial.
+    The default serial number is a hexadecimal string of u64.
+    """
+    try:
+        int(sn, 16)  # throws ValueError if string is not a hex number
+        return len(sn) == 16
+    except ValueError:
+        return False
+
+
+def get_serial():
+
+    # The default location of the board serial number in Linux. It has been used by us since 2023-08.
+    default_sn_path = Path("/proc/device-tree/serial-number")
+    if default_sn_path.exists():
+        sn = default_sn_path.read_text().rstrip("\x00").strip()
+        if not sn_is_default_cpuid(sn):
+            return sn
+
+    # Serial number was generated during the production stage but was not passed to Linux. Deprecated since 2023-08.
     custom = get_custom_serial()
     if custom is not None:
         return custom
 
-    if version != 2:
-        raise ValueError("version 2 serials only are supported")
-    return _get_serial_2()
+    # Deprecated since 2023-08. Serial number generation migrated to production stage.
+    return generate_serial_number()
 
 
 def _get_24bit_serial_v2():
     # serial is 40-bit value,
     # translate it to 24 bit
 
-    serial = unpack_long(_get_serial_2())
+    serial = unpack_long(generate_serial_number())
 
     serial_reduced = 0
 
@@ -321,7 +342,7 @@ def main():
     parser.add_argument(
         "-v",
         "--version",
-        help="Select version of serial number (2 - actual), default - 2",
+        help="Select version of serial number (2 - actual), default - 2. Deprecated since 2023-08",
         type=int,
         default=2,
         choices=[2],
@@ -338,7 +359,7 @@ def main():
     args = parser.parse_args()
 
     if args.mode == "serial":
-        print(get_serial(args.version))
+        print(get_serial())
     elif args.mode_eth_mac is not None:
         print(get_mac(args.type, args.version, args.mode_eth_mac))
 
