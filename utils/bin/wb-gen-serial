@@ -179,7 +179,7 @@ def sn_is_default_cpuid(sn):
     The default serial number is a hexadecimal string of u64.
     """
     try:
-        int(sn, 16)  # check, is a hexadecimal number
+        int(sn, 16)  # throws ValueError if string is not a hex number
         return len(sn) == 16
     except ValueError:
         return False
