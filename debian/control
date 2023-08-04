@@ -11,7 +11,7 @@ Architecture: all
 Depends: ${shlibs:Depends}, ${misc:Depends}, lsb-base (>= 4.1), u-boot-tools-wb (>= 2015.07+wb-3), inotify-tools, pv, jq,
          nginx-extras, python3-wb-common (>= 2.0.0~~), wb-configs (>= 3.18.0~~), util-linux,
          linux-image-wb2 (>= 4.9+wb20180808183130) | linux-image-wb6 (>= 5.10.35-wb108~~) | linux-image-wb7 (>= 5.10.35-wb130~~),
-         device-tree-compiler, parted, rsync, systemd (>= 243)
+         device-tree-compiler, parted, rsync, systemd (>= 243), wb-ec-firmware
 Conflicts: wb-configs (<< 1.69.4)
 Breaks: wb-homa-ism-radio (<< 1.17.2), wb-rules-system (<< 1.6.1), wb-mqtt-serial (<< 1.47.2), wb-mqtt-homeui (<< 1.7.1),
         u-boot-wb7 (<< 2:2021.10+wb1.5.0~~), u-boot-wb6 (<< 2:2021.10+wb1.6.0~~)

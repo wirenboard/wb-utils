@@ -98,6 +98,11 @@ prepare_env() {
         ln -s /proc/self/mounts /etc/mtab || true
     fi
 
+    if [ ! -e /sys/kernel/config/device-tree ]; then
+        mkdir -p /sys/kernel/config
+        mount -t configfs configfs /sys/kernel/config
+    fi
+
     WEBUPD_DIR="/mnt/data/.wb-update"
 
     # FLAGS variable is defined in wb-run-update
@@ -161,7 +166,7 @@ prepare_env() {
 
         if touch "$FINAL_CONSOLE_LOG_FILE" && [[ -w "$FINAL_CONSOLE_LOG_FILE" ]]; then
             exec > >(tee "$TEMP_LOG_FILE") 2>&1
-            trap_add "cat '$TEMP_LOG_FILE' >> '$FINAL_CONSOLE_LOG_FILE'; rm '$TEMP_LOG_FILE'" EXIT
+            trap_add "cat '$TEMP_LOG_FILE' >> '$FINAL_CONSOLE_LOG_FILE'; rm '$TEMP_LOG_FILE; sync; sync'" EXIT
 
             info "Console logging enabled; tempfile $TEMP_LOG_FILE, final file $FINAL_CONSOLE_LOG_FILE will be written on exit"
         fi
@@ -661,6 +666,7 @@ run_postinst() {
     mount -o bind /dev "$ROOTFS_MNT/dev"
     mount -o bind /proc "$ROOTFS_MNT/proc"
     mount -o bind /sys "$ROOTFS_MNT/sys"
+    mount -o bind /sys/kernel/config "$ROOTFS_MNT/sys/kernel/config"
 
     POSTINST_DIR=${2:-"$ROOTFS_MNT/usr/lib/wb-image-update/postinst/"}
     if [[ -d "$POSTINST_DIR" ]]; then
@@ -676,6 +682,7 @@ run_postinst() {
     info "Unmounting /dev, /proc and /sys from rootfs"
     umount "$ROOTFS_MNT/dev"
     umount "$ROOTFS_MNT/proc"
+    umount "$ROOTFS_MNT/sys/kernel/config"
     umount "$ROOTFS_MNT/sys"
 }
 

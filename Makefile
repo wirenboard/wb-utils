@@ -39,7 +39,8 @@ install: build_mass_storage
 
 	install -Dm0755 -t $(LIBDIR) \
 		utils/lib/wb-init.sh \
-		utils/lib/ensure-env-cache.sh
+		utils/lib/ensure-env-cache.sh \
+		utils/lib/device-factory-fdt.sh
 
 	install -Dm0655 -t $(PREPARE_LIBDIR) \
 		utils/lib/prepare/partitions.sh \
@@ -59,7 +60,8 @@ install: build_mass_storage
 		utils/lib/wb-image-update/fix-broken-fit.sh
 
 	install -Dm0755 -t $(IMAGEUPDATE_POSTINST_DIR) \
-		utils/lib/wb-image-update/postinst/10update-u-boot
+		utils/lib/wb-image-update/postinst/10update-u-boot \
+		utils/lib/wb-image-update/postinst/10update-wbec-firmware
 
 	install -Dm0755 -t $(FIT_FILES_DIR) \
 		utils/lib/wb-image-update/fit/build.sh \
