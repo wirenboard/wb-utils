@@ -1,3 +1,9 @@
+wb-utils (4.16.0) stable; urgency=medium
+
+  * Install WBEC firmware on factory reset
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Thu, 17 Aug 2023 12:27:16 +0600
+
 wb-utils (4.15.0) stable; urgency=medium
 
   * Use bootlet from wb-bootlet-wbX package instead of downloading from S3

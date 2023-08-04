@@ -22,7 +22,7 @@ fi
 wb_source "of"
 
 if of_machine_match "wirenboard,wirenboard-7xx" || of_machine_match "wirenboard,wirenboard-720"; then
-    TARGET=wb7
+    TARGET=wb74  # FIXME
 elif of_machine_match "contactless,imx6ul-wirenboard60"; then
     TARGET=wb6
 else
