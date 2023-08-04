@@ -1,3 +1,9 @@
+wb-utils (4.15.0) stable; urgency=medium
+
+  * Install WBEC firmware on factory reset
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Mon, 07 Aug 2023 22:34:30 +0600
+
 wb-utils (4.14.0) stable; urgency=medium
 
   * wb-gen-serial: look into standart Linux place
