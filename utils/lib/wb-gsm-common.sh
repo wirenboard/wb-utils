@@ -14,7 +14,16 @@ OF_GSM_NODE="wirenboard/gsm"  # deprecated since default modem's connection is u
 function guess_of_node() {
     # default modem's connection is usb (with modem node on specific port)
     # wirenboard/gsm node is left for uart-only-modems compatibility
-    of_has_prop "aliases" "wbc_modem" && OF_GSM_NODE=$(of_get_prop_str "aliases" "wbc_modem") || OF_GSM_NODE="wirenboard/gsm"
+    OF_GSM_NODE="wirenboard/gsm"
+    if of_node_exists $OF_GSM_NODE; then
+        if [[ $(of_get_prop_str $OF_GSM_NODE "status") == "okay" ]]; then
+            debug "Got of_gsm_node: $OF_GSM_NODE"
+            return 0
+        fi
+    fi
+    if of_has_prop "aliases" "wbc_modem"; then
+        OF_GSM_NODE=$(of_get_prop_str "aliases" "wbc_modem")
+    fi
     debug "Got of_gsm_node: $OF_GSM_NODE"
 }
 
