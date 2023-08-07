@@ -353,7 +353,7 @@ ensure_enlarged_rootfs_parttable() {
     info "Expanding filesystem on this partition"
     local e2fs_undofile
     e2fs_undofile=$(mktemp)
-    run_tool resize2fs -z "$e2fs_undofile" "$ROOTFS1_PART" || {
+    run_tool resize2fs -f -z "$e2fs_undofile" "$ROOTFS1_PART" || {
         info "Filesystem expantion failed, restoring everything"
         run_tool e2undo "$e2fs_undofile" "$ROOTFS1_PART" || true
         dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
@@ -387,7 +387,7 @@ ensure_ab_rootfs_parttable() {
     info "Shrinking filesystem on $ROOTFS1_PART"
     local e2fs_undofile
     e2fs_undofile=$(mktemp)
-    run_tool resize2fs -z "$e2fs_undofile" "$ROOTFS1_PART" 262144 || {
+    run_tool resize2fs -f -z "$e2fs_undofile" "$ROOTFS1_PART" 262144 || {
         info "Filesystem expantion failed, restoring everything"
         run_tool e2undo "$e2fs_undofile" "$ROOTFS1_PART" || true
         sync
