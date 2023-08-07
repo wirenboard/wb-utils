@@ -27,17 +27,7 @@ if ! flag_set "factoryreset" ; then
     exit
 fi
 
-device_factory_fdt() {
-    local TMPFILE
-    TMPFILE=$(mktemp)
-    trap 'rm -f $TMPFILE' RETURN
-
-    # creating empty DTB to apply overlay to
-    echo "/dts-v1/; / { wirenboard {}; };" | dtc -I dts -O dtb -o "$TMPFILE"
-    dd if=/dev/mmcblk0 bs=512 skip=2016 count=32 | fdtoverlay -i "$TMPFILE" -o - - | fdtget -t s - /wirenboard factory-fdt
-}
-
-FACTORY_DTB="/boot/dtbs/$(device_factory_fdt).fit"
+FACTORY_DTB="/boot/dtbs/$(/usr/lib/wb-utils/device-factory-fdt.sh).fit"
 
 if [ ! -f "$ROOTFS/$FACTORY_DTB" ]; then
     echo "Cannot find factory DTB $FACTORY_DTB"
