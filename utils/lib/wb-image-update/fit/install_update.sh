@@ -789,14 +789,14 @@ else
     info "rootfs is valid, installing firmware update"
 fi
 
-if ! flag_set factoryreset; then
-    ensure_no_downgrade
-fi
-
 # separate this from previous if to make it work
 # without factoryreset after repartition
 if ! flag_set from-initramfs; then
     if ! disk_layout_is_ab; then
+        info "Cheking if this is not a downgrade beforehand"
+        PREVIOUS_PART=2
+        ensure_no_downgrade
+
         update_after_reboot
     fi
 else
@@ -815,6 +815,10 @@ else
     info "Configuring environment for repartitioned eMMC"
     PART=2
     PREVIOUS_PART=2  # used by get_installed_debian_version()
+fi
+
+if ! flag_set factoryreset; then
+    ensure_no_downgrade
 fi
 
 ROOT_PART=${ROOTDEV}p${PART}
