@@ -534,8 +534,13 @@ get_installed_debian_version() {
             info "Temporarily mount actual rootfs $actual_rootfs to check previous OS release"
             if mount -t ext4 "$actual_rootfs" "$MNT" >/dev/null 2>&1 ; then
                 sync
-                source "$MNT/etc/os-release"
-                echo "$VERSION_CODENAME"
+                if [[ -e "$MNT/etc/os-release" ]]; then
+                    source "$MNT/etc/os-release"
+                    echo "$VERSION_CODENAME"
+                else
+                    info "Failed to find /etc/os-release on $actual_rootfs, skipping release check"
+                    echo "unknown"
+                fi
                 umount -f "$actual_rootfs" >/dev/null 2>&1 || true
             else
                 info "Failed to mount rootfs from $actual_rootfs, skipping release check"
@@ -806,7 +811,7 @@ if disk_layout_is_ab; then
 else
     info "Configuring environment for repartitioned eMMC"
     PART=2
-    PREVIOUS_PART=nosuchpartition
+    PREVIOUS_PART=2  # used by get_installed_debian_version()
 fi
 
 ROOT_PART=${ROOTDEV}p${PART}
