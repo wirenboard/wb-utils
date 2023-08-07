@@ -789,6 +789,10 @@ else
     info "rootfs is valid, installing firmware update"
 fi
 
+if ! flag_set factoryreset; then
+    ensure_no_downgrade
+fi
+
 # separate this from previous if to make it work
 # without factoryreset after repartition
 if ! flag_set from-initramfs; then
@@ -800,7 +804,6 @@ else
         fatal "Update failed by request"
     fi
 fi
-
 
 if flag_set "factoryreset" && ! flag_set "no-repartition"; then
     maybe_repartition
@@ -816,10 +819,6 @@ fi
 
 ROOT_PART=${ROOTDEV}p${PART}
 info "Will install to $ROOT_PART"
-
-if ! flag_set factoryreset; then
-    ensure_no_downgrade
-fi
 
 cleanup_rootfs "$ROOT_PART"
 
