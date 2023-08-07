@@ -341,6 +341,15 @@ ensure_enlarged_rootfs_parttable() {
         fatal "Failed to apply a new partition table"
     fi
 
+    info "Checking and repairing filesystem on $ROOTFS1_PART again"
+    run_tool e2fsck -f -p "$ROOTFS1_PART"; E2FSCK_RC=$?
+
+    # e2fsck returns 1 and 2 if some errors were fixed, it's OK for us
+    if [ "$E2FSCK_RC" -gt 2 ]; then
+        info "Filesystem check failed, can't proceed with resizing"
+        return 1
+    fi
+
     info "Expanding filesystem on this partition"
     local e2fs_undofile
     e2fs_undofile=$(mktemp)

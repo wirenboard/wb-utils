@@ -1,3 +1,9 @@
+wb-utils (4.14.1) stable; urgency=medium
+
+  * fix resize2fs error during rootfs repartition
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Mon, 07 Aug 2023 14:40:01 +0600
+
 wb-utils (4.14.0) stable; urgency=medium
 
   * wb-gen-serial: look into standart Linux place
