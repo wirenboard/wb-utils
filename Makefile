@@ -35,12 +35,12 @@ install: build_mass_storage
 		utils/lib/wb_env_legacy.sh \
 		utils/lib/wb_env.sh \
 		utils/lib/wb_env_of.sh \
-		utils/lib/wb-gsm-common.sh \
-		utils/lib/device-factory-fdt.sh
+		utils/lib/wb-gsm-common.sh
 
 	install -Dm0755 -t $(LIBDIR) \
 		utils/lib/wb-init.sh \
-		utils/lib/ensure-env-cache.sh
+		utils/lib/ensure-env-cache.sh \
+		utils/lib/device-factory-fdt.sh
 
 	install -Dm0655 -t $(PREPARE_LIBDIR) \
 		utils/lib/prepare/partitions.sh \
