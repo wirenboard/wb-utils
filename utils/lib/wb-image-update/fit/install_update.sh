@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e
+set -x
 
 ROOTDEV="${ROOTDEV:-/dev/mmcblk0}"
 TMPDIR="${TMPDIR:-/dev/shm}"
