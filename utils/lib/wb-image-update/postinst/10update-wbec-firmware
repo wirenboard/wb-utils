@@ -28,7 +28,7 @@ if ! flag_set "factoryreset" ; then
 fi
 
 FDT_NAME=$(chroot "$ROOTFS" /usr/lib/wb-utils/device-factory-fdt.sh)
-FACTORY_DTB="/boot/dtbs/$FDT_NAME.fit"
+FACTORY_DTB="/boot/dtbs/$FDT_NAME.dtb"
 
 if [ ! -f "$ROOTFS/$FACTORY_DTB" ]; then
     echo "Cannot find factory DTB $FACTORY_DTB"
