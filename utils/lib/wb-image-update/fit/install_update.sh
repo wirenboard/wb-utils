@@ -155,6 +155,14 @@ prepare_env() {
         fi
     fi
 
+    if flag_set console-log; then
+        CONSOLE_LOG_FILE="$(dirname "$FIT")/console.log"
+        if touch "$CONSOLE_LOG_FILE" && [[ -w "$CONSOLE_LOG_FILE" ]]; then
+            exec > >(tee "$CONSOLE_LOG_FILE") 2>&1
+            info "Logging to console file $CONSOLE_LOG_FILE enabled"
+        fi
+    fi
+
     type fit_prop_string 2>/dev/null | grep -q 'shell function' || {
         fit_prop_string() {
             fit_prop "$@" | tr -d '\0'
