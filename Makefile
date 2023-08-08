@@ -9,7 +9,10 @@ BINDIR = $(DESTDIR)/$(prefix)/bin
 LIBDIR = $(DESTDIR)/$(prefix)/lib/wb-utils
 PREPARE_LIBDIR = $(LIBDIR)/prepare
 RTC_LIBDIR = $(LIBDIR)/wb-gsm-rtc
-IMAGEUPDATE_POSTINST_DIR = $(DESTDIR)/$(prefix)/lib/wb-image-update/postinst
+
+IMAGEUPDATE_DIR=$(DESTDIR)/$(prefix)/lib/wb-image-update
+IMAGEUPDATE_POSTINST_DIR = $(IMAGEUPDATE_DIR)/postinst
+FIT_FILES_DIR=$(IMAGEUPDATE_DIR)/fit
 
 install:
 	install -m 0755 -d $(BINDIR) $(LIBDIR) $(PREPARE_LIBDIR) $(RTC_LIBDIR) $(IMAGEUPDATE_POSTINST_DIR)
@@ -51,6 +54,10 @@ install:
 
 	install -m 0755 -t $(IMAGEUPDATE_POSTINST_DIR) \
 		utils/lib/wb-image-update/postinst/10update-u-boot
+
+	install -Dm0755 -t $(FIT_FILES_DIR) \
+		utils/lib/wb-image-update/fit/build.sh \
+		utils/lib/wb-image-update/fit/install_update.sh
 
 clean:
 	@echo Nothing to do
