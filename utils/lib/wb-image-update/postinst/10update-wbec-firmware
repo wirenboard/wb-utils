@@ -36,7 +36,7 @@ if [ ! -f "$ROOTFS/$FACTORY_DTB" ]; then
 fi
 
 # extracting compatible property from factory DTB
-COMPATIBLE=$(fdtget -t s "$ROOTFS/$FACTORY_DTB" / compatible)
+COMPATIBLE=$(chroot "$ROOTFS" fdtget -t s "$FACTORY_DTB" / compatible)
 
 case "$COMPATIBLE" in
     *wirenboard,wirenboard-74x*)
