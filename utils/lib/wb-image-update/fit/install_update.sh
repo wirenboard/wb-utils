@@ -155,6 +155,18 @@ prepare_env() {
         fi
     fi
 
+    if flag_set console-log; then
+        FINAL_CONSOLE_LOG_FILE="$(dirname "$FIT")/console.log"
+        TEMP_LOG_FILE="$(mktemp)"
+
+        if touch "$FINAL_CONSOLE_LOG_FILE" && [[ -w "$FINAL_CONSOLE_LOG_FILE" ]]; then
+            exec > >(tee "$TEMP_LOG_FILE") 2>&1
+            trap_add "cat '$TEMP_LOG_FILE' >> '$FINAL_CONSOLE_LOG_FILE'; rm '$TEMP_LOG_FILE'" EXIT
+
+            info "Console logging enabled; tempfile $TEMP_LOG_FILE, final file $FINAL_CONSOLE_LOG_FILE will be written on exit"
+        fi
+    fi
+
     type fit_prop_string 2>/dev/null | grep -q 'shell function' || {
         fit_prop_string() {
             fit_prop "$@" | tr -d '\0'
