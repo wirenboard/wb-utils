@@ -1,3 +1,9 @@
+wb-utils (4.12.0-wb100) stable; urgency=medium
+
+  * Fix 2G modems initialization on WB6
+
+ -- Petr Krasnoshchekov <petr.krasnoshchekov@wirenboard.com>  Tue, 08 Aug 2023 08:42:23 +0500
+
 wb-utils (4.12.0) stable; urgency=medium
 
   * add extended rootfs support for wb6
