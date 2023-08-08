@@ -156,10 +156,14 @@ prepare_env() {
     fi
 
     if flag_set console-log; then
-        CONSOLE_LOG_FILE="$(dirname "$FIT")/console.log"
+        FINAL_CONSOLE_LOG_FILE="$(dirname "$FIT")/console.log"
+        TEMP_LOG_FILE="$(mktemp)"
+
         if touch "$CONSOLE_LOG_FILE" && [[ -w "$CONSOLE_LOG_FILE" ]]; then
-            exec > >(tee "$CONSOLE_LOG_FILE") 2>&1
-            info "Logging to console file $CONSOLE_LOG_FILE enabled"
+            exec > >(tee "$TEMP_LOG_FILE") 2>&1
+            trap_add "cat '$TEMP_LOG_FILE' >> '$FINAL_CONSOLE_LOG_FILE'; rm '$TEMP_LOG_FILE'" EXIT
+
+            info "Console logging enabled; tempfile $TEMP_LOG_FILE, final file $CONSOLE_LOG_FILE will be written on exit"
         fi
     fi
 
