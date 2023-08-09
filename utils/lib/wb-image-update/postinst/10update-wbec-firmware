@@ -40,13 +40,8 @@ COMPATIBLE=$(chroot "$ROOTFS" fdtget -t s "$FACTORY_DTB" / compatible)
 
 case "$COMPATIBLE" in
     *wirenboard,wirenboard-74x*)
-        if ! ls "$ROOTFS/dev/i2c*" >/dev/null 2>&1; then
-            mount -t bind /dev "$ROOTFS/dev"
-            trap 'umount $ROOTFS/dev' EXIT
-        fi
-
         echo "Trying to update WBEC firmware"
-        "$ROOTFS/chroot_this.sh" /bin/bash -c "export DTB=$FACTORY_DTB; /usr/bin/wb-ec-firmware-update"
+        chroot "$ROOTFS" /bin/bash -c "export DTB=$FACTORY_DTB; if ischroot; then echo 'Chroot!!!'; fi; /usr/bin/wb-ec-firmware-update"
         ;;
     *)
         echo "This Wiren Board does not have WBEC, exiting"
