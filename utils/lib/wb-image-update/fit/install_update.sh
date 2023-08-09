@@ -690,7 +690,7 @@ run_postinst() {
     mount -o bind /proc "$ROOTFS_MNT/proc"
     mount -o bind /sys "$ROOTFS_MNT/sys"
 
-    POSTINST_DIR="$ROOTFS_MNT/usr/lib/wb-image-update/postinst/"
+    POSTINST_DIR=${2:-"$ROOTFS_MNT/usr/lib/wb-image-update/postinst/"}
     if [[ -d "$POSTINST_DIR" ]]; then
         info "Running post-install scripts"
 
@@ -910,6 +910,11 @@ fi
 
 if ! flag_set no-postinst; then
     run_postinst "$MNT"
+
+    if flag_set custom-postinst && [[ -d "$(dirname "$FIT")/install_update.postinst" ]]; then
+        info "Running custom postinst scripts from $(dirname "$FIT")/install_update.postinst"
+        run_postinst "$MNT" "$(dirname "$FIT")/install_update.postinst/"
+    fi
 fi
 
 if flag_set copy-to-factory; then
