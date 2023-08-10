@@ -1,3 +1,9 @@
+wb-utils (4.12.0-wb101) stable; urgency=medium
+
+  * Get hostname prefix from env variable
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Fri, 04 Aug 2023 17:15:00 +0400
+
 wb-utils (4.12.0-wb100) stable; urgency=medium
 
   * Fix 2G modems initialization on WB6

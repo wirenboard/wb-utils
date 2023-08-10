@@ -16,6 +16,8 @@ WB_DIR="/var/lib/wirenboard"
 SERIAL="$WB_DIR/serial.conf"
 SHORT_SN_FNAME="$WB_DIR/short_sn.conf"
 
+WB_HOSTNAME_PREFIX="${WB_HOSTNAME_PREFIX:-wirenboard}"
+
 FIRSTBOOT_NEED_REBOOT=false
 
 wb_check_mounted()
@@ -219,12 +221,12 @@ wb_fix_serial()
 wb_fix_hosts()
 {
     hostname=$(cat /etc/hostname)
-    if [[ $hostname =~ wirenboard-[0-9A-Z]{2,8} ]]; then
-            hostname_search_string=$(awk -v hostname_pattern="$hostname" '$0~hostname_pattern {f=1} $0!~hostname_pattern {f=0} f {print 0}' /etc/hosts.wb)
-            if [ -z "$hostname_search_string" ]; then
-                    sed -i "1i 127.0.0.1    ${hostname}" /etc/hosts.wb
-                    systemd-cat echo "Add $hostname to /etc/hosts.wb list"
-            fi
+    if [[ $hostname =~ ${WB_HOSTNAME_PREFIX}-[0-9A-Z]{2,8} ]]; then
+        hostname_search_string=$(awk -v hostname_pattern="$hostname" '$0~hostname_pattern {f=1} $0!~hostname_pattern {f=0} f {print 0}' /etc/hosts.wb)
+        if [ -z "$hostname_search_string" ]; then
+            sed -i "1i 127.0.0.1    ${hostname}" /etc/hosts.wb
+            systemd-cat echo "Add $hostname to /etc/hosts.wb list"
+        fi
     fi
 }
 
@@ -235,7 +237,7 @@ wb_fix_short_sn()
     # also fill everything containing this short serial number
     local short_sn=`cat ${SHORT_SN_FNAME}`
     local ssid="WirenBoard-${short_sn}"
-    local hostname="wirenboard-${short_sn}"
+    local hostname="${WB_HOSTNAME_PREFIX}-${short_sn}"
 
     log_action_msg "Creating hostname file with ${hostname}"
     if which hostnamectl >/dev/null; then
