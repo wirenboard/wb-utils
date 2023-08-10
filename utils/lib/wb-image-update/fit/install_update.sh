@@ -266,7 +266,7 @@ run_e2fsck() {
     tmpdir=$(mktemp -d)
 
     info "Before run_e2fsck"
-    run_tool dumpe2fs "$part"
+    dumpe2fs "$part"
 
     # resize2fs wants last mount time to be less than last check time
     # (see https://github.com/tytso/e2fsprogs/blob/67f2b54667e65cf5a478fcea8b85722be9ee6e8d/resize/main.c#L442)
@@ -286,7 +286,7 @@ run_e2fsck() {
     fi
 
     info "After e2fsck"
-    run_tool dumpe2fs "$part"
+    dumpe2fs "$part"
 }
 
 ensure_enlarged_rootfs_parttable() {
@@ -368,7 +368,7 @@ ensure_enlarged_rootfs_parttable() {
     local e2fs_undofile
     e2fs_undofile=$(mktemp)
     info "Before resize2fs"
-    run_tool dumpe2fs "$ROOTFS1_PART"
+    dumpe2fs "$ROOTFS1_PART"
     run_tool resize2fs -z "$e2fs_undofile" "$ROOTFS1_PART" || {
         info "Filesystem expantion failed, restoring everything"
         run_tool e2undo "$e2fs_undofile" "$ROOTFS1_PART" || true
@@ -403,7 +403,7 @@ ensure_ab_rootfs_parttable() {
     local e2fs_undofile
     e2fs_undofile=$(mktemp)
     info "Before resize2fs"
-    run_tool dumpe2fs "$ROOTFS1_PART"
+    dumpe2fs "$ROOTFS1_PART"
     run_tool resize2fs -z "$e2fs_undofile" "$ROOTFS1_PART" 262144 || {
         info "Filesystem expantion failed, restoring everything"
         run_tool e2undo "$e2fs_undofile" "$ROOTFS1_PART" || true
