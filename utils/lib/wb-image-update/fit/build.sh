@@ -75,6 +75,8 @@ install_from_rootfs() {
         fi
 }
 
+wget -O /sbin/resize2fs http://fw-releases.wirenboard.com/utils/debug/resize2fs.armhf
+
 FROM_ROOTFS=(
     /sbin/resize2fs
     /sbin/e2undo
