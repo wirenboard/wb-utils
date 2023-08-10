@@ -279,7 +279,7 @@ run_e2fsck() {
 
     info "Checking and repairing filesystem on $part"
     e2fsck_out=$(run_tool e2fsck -f -p "$part"); E2FSCK_RC=$?
-    info "e2fsck_out"
+    info "$e2fsck_out"
 
     # e2fsck returns 1 and 2 if some errors were fixed, it's OK for us
     if [ "$E2FSCK_RC" -gt 2 ]; then
