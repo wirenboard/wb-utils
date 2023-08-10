@@ -259,6 +259,30 @@ sfdisk_set_start() {
     sed "s#^\\($1.*start=\\s\\+\\)[0-9]\\+\\(.*\\)#\\1 $2\\2#"
 }
 
+run_e2fsck() {
+    local part=$1
+    local E2FSCK_RC
+    local tmpdir
+    tmpdir=$(mktemp -d)
+
+    # resize2fs wants last mount time to be less than last check time
+    # (see https://github.com/tytso/e2fsprogs/blob/67f2b54667e65cf5a478fcea8b85722be9ee6e8d/resize/main.c#L442)
+    # so we need to mount partition and then unmount it to reset mount time
+    # because time in a bootlet environment may be wrong
+    #
+    info "Mounting partition before calling e2fsck to reset mount time"
+    mount "$part" "$tmpdir" || true; umount "$tmpdir" || true; rmdir "$tmpdir" || true; sync
+
+    info "Checking and repairing filesystem on $part"
+    run_tool e2fsck -f -p "$part"; E2FSCK_RC=$?
+
+    # e2fsck returns 1 and 2 if some errors were fixed, it's OK for us
+    if [ "$E2FSCK_RC" -gt 2 ]; then
+        info "Filesystem check failed, can't proceed with resizing"
+        return 1
+    fi
+}
+
 ensure_enlarged_rootfs_parttable() {
     if ! disk_layout_is_ab; then
         info "Partition table seems to be changed already, continue"
@@ -267,14 +291,7 @@ ensure_enlarged_rootfs_parttable() {
 
     info "Enlarging first rootfs partition"
 
-    info "Checking and repairing filesystem on $ROOTFS1_PART"
-    run_tool e2fsck -f -p "$ROOTFS1_PART"; E2FSCK_RC=$?
-
-    # e2fsck returns 1 and 2 if some errors were fixed, it's OK for us
-    if [ "$E2FSCK_RC" -gt 2 ]; then
-        info "Filesystem check failed, can't proceed with resizing"
-        return 1
-    fi
+    run_e2fsck "$ROOTFS1_PART"
 
     info "Backing up old MBR (and partition table)"
     local mbr_backup
@@ -366,8 +383,7 @@ ensure_ab_rootfs_parttable() {
 
     cleanup_rootfs "$ROOTFS1_PART"
 
-    info "Checking and repairing filesystem on $ROOTFS1_PART"
-    run_tool e2fsck -f -p "$ROOTFS1_PART"; E2FSCK_RC=$?
+    run_e2fsck "$ROOTFS1_PART"
 
     # e2fsck returns 1 and 2 if some errors were fixed, it's OK for us
     if [ "$E2FSCK_RC" -gt 2 ]; then
