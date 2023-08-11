@@ -275,11 +275,13 @@ run_e2fsck() {
     # because time in a bootlet environment may be wrong
     #
     info "Mounting partition before calling e2fsck to reset mount time"
-    mount "$part" "$tmpdir" || true; umount "$tmpdir" || true; rmdir "$tmpdir" || true; sync
+    mount "$part" "$tmpdir"
+    rm -rf "$tmpdir"/lost+found  # this will force e2fsck to create new lost+found and rewrite last check time
+    umount "$tmpdir"; rmdir "$tmpdir"; sync
 
     info "Checking and repairing filesystem on $part"
-    #e2fsck_out=$(run_tool e2fsck -f -p "$part"); E2FSCK_RC=$?
-    e2fsck_out=$(run_tool e2fsck -d -f "$part"); E2FSCK_RC=$?
+    e2fsck_out=$(run_tool e2fsck -f -p "$part"); E2FSCK_RC=$?
+    #e2fsck_out=$(run_tool e2fsck -d -f "$part"); E2FSCK_RC=$?
     info "$e2fsck_out"
 
     # e2fsck returns 1 and 2 if some errors were fixed, it's OK for us
