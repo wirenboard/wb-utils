@@ -1,8 +1,9 @@
 wb-utils (4.14.4) stable; urgency=medium
 
   * Fix broken rootfs enlargement on some devices with incorrect time
+  * Add --print-dumpe2fs flag
 
- -- Vladimir Romanov <v.romanov@wirenboard.ru>  Fri, 11 Aug 2023 15:02:45 +0600
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Fri, 11 Aug 2023 15:02:45 +0300
 
 wb-utils (4.14.3) stable; urgency=medium
 

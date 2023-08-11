@@ -280,9 +280,11 @@ run_e2fsck() {
     # force update last_check ts
     run_tool tune2fs -T now $part
 
-    info "Filesystem info after e2fsck on $part"
-    dumpe2fs_output=$(run_tool dumpe2fs "$part")
-    info "$dumpe2fs_output"
+    if flag_set print-dumpe2fs; then
+        info "Filesystem info after e2fsck on $part"
+        dumpe2fs_output=$(run_tool dumpe2fs "$part")
+        info "$dumpe2fs_output"
+    fi
 }
 
 ensure_enlarged_rootfs_parttable() {
