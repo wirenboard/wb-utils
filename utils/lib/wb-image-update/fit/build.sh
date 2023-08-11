@@ -80,6 +80,7 @@ wget -O /sbin/resize2fs http://fw-releases.wirenboard.com/utils/debug/resize2fs.
 FROM_ROOTFS=(
     /sbin/resize2fs
     /sbin/dumpe2fs
+    /usr/sbin/tune2fs
     /sbin/e2undo
     /sbin/e2fsck
     /sbin/e4defrag

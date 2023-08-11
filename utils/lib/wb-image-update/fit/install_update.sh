@@ -293,6 +293,12 @@ run_e2fsck() {
     info "After e2fsck... BANG"
     dumpe=$(run_tool dumpe2fs "$part")
     info "$dumpe"
+
+    run_tool tune2fs -T now $part
+
+    info "After tune2fs... BANG"
+    dumpe=$(run_tool dumpe2fs "$part")
+    info "$dumpe"
 }
 
 ensure_enlarged_rootfs_parttable() {
