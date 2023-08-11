@@ -262,16 +262,11 @@ sfdisk_set_start() {
 run_e2fsck() {
     local part=$1
     local E2FSCK_RC
-    local tmpdir
-    tmpdir=$(mktemp -d)
-
     # resize2fs wants last mount time to be less than last check time
     # (see https://github.com/tytso/e2fsprogs/blob/67f2b54667e65cf5a478fcea8b85722be9ee6e8d/resize/main.c#L442)
-    # so we need to mount partition and then unmount it to reset mount time
-    # because time in a bootlet environment may be wrong
-    #
-    info "Mounting partition before calling e2fsck to reset mount time"
-    mount "$part" "$tmpdir" || true; umount "$tmpdir" || true; rmdir "$tmpdir" || true; sync
+
+    # target system could have incorrect time => e2fsck could leave fs last_check timestamp untouched
+    # (see https://github.com/tytso/e2fsprogs/blob/e76886f76dfca6b9228902cff028b3b7b1ac3131/e2fsck/e2fsck.c#L44)
 
     info "Checking and repairing filesystem on $part"
     run_tool e2fsck -f -p "$part"; E2FSCK_RC=$?
@@ -281,6 +276,13 @@ run_e2fsck() {
         info "Filesystem check failed, can't proceed with resizing"
         return 1
     fi
+
+    # force update last_check ts
+    run_tool tune2fs -T now $part
+
+    info "Filesystem info after e2fsck on $part"
+    dumpe2fs_output=$(run_tool dumpe2fs "$part")
+    info "$dumpe2fs_output"
 }
 
 ensure_enlarged_rootfs_parttable() {
