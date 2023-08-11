@@ -262,11 +262,19 @@ sfdisk_set_start() {
 run_e2fsck() {
     local part=$1
     local E2FSCK_RC
+    local tmpdir
+    tmpdir=$(mktemp -d)
+
     # resize2fs wants last mount time to be less than last check time
     # (see https://github.com/tytso/e2fsprogs/blob/67f2b54667e65cf5a478fcea8b85722be9ee6e8d/resize/main.c#L442)
-
     # target system could have incorrect time => e2fsck could leave fs last_check timestamp untouched
     # (see https://github.com/tytso/e2fsprogs/blob/e76886f76dfca6b9228902cff028b3b7b1ac3131/e2fsck/e2fsck.c#L44)
+
+    # so we need to renew partition's mount and check timestamps manually
+
+    info "Mounting partition before calling e2fsck to renew mount time"
+    mount "$part" "$tmpdir"
+    umount "$tmpdir"; rmdir "$tmpdir"; sync
 
     info "Checking and repairing filesystem on $part"
     run_tool e2fsck -f -p "$part"; E2FSCK_RC=$?
