@@ -77,6 +77,8 @@ install_from_rootfs() {
 
 FROM_ROOTFS=(
     /sbin/resize2fs
+    /sbin/dumpe2fs
+    /sbin/tune2fs
     /sbin/e2undo
     /sbin/e2fsck
     /usr/sbin/e4defrag
