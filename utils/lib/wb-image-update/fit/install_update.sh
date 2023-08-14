@@ -166,7 +166,7 @@ prepare_env() {
 
         if touch "$FINAL_CONSOLE_LOG_FILE" && [[ -w "$FINAL_CONSOLE_LOG_FILE" ]]; then
             exec > >(tee "$TEMP_LOG_FILE") 2>&1
-            trap_add "cat '$TEMP_LOG_FILE' >> '$FINAL_CONSOLE_LOG_FILE'; rm '$TEMP_LOG_FILE; sync; sync'" EXIT
+            trap_add "cat '$TEMP_LOG_FILE' >> '$FINAL_CONSOLE_LOG_FILE'; rm '$TEMP_LOG_FILE'; sync; sync" EXIT
 
             info "Console logging enabled; tempfile $TEMP_LOG_FILE, final file $FINAL_CONSOLE_LOG_FILE will be written on exit"
         fi
