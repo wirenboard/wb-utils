@@ -160,8 +160,8 @@ prepare_env() {
         fi
     fi
 
-    if flag_set console-log; then
-        FINAL_CONSOLE_LOG_FILE="$(dirname "$FIT")/console.log"
+    if ! flag_set no-console-log; then
+        FINAL_CONSOLE_LOG_FILE="$(dirname "$FIT")/wb-console.log"
         TEMP_LOG_FILE="$(mktemp)"
 
         if touch "$FINAL_CONSOLE_LOG_FILE" && [[ -w "$FINAL_CONSOLE_LOG_FILE" ]]; then
