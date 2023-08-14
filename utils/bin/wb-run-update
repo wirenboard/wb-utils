@@ -176,7 +176,8 @@ check_firmware_compatible() {
     fi
 
     if ! fw_has_proper_dtb; then
-        die "Firmware is not compatible with this device"
+        info "This firmware is too old for this device, please use newer one from https://fw-releases.wirenboard.com/"
+        die "Firmware is not compatible with this device, no proper DTB found"
     fi
 
     if ! disk_layout_is_ab && ! fw_compatible "single-rootfs"; then
