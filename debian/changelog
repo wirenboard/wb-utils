@@ -1,8 +1,15 @@
-wb-utils (4.12.0-wb102) stable; urgency=medium
+wb-utils (4.12.0-wb103) stable; urgency=medium
 
   * wb-gen-serial: look into standart Linux place
 
- -- Vladimir Romanov <v.romanov@wirenboard.ru>  Thu, 10 Aug 2023 11:43:28 +0600
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Mon, 14 Aug 2023 10:42:32 +0300
+
+wb-utils (4.12.0-wb102) stable; urgency=medium
+
+  * Fix broken rootfs enlargement on some devices with incorrect time
+  * Add --print-dumpe2fs flag
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Fri, 11 Aug 2023 15:02:45 +0300
 
 wb-utils (4.12.0-wb101) stable; urgency=medium
 
