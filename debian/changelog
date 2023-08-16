@@ -1,3 +1,9 @@
+wb-utils (4.16.0) stable; urgency=medium
+
+  * Use bootlet from wb-bootlet-wbX package instead of downloading from S3
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Fri, 18 Aug 2023 17:49:05 +0600
+
 wb-utils (4.15.0) stable; urgency=medium
 
   * wb-run-update: check new FIT compatibility by looking for DTB presence
