@@ -94,21 +94,8 @@ cd "$BUILDDIR" && tar cvzf /var/lib/wb-image-update/deps.tar.gz .
 echo -n "+single-rootfs " > /var/lib/wb-image-update/firmware-compatible
 echo -n "+force-repartition " >> /var/lib/wb-image-update/firmware-compatible
 
-# FIXME: install bootlet image and DTB as deb package
-download_bootlet_file() {
-    local FILE=$1
-    local FILEPATH="/var/lib/wb-image-update/$FILE"
-    if [[ ! -e "$FILEPATH" ]]; then
-        BOOTLET_URL="http://fw-releases.wirenboard.com/utils/build-image/$FILE.$TARGET"
-        SHA256_URL="$BOOTLET_URL.sha256"
-
-        echo "Bootlet $FILE not found, getting one from S3"
-        wget -O "$FILEPATH" "$BOOTLET_URL"
-
-        echo "Checking SHA256 sum"
-        echo "$(wget -O- "$SHA256_URL") $FILEPATH" | sha256sum -c
-    fi
-}
-
-download_bootlet_file zImage
-download_bootlet_file boot.dtb
+if [[ ! -f /var/lib/wb-image-update/zImage ]] || [[ ! -f /var/lib/wb-image-update/boot.dtb ]]; then
+    echo "bootlet is not found, something went wrong"
+    ls -lah /var/lib/wb-image-update
+    exit 1
+fi

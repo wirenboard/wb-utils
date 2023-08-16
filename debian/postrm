@@ -7,6 +7,10 @@ if [ "$1" = "purge" ] ; then
 	update-rc.d wb-watch-update remove >/dev/null
 fi
 
+# remove diversions for wb bootlet
+dpkg-divert --package wb-utils --rename --remove /usr/share/wb-bootlet/zImage
+dpkg-divert --package wb-utils --rename --remove /usr/share/wb-bootlet/boot.dtb
+
 #DEBHELPER#
 
 exit 0
