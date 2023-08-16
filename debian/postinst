@@ -2,10 +2,6 @@
 set -e
 #DEBHELPER#
 
-# apply diversions for wb bootlet
-dpkg-divert --package wb-utils --divert /var/lib/wb-image-update/zImage --rename /usr/share/wb-bootlet/zImage
-dpkg-divert --package wb-utils --divert /var/lib/wb-image-update/boot.dtb --rename /usr/share/wb-bootlet/boot.dtb
-
 if [[ -e "/usr/sbin/policy-rc.d" ]] && [[ "$(cat /usr/sbin/policy-rc.d)" == "exit 101" ]]; then
     echo "rootfs building mode, preparing FIT install script"
     /usr/lib/wb-image-update/fit/build.sh
