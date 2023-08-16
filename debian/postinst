@@ -2,6 +2,10 @@
 set -e
 #DEBHELPER#
 
+# apply diversions for wb bootlet
+dpkg-divert --package wb-utils --divert /var/lib/wb-image-update/zImage --rename /usr/share/wb-bootlet/zImage
+dpkg-divert --package wb-utils --divert /var/lib/wb-image-update/boot.dtb --rename /usr/share/wb-bootlet/boot.dtb
+
 if [[ -e "/usr/sbin/policy-rc.d" ]] && [[ "$(cat /usr/sbin/policy-rc.d)" == "exit 101" ]]; then
     echo "rootfs building mode, preparing FIT install script"
     /usr/lib/wb-image-update/fit/build.sh
@@ -14,9 +18,5 @@ fi
     >&2 echo -e "You can try again later by calling 'apt install --reinstall wb-utils'.\n"
     >&2 echo -e "For further information see https://wirenboard.com/wiki/WB_7:_Errata#ERRWB73009\n"
 }
-
-# apply diversions for wb bootlet
-dpkg-divert --package wb-utils --divert /var/lib/wb-image-update/zImage --rename /usr/share/wb-bootlet/zImage
-dpkg-divert --package wb-utils --divert /var/lib/wb-image-update/boot.dtb --rename /usr/share/wb-bootlet/boot.dtb
 
 exit 0
