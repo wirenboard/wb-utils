@@ -1,3 +1,10 @@
+wb-utils (3.7.0-wb110) stable; urgency=medium
+
+  * Fix broken rootfs enlargement on some devices with incorrect time
+  * Add --print-dumpe2fs flag
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Thu, 17 Aug 2023 14:59:11 +0600
+
 wb-utils (3.7.0-wb109) stable; urgency=medium
 
   * move install_update.sh script for FIT images to this package
