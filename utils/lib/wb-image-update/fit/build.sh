@@ -21,15 +21,6 @@ fi
 . /usr/lib/wb-utils/wb_env.sh
 wb_source "of"
 
-if of_machine_match "wirenboard,wirenboard-7xx" || of_machine_match "wirenboard,wirenboard-720"; then
-    TARGET=wb74  # FIXME
-elif of_machine_match "contactless,imx6ul-wirenboard60"; then
-    TARGET=wb6
-else
-    echo "Single rootfs scheme is not supported on this target, skipping install_update.sh build"
-    exit 0
-fi
-
 BUILDDIR="$(mktemp -d)"
 
 cleanup() {
@@ -98,6 +89,5 @@ echo -n "+force-repartition " >> /var/lib/wb-image-update/firmware-compatible
 
 if [[ ! -f /var/lib/wb-image-update/zImage ]] || [[ ! -f /var/lib/wb-image-update/boot.dtb ]]; then
     echo "bootlet is not found, something went wrong"
-    ls -lah /var/lib/wb-image-update
     exit 1
 fi
