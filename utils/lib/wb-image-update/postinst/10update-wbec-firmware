@@ -27,6 +27,8 @@ if ! flag_set "factoryreset" ; then
     exit
 fi
 
+# gather factory FDT name from device, use scripts from actual rootfs
+# to avoid dependency on initramfs environment
 FDT_NAME=$(chroot "$ROOTFS" /usr/lib/wb-utils/device-factory-fdt.sh)
 FACTORY_DTB="/boot/dtbs/$FDT_NAME.dtb"
 
