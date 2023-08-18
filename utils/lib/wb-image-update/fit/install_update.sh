@@ -155,6 +155,18 @@ prepare_env() {
         fi
     fi
 
+    if ! flag_set no-console-log; then
+        FINAL_CONSOLE_LOG_FILE="$(dirname "$FIT")/wb-console.log"
+        TEMP_LOG_FILE="$(mktemp)"
+
+        if touch "$FINAL_CONSOLE_LOG_FILE" && [[ -w "$FINAL_CONSOLE_LOG_FILE" ]]; then
+            exec > >(tee "$TEMP_LOG_FILE") 2>&1
+            trap_add "cat '$TEMP_LOG_FILE' >> '$FINAL_CONSOLE_LOG_FILE'; rm '$TEMP_LOG_FILE'; sync; sync" EXIT
+
+            info "Console logging enabled; tempfile $TEMP_LOG_FILE, final file $FINAL_CONSOLE_LOG_FILE will be written on exit"
+        fi
+    fi
+
     type fit_prop_string 2>/dev/null | grep -q 'shell function' || {
         fit_prop_string() {
             fit_prop "$@" | tr -d '\0'
@@ -678,7 +690,7 @@ run_postinst() {
     mount -o bind /proc "$ROOTFS_MNT/proc"
     mount -o bind /sys "$ROOTFS_MNT/sys"
 
-    POSTINST_DIR="$ROOTFS_MNT/usr/lib/wb-image-update/postinst/"
+    POSTINST_DIR=${2:-"$ROOTFS_MNT/usr/lib/wb-image-update/postinst/"}
     if [[ -d "$POSTINST_DIR" ]]; then
         info "Running post-install scripts"
 
@@ -898,6 +910,11 @@ fi
 
 if ! flag_set no-postinst; then
     run_postinst "$MNT"
+
+    if flag_set custom-postinst && [[ -d "$(dirname "$FIT")/install_update.postinst" ]]; then
+        info "Running custom postinst scripts from $(dirname "$FIT")/install_update.postinst"
+        run_postinst "$MNT" "$(dirname "$FIT")/install_update.postinst/"
+    fi
 fi
 
 if flag_set copy-to-factory; then

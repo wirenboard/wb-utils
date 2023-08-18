@@ -1,3 +1,11 @@
+wb-utils (4.12.0-wb105) stable; urgency=medium
+
+  * wb-run-update: check new FIT compatibility by looking for DTB presence
+  * install_update.sh: add console logging, enabled by default
+  * install_update.sh: add custom postinst support (for debugging)
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Mon, 21 Aug 2023 14:36:08 +0600
+
 wb-utils (4.12.0-wb104) stable; urgency=medium
 
   * Don't source wb_env.sh for wb-ts terminal
