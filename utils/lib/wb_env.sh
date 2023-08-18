@@ -1,5 +1,7 @@
 #!/bin/bash
 
+[[ "$LC_TERMINAL" = "wb-ts" ]] && return 0
+
 # unset all old variables with WB_ prefix beforehand
 for var in "${!WB_@}"; do unset "$var"; done
 
