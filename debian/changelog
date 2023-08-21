@@ -1,3 +1,9 @@
+wb-utils (4.17.1) stable; urgency=medium
+
+  * Don't source wb_env.sh for wb-ts terminal
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Mon, 21 Aug 2023 10:37:00 +0400
+
 wb-utils (4.17.0) stable; urgency=medium
 
   * install_update.sh: install WBEC firmware on factory reset on WB7.4 and
