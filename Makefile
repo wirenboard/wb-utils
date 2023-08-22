@@ -62,6 +62,9 @@ install: build_mass_storage
 	install -Dm0755 -t $(IMAGEUPDATE_POSTINST_DIR) \
 		utils/lib/wb-image-update/postinst/10update-u-boot
 
+	install -Dm0755 -t $(IMAGEUPDATE_POSTINST_DIR) \
+		utils/lib/wb-image-update/postinst/20ms-license
+
 	install -Dm0755 -t $(FIT_FILES_DIR) \
 		utils/lib/wb-image-update/fit/build.sh \
 		utils/lib/wb-image-update/fit/install_update.sh
