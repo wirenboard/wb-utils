@@ -1,3 +1,9 @@
+wb-utils (4.12.0-wb105-cb8ea449) stable; urgency=medium
+
+  * Add 20ms-license postinst script
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Tue, 22 Aug 2023 18:23:00 +0400
+
 wb-utils (4.12.0-wb105) stable; urgency=medium
 
   * wb-run-update: check new FIT compatibility by looking for DTB presence
