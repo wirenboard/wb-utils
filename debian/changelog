@@ -1,3 +1,9 @@
+wb-utils (3.7.0-wb111) stable; urgency=medium
+
+  * fix bootlet's build.sh in devenv builds; no functional changes
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Fri, 25 Aug 2023 20:24:22 +0600
+
 wb-utils (3.7.0-wb110) stable; urgency=medium
 
   * Fix broken rootfs enlargement on some devices with incorrect time
