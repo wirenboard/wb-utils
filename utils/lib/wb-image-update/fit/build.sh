@@ -63,10 +63,10 @@ install_from_rootfs() {
                 dst="$src"
                 shift
         }
-        install_file "$ROOTFS/$src" "$dst"
+        install_file "$src" "$dst"
 
         # If file is executable, need to get its shared lib dependencies too
-        if [[ -x "$ROOTFS/$src" ]]; then
+        if [[ -x "$src" ]]; then
                 ldd "$src" |
                 sed -rn 's#[^/]*(/[^ ]*).*#\1#p' |
                 while read -r lib; do
