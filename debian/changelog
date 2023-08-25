@@ -1,3 +1,9 @@
+wb-utils (4.17.2) stable; urgency=medium
+
+  * fix bootlet's build.sh in devenv builds; no functional changes
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Fri, 25 Aug 2023 14:42:01 +0600
+
 wb-utils (4.17.1) stable; urgency=medium
 
   * Don't source wb_env.sh for wb-ts terminal
