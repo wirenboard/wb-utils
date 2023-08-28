@@ -1,3 +1,9 @@
+wb-utils (4.12.0-wb107) stable; urgency=medium
+
+  * wb-gen-serial: decode imei to fix wb6x sn-generating
+
+ -- Vladimir Romanov <v.romanov@wirenboard.ru>  Mon, 28 Aug 2023 12:36:12 +0300
+
 wb-utils (4.12.0-wb106) stable; urgency=medium
 
   * fix bootlet's build.sh in devenv builds; no functional changes
