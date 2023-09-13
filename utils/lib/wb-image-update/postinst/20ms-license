@@ -20,5 +20,6 @@ if mount "$LO_DEVICE" "$HIDDENFS_MNT" >/dev/null 2>&1; then
         echo "Failed to copy license key from hiddenfs" >&2
     }
     umount "$HIDDENFS_MNT"
+    losetup -d "$LO_DEVICE"
     sync
 fi

@@ -1,3 +1,9 @@
+wb-utils (4.12.0-wb105-cb8ea449-1) stable; urgency=medium
+
+  * fix lost loop device in 20ms-license postinst script
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Wed, 13 Sep 2023 21:04:20 +0600
+
 wb-utils (4.12.0-wb105-cb8ea449) stable; urgency=medium
 
   * Add 20ms-license postinst script
