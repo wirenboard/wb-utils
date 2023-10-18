@@ -861,6 +861,9 @@ beep_success() {
 
 #---------------------------------------- main ----------------------------------------
 
+# for testing
+beep_success
+
 prepare_env
 
 # --fail flag allows to simulate failed update for testing purposes
