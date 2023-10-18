@@ -844,6 +844,10 @@ fw_compatible() {
     esac
 }
 
+beep_success() {
+    bash -c 'source /lib/libupdate.sh; buzzer_init; buzzer_on; sleep 0.1; buzzer_off; sleep 0.1; buzzer_on; sleep 0.1; buzzer_off;' || true
+}
+
 #---------------------------------------- main ----------------------------------------
 
 prepare_env
@@ -930,13 +934,13 @@ elif flag_set factoryreset; then
     maybe_update_current_factory_fit
 fi
 
-
 info "Switching to new rootfs"
 fw_setenv mmcpart "$PART"
 fw_setenv upgrade_available 1
 
 info "Done!"
 rm_fit
+beep_success
 led_success || true
 
 trap_add maybe_reboot EXIT
