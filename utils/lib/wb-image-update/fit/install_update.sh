@@ -928,7 +928,10 @@ extract_rootfs "$MNT"
 
 # Save serial number so we can use it later for logfile name
 if flag_set mass-update; then
+    info "Mounting procfs to $MNT/proc"
     mount -t proc proc "$MNT/proc"
+    ls -la "$MNT/proc"
+    ls -la "$MNT/proc/device-tree"
     SERIAL=$(chroot "$MNT" /usr/bin/wb-gen-serial -s)
     umount "$MNT/proc"
 fi
