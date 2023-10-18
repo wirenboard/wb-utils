@@ -169,8 +169,8 @@ prepare_env() {
             mkdir -p "$FINAL_CONSOLE_LOG_DIR"
             if [[ -w "$FINAL_CONSOLE_LOG_DIR" ]]; then
                 exec > >(tee "$TEMP_LOG_FILE") 2>&1
-                trap_add "cat '$TEMP_LOG_FILE' >> '$FINAL_CONSOLE_LOG_DIR/wb-console.$SERIAL.log'; rm '$TEMP_LOG_FILE'; sync; sync" EXIT
-                info "Console logging enabled; tempfile $TEMP_LOG_FILE, final file $FINAL_CONSOLE_LOG_DIR/wb-console.%serial%.log will be written on exit"
+                trap_add "cat '$TEMP_LOG_FILE' >> '$FINAL_CONSOLE_LOG_DIR/wb-console.\$SERIAL.log'; rm '$TEMP_LOG_FILE'; sync; sync" EXIT
+                info "Console logging enabled; tempfile $TEMP_LOG_FILE, final file $FINAL_CONSOLE_LOG_DIR/wb-console.%SERIAL%.log will be written on exit"
             fi
         else
             FINAL_CONSOLE_LOG_FILE="$(dirname "$FIT")/wb-console.log"
