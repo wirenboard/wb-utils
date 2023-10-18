@@ -81,11 +81,6 @@ print_centered_box() {
     printf "%*s\n" "$width" "" | tr ' ' "$fill"
 }
 
-get_serial() {
-    $ROOTFS = mktemp -d
-
-}
-
 prepare_env() {
     # shellcheck disable=SC2016  # we want to keep $'...' here
     trap_add 'fatal "Error at line $LINENO ($BASH_COMMAND)"' ERR
