@@ -81,6 +81,11 @@ print_centered_box() {
     printf "%*s\n" "$width" "" | tr ' ' "$fill"
 }
 
+get_serial() {
+    $ROOTFS = mktemp -d
+
+}
+
 prepare_env() {
     # shellcheck disable=SC2016  # we want to keep $'...' here
     trap_add 'fatal "Error at line $LINENO ($BASH_COMMAND)"' ERR
@@ -161,15 +166,26 @@ prepare_env() {
     fi
 
     if ! flag_set no-console-log; then
-        FINAL_CONSOLE_LOG_FILE="$(dirname "$FIT")/wb-console.log"
+
         TEMP_LOG_FILE="$(mktemp)"
 
-        if touch "$FINAL_CONSOLE_LOG_FILE" && [[ -w "$FINAL_CONSOLE_LOG_FILE" ]]; then
-            exec > >(tee "$TEMP_LOG_FILE") 2>&1
-            trap_add "cat '$TEMP_LOG_FILE' >> '$FINAL_CONSOLE_LOG_FILE'; rm '$TEMP_LOG_FILE'; sync; sync" EXIT
-
-            info "Console logging enabled; tempfile $TEMP_LOG_FILE, final file $FINAL_CONSOLE_LOG_FILE will be written on exit"
+        if flag_set mass-update; then
+            FINAL_CONSOLE_LOG_DIR="$(dirname "$FIT")/logs/"
+            mkdir -p "$FINAL_CONSOLE_LOG_DIR"
+            if [[ -w "$FINAL_CONSOLE_LOG_DIR" ]]; then
+                exec > >(tee "$TEMP_LOG_FILE") 2>&1
+                trap_add "cat '$TEMP_LOG_FILE' >> '$FINAL_CONSOLE_LOG_DIR/wb-console.$SERIAL.log'; rm '$TEMP_LOG_FILE'; sync; sync" EXIT
+                info "Console logging enabled; tempfile $TEMP_LOG_FILE, final file $FINAL_CONSOLE_LOG_DIR/wb-console.%serial%.log will be written on exit"
+            fi
+        else
+            FINAL_CONSOLE_LOG_FILE="$(dirname "$FIT")/wb-console.log"
+            if touch "$FINAL_CONSOLE_LOG_FILE" && [[ -w "$FINAL_CONSOLE_LOG_FILE" ]]; then
+                exec > >(tee "$TEMP_LOG_FILE") 2>&1
+                trap_add "cat '$TEMP_LOG_FILE' >> '$FINAL_CONSOLE_LOG_FILE'; rm '$TEMP_LOG_FILE'; sync; sync" EXIT
+                info "Console logging enabled; tempfile $TEMP_LOG_FILE, final file $FINAL_CONSOLE_LOG_FILE will be written on exit"
+            fi
         fi
+
     fi
 
     type fit_prop_string 2>/dev/null | grep -q 'shell function' || {
@@ -915,6 +931,11 @@ MNT="$(mktemp -d)"
 mount_rootfs "$ROOT_PART" "$MNT"
 extract_rootfs "$MNT"
 
+# Save serial number so we can use it later for logfile name
+if flag_set mass-update; then
+    SERIAL=$(chroot "$MNT" /usr/bin/wb-gen-serial -s)
+fi
+
 if ! flag_set no-certificates; then
     recover_certificates "$MNT"
 fi
@@ -940,7 +961,9 @@ fw_setenv upgrade_available 1
 
 info "Done!"
 rm_fit
-beep_success
 led_success || true
+if flag_set mass-update; then
+    beep_success
+fi
 
 trap_add maybe_reboot EXIT
