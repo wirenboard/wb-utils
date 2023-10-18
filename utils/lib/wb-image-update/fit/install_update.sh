@@ -865,6 +865,16 @@ beep_success() {
     bash -c 'source /lib/libupdate.sh; buzzer_init; buzzer_on; sleep 0.1; buzzer_off; sleep 0.1; buzzer_on; sleep 0.1; buzzer_off;' || true
 }
 
+populate_serial() {
+    mount -t proc proc "$MNT/proc"
+    mount /sys -o r "$MNT/sys"
+    mount /dev -o r "$MNT/dev"
+    SERIAL=$(chroot "$MNT" /usr/bin/wb-gen-serial -s)
+    umount "$MNT/proc"
+    umount "$MNT/sys"
+    umount "$MNT/dev"
+}
+
 #---------------------------------------- main ----------------------------------------
 
 prepare_env
@@ -934,14 +944,7 @@ extract_rootfs "$MNT"
 
 # Save serial number so we can use it later for logfile name
 if flag_set mass-update; then
-    info "Mounting procfs to $MNT/proc"
-    mount -t proc proc "$MNT/proc"
-    mount /sys -o r "$MNT/sys"
-    mount /dev -o r "$MNT/dev"
-    ls -la "$MNT/proc/device-tree"
-    SERIAL=$(chroot "$MNT" /usr/bin/wb-gen-serial -s)
-    umount "$MNT/proc"
-    umount "$MNT/sys"
+    populate_serial
 fi
 
 if ! flag_set no-certificates; then
