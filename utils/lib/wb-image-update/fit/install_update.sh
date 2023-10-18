@@ -930,10 +930,11 @@ extract_rootfs "$MNT"
 if flag_set mass-update; then
     info "Mounting procfs to $MNT/proc"
     mount -t proc proc "$MNT/proc"
-    ls -la "$MNT/proc"
+    mount /sys -B "$MNT/sys"
     ls -la "$MNT/proc/device-tree"
     SERIAL=$(chroot "$MNT" /usr/bin/wb-gen-serial -s)
     umount "$MNT/proc"
+    umount "$MNT/sys"
 fi
 
 if ! flag_set no-certificates; then
