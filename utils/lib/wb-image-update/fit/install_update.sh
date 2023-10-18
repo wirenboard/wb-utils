@@ -928,9 +928,9 @@ extract_rootfs "$MNT"
 
 # Save serial number so we can use it later for logfile name
 if flag_set mass-update; then
-    mount proc /proc -t proc
+    mount -t proc proc "$MNT/proc"
     SERIAL=$(chroot "$MNT" /usr/bin/wb-gen-serial -s)
-    umount /proc
+    umount "$MNT/proc"
 fi
 
 if ! flag_set no-certificates; then
