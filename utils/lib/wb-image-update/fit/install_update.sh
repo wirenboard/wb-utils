@@ -931,6 +931,7 @@ if flag_set mass-update; then
     info "Mounting procfs to $MNT/proc"
     mount -t proc proc "$MNT/proc"
     mount /sys -o r "$MNT/sys"
+    mount /dev -o r "$MNT/dev"
     ls -la "$MNT/proc/device-tree"
     SERIAL=$(chroot "$MNT" /usr/bin/wb-gen-serial -s)
     umount "$MNT/proc"
