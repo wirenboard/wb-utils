@@ -165,7 +165,7 @@ prepare_env() {
         TEMP_LOG_FILE="$(mktemp)"
 
         if flag_set mass-update; then
-            FINAL_CONSOLE_LOG_DIR="$(dirname "$FIT")/logs/"
+            FINAL_CONSOLE_LOG_DIR="$(dirname "$FIT")/logs"
             mkdir -p "$FINAL_CONSOLE_LOG_DIR"
             if [[ -w "$FINAL_CONSOLE_LOG_DIR" ]]; then
                 exec > >(tee "$TEMP_LOG_FILE") 2>&1
@@ -861,9 +861,6 @@ beep_success() {
 
 #---------------------------------------- main ----------------------------------------
 
-# for testing
-beep_success
-
 prepare_env
 
 # --fail flag allows to simulate failed update for testing purposes
@@ -931,7 +928,9 @@ extract_rootfs "$MNT"
 
 # Save serial number so we can use it later for logfile name
 if flag_set mass-update; then
+    mount proc /proc -t proc
     SERIAL=$(chroot "$MNT" /usr/bin/wb-gen-serial -s)
+    umount /proc
 fi
 
 if ! flag_set no-certificates; then
