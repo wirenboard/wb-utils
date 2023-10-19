@@ -704,14 +704,30 @@ recover_certificates() {
     fi
 }
 
-run_postinst() {
+mount_proc_sys_dev() {
     local ROOTFS_MNT=$1
 
-    info "Mount /dev, /proc and /sys to rootfs"
+    info "Mount /dev, /proc and /sys to rootfs $ROOTFS_MNT"
     mount -o bind /dev "$ROOTFS_MNT/dev"
     mount -o bind /proc "$ROOTFS_MNT/proc"
     mount -o bind /sys "$ROOTFS_MNT/sys"
     mount -o bind /sys/kernel/config "$ROOTFS_MNT/sys/kernel/config"
+}
+
+umount_proc_sys_dev() {
+    local ROOTFS_MNT=$1
+
+    info "Unmounting /dev, /proc and /sys from rootfs $ROOTFS_MNT"
+    umount "$ROOTFS_MNT/dev"
+    umount "$ROOTFS_MNT/proc"
+    umount "$ROOTFS_MNT/sys/kernel/config"
+    umount "$ROOTFS_MNT/sys"
+}
+
+run_postinst() {
+    local ROOTFS_MNT=$1
+
+    mount_proc_sys_dev "$ROOTFS_MNT"
 
     POSTINST_DIR=${2:-"$ROOTFS_MNT/usr/lib/wb-image-update/postinst/"}
     if [[ -d "$POSTINST_DIR" ]]; then
@@ -724,11 +740,7 @@ run_postinst() {
         done
     fi
 
-    info "Unmounting /dev, /proc and /sys from rootfs"
-    umount "$ROOTFS_MNT/dev"
-    umount "$ROOTFS_MNT/proc"
-    umount "$ROOTFS_MNT/sys/kernel/config"
-    umount "$ROOTFS_MNT/sys"
+    umount_proc_sys_dev "$ROOTFS_MNT"
 }
 
 copy_this_fit_to_factory() {
@@ -865,14 +877,26 @@ beep_success() {
     bash -c 'source /lib/libupdate.sh; buzzer_init; buzzer_on; sleep 0.1; buzzer_off; sleep 0.1; buzzer_on; sleep 0.1; buzzer_off;' || true
 }
 
-populate_serial() {
-    mount -t proc proc "$MNT/proc"
-    mount /sys -o r "$MNT/sys"
-    mount /dev -o r "$MNT/dev"
-    SERIAL=$(chroot "$MNT" /usr/bin/wb-gen-serial -s)
-    umount "$MNT/proc"
-    umount "$MNT/sys"
-    umount "$MNT/dev"
+populate_serial_and_fit_ver() {
+    local ROOTFS_MNT=$1
+
+    info "Populating serial number and fit version"
+    mount_proc_sys_dev "$ROOTFS_MNT"
+
+    SERIAL=$(chroot "$ROOTFS_MNT" /usr/bin/wb-gen-serial -s)
+    FIT_VERSION=$(cat "$ROOTFS_MNT/usr/lib/wb-release" | grep TARGET)
+    FIT_VERSION="$FIT_VERSION $(cat "$ROOTFS_MNT/usr/lib/wb-release" | grep SUITE)"
+    FIT_VERSION="$FIT_VERSION $(cat "$ROOTFS_MNT/etc/wb-fw-version")"
+    if [ -f "$ROOTFS_MNT/etc/wb-fw-custom" ]; then
+        FIT_VERSION="$FIT_VERSION $(cat "$ROOTFS_MNT/etc/wb-fw-custom")"
+    fi
+
+    umount_proc_sys_dev "$ROOTFS_MNT"
+}
+
+log_mass_update() {
+    mkdir -p "$(dirname "$FIT")/logs"
+    echo "Unit $SERIAL updated with fit $FIT_VERSION" >> "$(dirname "$FIT")/logs/wb-mass-update.log"
 }
 
 #---------------------------------------- main ----------------------------------------
@@ -944,7 +968,7 @@ extract_rootfs "$MNT"
 
 # Save serial number so we can use it later for logfile name
 if flag_set mass-update; then
-    populate_serial
+    populate_serial_and_fit_ver "$MNT"
 fi
 
 if ! flag_set no-certificates; then
@@ -975,6 +999,7 @@ rm_fit
 led_success || true
 if flag_set mass-update; then
     beep_success
+    log_mass_update
 fi
 
 trap_add maybe_reboot EXIT
