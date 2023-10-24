@@ -874,7 +874,12 @@ fw_compatible() {
 }
 
 beep_success() {
-    bash -c 'source /lib/libupdate.sh; buzzer_init; buzzer_on; sleep 0.1; buzzer_off; sleep 0.1; buzzer_on; sleep 0.1; buzzer_off;' || true
+    bash -c 'source /lib/libupdate.sh;
+    buzzer_init;
+    buzzer_on; sleep 0.1; buzzer_off; sleep 0.1;
+    buzzer_on; sleep 0.1; buzzer_off; sleep 0.1;
+    buzzer_on; sleep 0.1; buzzer_off; sleep 0.1;
+    buzzer_on; sleep 0.3; buzzer_off;' || true
 }
 
 populate_serial_and_fit_ver() {
@@ -895,8 +900,14 @@ populate_serial_and_fit_ver() {
 }
 
 log_mass_update() {
-    mkdir -p "$(dirname "$FIT")/logs"
-    echo "Unit $SERIAL updated with fit $FIT_VERSION" >> "$(dirname "$FIT")/logs/wb-mass-update.log"
+    local LOGS_DIR="$(dirname "$FIT")/logs"
+
+    mkdir -p "$LOGS_DIR"
+    if flag_set factoryreset; then
+        echo "Unit $SERIAL factoryreset with fit $FIT_VERSION" >> "$LOGS_DIR/wb-mass-update.log"
+    else
+        echo "Unit $SERIAL updated with fit $FIT_VERSION" >> "$LOGS_DIR/wb-mass-update.log"
+    fi
 }
 
 #---------------------------------------- main ----------------------------------------

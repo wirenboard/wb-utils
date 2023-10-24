@@ -1,6 +1,6 @@
 wb-utils (4.17.4) stable; urgency=medium
 
-  * wb-gen-serial: decode imei to fix wb6x sn-generating
+  * install_update.sh: various mass-update features
 
  -- Aleksandr Kazadaev <aleksandr.kazadaev@wirenboard.com>  Thu, 19 Oct 2023 15:29:12 +0600
 
