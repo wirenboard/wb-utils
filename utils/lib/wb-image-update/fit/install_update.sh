@@ -873,13 +873,37 @@ fw_compatible() {
     esac
 }
 
+play_note() {
+    local FREQ=$1
+    local NOTE_LENGTH=$2
+    local SILENCE_LENGTH=$3
+    local VOLUME=100
+
+    local PERIOD=$(( 1000000000 / $FREQ ))
+    local DUTY_CYCLE=$(( (VOLUME / 100) * $PERIOD / 2 ))
+
+    echo $PWM_BUZZER > /sys/class/pwm/pwmchip0/export 2>/dev/null
+
+    local r1=1
+    local r2=1
+    while [ $r1 -ne 0 ] || [ $r2 -ne 0 ]; do
+        echo $DUTY_CYCLE > /sys/class/pwm/pwmchip0/pwm${PWM_BUZZER}/duty_cycle 2>/dev/null
+        r1=$?
+        echo $PERIOD > /sys/class/pwm/pwmchip0/pwm${PWM_BUZZER}/period 2>/dev/null
+        r2=$?
+    done
+    buzzer_on
+    sleep $NOTE_LENGTH
+    buzzer_off
+    sleep $SILENCE_LENGTH
+}
+
 beep_success() {
-    bash -c 'source /lib/libupdate.sh;
-    buzzer_init;
-    buzzer_on; sleep 0.1; buzzer_off; sleep 0.1;
-    buzzer_on; sleep 0.1; buzzer_off; sleep 0.1;
-    buzzer_on; sleep 0.1; buzzer_off; sleep 0.1;
-    buzzer_on; sleep 0.3; buzzer_off;' || true
+    source /lib/libupdate.sh
+
+    play_note 2793 0.1 0.02 # F7
+    play_note 3135 0.1 0.02 # G7
+    play_note 3520 0.3 0 # A7
 }
 
 populate_serial_and_fit_ver() {
