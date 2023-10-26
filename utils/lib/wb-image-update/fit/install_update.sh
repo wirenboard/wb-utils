@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 ROOTDEV="${ROOTDEV:-/dev/mmcblk0}"
 TMPDIR="${TMPDIR:-/dev/shm}"
@@ -899,7 +899,7 @@ play_note() {
 }
 
 beep_success() {
-    source /lib/libupdate.sh
+    source /lib/libupdate.sh || true
 
     play_note 2793 0.1 0.02 # F7
     play_note 3135 0.1 0.02 # G7
