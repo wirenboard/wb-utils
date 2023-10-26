@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -e
 
 ROOTDEV="${ROOTDEV:-/dev/mmcblk0}"
 TMPDIR="${TMPDIR:-/dev/shm}"
@@ -882,14 +882,14 @@ play_note() {
     local PERIOD=$(( 1000000000 / $FREQ ))
     local DUTY_CYCLE=$(( (VOLUME / 100) * $PERIOD / 2 ))
 
-    echo $PWM_BUZZER > /sys/class/pwm/pwmchip0/export
+    echo $PWM_BUZZER > /sys/class/pwm/pwmchip0/export 2>/dev/null || true
 
     local r1=1
     local r2=1
     while [ $r1 -ne 0 ] || [ $r2 -ne 0 ]; do
-        echo $DUTY_CYCLE > /sys/class/pwm/pwmchip0/pwm${PWM_BUZZER}/duty_cycle
+        echo $DUTY_CYCLE > /sys/class/pwm/pwmchip0/pwm${PWM_BUZZER}/duty_cycle 2>/dev/null || true
         r1=$?
-        echo $PERIOD > /sys/class/pwm/pwmchip0/pwm${PWM_BUZZER}/period
+        echo $PERIOD > /sys/class/pwm/pwmchip0/pwm${PWM_BUZZER}/period 2>/dev/null || true
         r2=$?
     done
     buzzer_on
