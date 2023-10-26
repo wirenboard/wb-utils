@@ -161,15 +161,32 @@ prepare_env() {
     fi
 
     if ! flag_set no-console-log; then
-        FINAL_CONSOLE_LOG_FILE="$(dirname "$FIT")/wb-console.log"
+
         TEMP_LOG_FILE="$(mktemp)"
 
-        if touch "$FINAL_CONSOLE_LOG_FILE" && [[ -w "$FINAL_CONSOLE_LOG_FILE" ]]; then
-            exec > >(tee "$TEMP_LOG_FILE") 2>&1
-            trap_add "cat '$TEMP_LOG_FILE' >> '$FINAL_CONSOLE_LOG_FILE'; rm '$TEMP_LOG_FILE'; sync; sync" EXIT
+        if flag_set mass-update; then
+            FINAL_CONSOLE_LOG_DIR="$(dirname "$FIT")/logs"
+            mkdir -p "$FINAL_CONSOLE_LOG_DIR"
+            if [[ -w "$FINAL_CONSOLE_LOG_DIR" ]]; then
 
-            info "Console logging enabled; tempfile $TEMP_LOG_FILE, final file $FINAL_CONSOLE_LOG_FILE will be written on exit"
+                move_log_file() {
+                    cat "$TEMP_LOG_FILE" >> "$FINAL_CONSOLE_LOG_DIR/wb-console.$SERIAL.log"
+                    rm "$TEMP_LOG_FILE"
+                }
+
+                exec > >(tee "$TEMP_LOG_FILE") 2>&1
+                trap_add "move_log_file; sync; sync" EXIT
+                info "Console logging enabled; tempfile $TEMP_LOG_FILE, final file $FINAL_CONSOLE_LOG_DIR/wb-console.%SERIAL%.log will be written on exit"
+            fi
+        else
+            FINAL_CONSOLE_LOG_FILE="$(dirname "$FIT")/wb-console.log"
+            if touch "$FINAL_CONSOLE_LOG_FILE" && [[ -w "$FINAL_CONSOLE_LOG_FILE" ]]; then
+                exec > >(tee "$TEMP_LOG_FILE") 2>&1
+                trap_add "cat '$TEMP_LOG_FILE' >> '$FINAL_CONSOLE_LOG_FILE'; rm '$TEMP_LOG_FILE'; sync; sync" EXIT
+                info "Console logging enabled; tempfile $TEMP_LOG_FILE, final file $FINAL_CONSOLE_LOG_FILE will be written on exit"
+            fi
         fi
+
     fi
 
     type fit_prop_string 2>/dev/null | grep -q 'shell function' || {
@@ -687,14 +704,30 @@ recover_certificates() {
     fi
 }
 
-run_postinst() {
+mount_proc_sys_dev() {
     local ROOTFS_MNT=$1
 
-    info "Mount /dev, /proc and /sys to rootfs"
+    info "Mount /dev, /proc and /sys to rootfs $ROOTFS_MNT"
     mount -o bind /dev "$ROOTFS_MNT/dev"
     mount -o bind /proc "$ROOTFS_MNT/proc"
     mount -o bind /sys "$ROOTFS_MNT/sys"
     mount -o bind /sys/kernel/config "$ROOTFS_MNT/sys/kernel/config"
+}
+
+umount_proc_sys_dev() {
+    local ROOTFS_MNT=$1
+
+    info "Unmounting /dev, /proc and /sys from rootfs $ROOTFS_MNT"
+    umount "$ROOTFS_MNT/dev"
+    umount "$ROOTFS_MNT/proc"
+    umount "$ROOTFS_MNT/sys/kernel/config"
+    umount "$ROOTFS_MNT/sys"
+}
+
+run_postinst() {
+    local ROOTFS_MNT=$1
+
+    mount_proc_sys_dev "$ROOTFS_MNT"
 
     POSTINST_DIR=${2:-"$ROOTFS_MNT/usr/lib/wb-image-update/postinst/"}
     if [[ -d "$POSTINST_DIR" ]]; then
@@ -707,11 +740,7 @@ run_postinst() {
         done
     fi
 
-    info "Unmounting /dev, /proc and /sys from rootfs"
-    umount "$ROOTFS_MNT/dev"
-    umount "$ROOTFS_MNT/proc"
-    umount "$ROOTFS_MNT/sys/kernel/config"
-    umount "$ROOTFS_MNT/sys"
+    umount_proc_sys_dev "$ROOTFS_MNT"
 }
 
 copy_this_fit_to_factory() {
@@ -844,6 +873,67 @@ fw_compatible() {
     esac
 }
 
+play_note() {
+    local FREQ=$1
+    local NOTE_LENGTH=$2
+    local SILENCE_LENGTH=$3
+    local VOLUME=100
+
+    local PERIOD=$(( 1000000000 / $FREQ ))
+    local DUTY_CYCLE=$(( (VOLUME / 100) * $PERIOD / 2 ))
+
+    echo $PWM_BUZZER > /sys/class/pwm/pwmchip0/export 2>/dev/null || true
+
+    local r1=1
+    local r2=1
+    while [ $r1 -ne 0 ] || [ $r2 -ne 0 ]; do
+        echo $DUTY_CYCLE > /sys/class/pwm/pwmchip0/pwm${PWM_BUZZER}/duty_cycle 2>/dev/null || true
+        r1=$?
+        echo $PERIOD > /sys/class/pwm/pwmchip0/pwm${PWM_BUZZER}/period 2>/dev/null || true
+        r2=$?
+    done
+    buzzer_on
+    sleep $NOTE_LENGTH
+    buzzer_off
+    sleep $SILENCE_LENGTH
+}
+
+beep_success() {
+    source /lib/libupdate.sh || true
+
+    play_note 2793 0.1 0.02 # F7
+    play_note 3135 0.1 0.02 # G7
+    play_note 3520 0.3 0 # A7
+}
+
+populate_serial_and_fit_ver() {
+    local ROOTFS_MNT=$1
+
+    info "Populating serial number and fit version"
+    mount_proc_sys_dev "$ROOTFS_MNT"
+
+    SERIAL=$(chroot "$ROOTFS_MNT" /usr/bin/wb-gen-serial -s)
+    FIT_VERSION=$(cat "$ROOTFS_MNT/usr/lib/wb-release" | grep TARGET)
+    FIT_VERSION="$FIT_VERSION $(cat "$ROOTFS_MNT/usr/lib/wb-release" | grep SUITE)"
+    FIT_VERSION="$FIT_VERSION $(cat "$ROOTFS_MNT/etc/wb-fw-version")"
+    if [ -f "$ROOTFS_MNT/etc/wb-fw-custom" ]; then
+        FIT_VERSION="$FIT_VERSION $(cat "$ROOTFS_MNT/etc/wb-fw-custom")"
+    fi
+
+    umount_proc_sys_dev "$ROOTFS_MNT"
+}
+
+log_mass_update() {
+    local LOGS_DIR="$(dirname "$FIT")/logs"
+
+    mkdir -p "$LOGS_DIR"
+    if flag_set factoryreset; then
+        echo "Unit $SERIAL factoryreset with fit $FIT_VERSION" >> "$LOGS_DIR/wb-mass-update.log"
+    else
+        echo "Unit $SERIAL updated with fit $FIT_VERSION" >> "$LOGS_DIR/wb-mass-update.log"
+    fi
+}
+
 #---------------------------------------- main ----------------------------------------
 
 prepare_env
@@ -911,6 +1001,11 @@ MNT="$(mktemp -d)"
 mount_rootfs "$ROOT_PART" "$MNT"
 extract_rootfs "$MNT"
 
+# Save serial number so we can use it later for logfile name
+if flag_set mass-update; then
+    populate_serial_and_fit_ver "$MNT"
+fi
+
 if ! flag_set no-certificates; then
     recover_certificates "$MNT"
 fi
@@ -930,7 +1025,6 @@ elif flag_set factoryreset; then
     maybe_update_current_factory_fit
 fi
 
-
 info "Switching to new rootfs"
 fw_setenv mmcpart "$PART"
 fw_setenv upgrade_available 1
@@ -938,5 +1032,9 @@ fw_setenv upgrade_available 1
 info "Done!"
 rm_fit
 led_success || true
+if flag_set mass-update; then
+    beep_success
+    log_mass_update
+fi
 
 trap_add maybe_reboot EXIT
