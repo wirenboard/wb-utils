@@ -882,14 +882,14 @@ play_note() {
     local PERIOD=$(( 1000000000 / $FREQ ))
     local DUTY_CYCLE=$(( (VOLUME / 100) * $PERIOD / 2 ))
 
-    echo $PWM_BUZZER > /sys/class/pwm/pwmchip0/export 2>/dev/null
+    echo $PWM_BUZZER > /sys/class/pwm/pwmchip0/export
 
     local r1=1
     local r2=1
     while [ $r1 -ne 0 ] || [ $r2 -ne 0 ]; do
-        echo $DUTY_CYCLE > /sys/class/pwm/pwmchip0/pwm${PWM_BUZZER}/duty_cycle 2>/dev/null
+        echo $DUTY_CYCLE > /sys/class/pwm/pwmchip0/pwm${PWM_BUZZER}/duty_cycle
         r1=$?
-        echo $PERIOD > /sys/class/pwm/pwmchip0/pwm${PWM_BUZZER}/period 2>/dev/null
+        echo $PERIOD > /sys/class/pwm/pwmchip0/pwm${PWM_BUZZER}/period
         r2=$?
     done
     buzzer_on
