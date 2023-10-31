@@ -938,6 +938,11 @@ log_mass_update() {
 
 prepare_env
 
+if flag_set exit-to-bash; then
+    info "Exiting to bash"
+    exec bash
+fi
+
 # --fail flag allows to simulate failed update for testing purposes
 if flag_set fail; then
     fatal "Update failed by request"
