@@ -1,3 +1,9 @@
+wb-utils (4.18.0) stable; urgency=medium
+
+  * factory reset from web ui and cli
+
+ -- Aleksandr Kazadaev <aleksandr.kazadaev@wirenboard.com>  Thu, 2 Nov 2023 15:29:12 +0600
+
 wb-utils (4.17.4) stable; urgency=medium
 
   * install_update.sh: various mass-update features
