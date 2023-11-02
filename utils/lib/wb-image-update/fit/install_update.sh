@@ -934,6 +934,29 @@ log_mass_update() {
     fi
 }
 
+maybe_factory_reset() {
+	if flag_set from-initramfs; then
+		info "Wiping data partition (factory reset)"
+
+		mkdir -p /mnt
+		mkdir -p /mnt/data
+		mount -t auto $DATA_PART /mnt/data || true
+
+		rm -rf /tmp/empty && mkdir /tmp/empty
+		rsync -a --delete --exclude="/.wb-restore/" /tmp/empty/ /mnt/data/
+
+		FACTORY_FIT_DIR="/mnt/data/.wb-restore"
+		FACTORY_FIT="${FACTORY_FIT_DIR}/factoryreset.fit"
+		if [[ ! -e "$FACTORY_FIT" ]]; then
+			echo "Saving current update file as factory default image"
+			mkdir -p "${FACTORY_FIT_DIR}"
+			cp "$FIT" "${FACTORY_FIT}"
+		fi
+	else
+		info "Factory reset is now supported only from initramfs environment"
+	fi
+}
+
 #---------------------------------------- main ----------------------------------------
 
 prepare_env
@@ -942,6 +965,12 @@ prepare_env
 if flag_set fail; then
     fatal "Update failed by request"
 fi
+
+if flag_set factoryreset; then
+    maybe_factory_reset
+fi
+
+check_firmware_compatible
 
 if flag_set from-emmc-factoryreset; then
     maybe_trigger_original_factory_fit
