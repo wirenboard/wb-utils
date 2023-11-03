@@ -1,6 +1,6 @@
 wb-utils (4.18.0) stable; urgency=medium
 
-  * factory reset from web ui and cli
+  * factory reset refactoring, no functional changes
 
  -- Aleksandr Kazadaev <aleksandr.kazadaev@wirenboard.com>  Thu, 2 Nov 2023 15:29:12 +0600
 
