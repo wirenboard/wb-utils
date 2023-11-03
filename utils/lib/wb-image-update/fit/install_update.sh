@@ -934,6 +934,24 @@ log_mass_update() {
     fi
 }
 
+check_firmware_compatible() {
+    if flag_set force-fw-compatible; then
+        info "Firmware compatibility check skipped"
+        return
+    fi
+
+    if ! fw_has_proper_dtb; then
+        info "This firmware is too old for this device, please use newer one from https://fw-releases.wirenboard.com/"
+        die "Firmware is not compatible with this device, no proper DTB found"
+    fi
+
+    if ! disk_layout_is_ab && ! fw_compatible "single-rootfs"; then
+        die "Firmware is not compatible with single-rootfs layout"
+    fi
+
+    info "Firmware seems to be compatible with this controller"
+}
+
 maybe_factory_reset() {
     if flag_set from-initramfs; then
         info "Wiping data partition (factory reset)"
@@ -953,7 +971,7 @@ maybe_factory_reset() {
             cp "$FIT" "${FACTORY_FIT}"
         fi
     else
-        info "Factory reset is now supported only from initramfs environment"
+        fatal "Factory reset is now supported only from initramfs environment"
     fi
 }
 
@@ -966,11 +984,15 @@ if flag_set fail; then
     fatal "Update failed by request"
 fi
 
-if flag_set factoryreset; then
-    maybe_factory_reset
-fi
-
 check_firmware_compatible
+
+if flag_set factoryreset; then
+    if ! flag_set from-initramfs; then
+        update_after_reboot
+    else
+        maybe_factory_reset
+    fi
+fi
 
 if flag_set from-emmc-factoryreset; then
     maybe_trigger_original_factory_fit

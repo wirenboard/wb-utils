@@ -169,24 +169,6 @@ fw_has_proper_dtb() {
     fit_blob_data rootfs | tar tz | grep -q -m1 -F "$dtb_name"
 }
 
-check_firmware_compatible() {
-    if flag_set force-fw-compatible; then
-        info "Firmware compatibility check skipped"
-        return
-    fi
-
-    if ! fw_has_proper_dtb; then
-        info "This firmware is too old for this device, please use newer one from https://fw-releases.wirenboard.com/"
-        die "Firmware is not compatible with this device, no proper DTB found"
-    fi
-
-    if ! disk_layout_is_ab && ! fw_compatible "single-rootfs"; then
-        die "Firmware is not compatible with single-rootfs layout"
-    fi
-
-    info "Firmware seems to be compatible with this controller"
-}
-
 [[ $EUID != 0 ]] && die "Need root privileges to install update"
 
 while [[ -n "$1" ]]; do
