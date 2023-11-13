@@ -934,6 +934,43 @@ log_mass_update() {
     fi
 }
 
+check_firmware_compatible() {
+    if flag_set force-fw-compatible; then
+        info "Firmware compatibility check skipped"
+        return
+    fi
+
+    if ! fw_has_proper_dtb; then
+        info "This firmware is too old for this device, please use newer one from https://fw-releases.wirenboard.com/"
+        fatal "Firmware is not compatible with this device, no proper DTB found"
+    fi
+
+    info "Firmware seems to be compatible with this controller"
+}
+
+maybe_factory_reset() {
+    if flag_set from-initramfs; then
+        info "Wiping data partition (factory reset)"
+
+        mkdir -p /mnt
+        mkdir -p /mnt/data
+        mount -t auto $DATA_PART /mnt/data || true
+
+        rm -rf /tmp/empty && mkdir /tmp/empty
+        rsync -a --delete --exclude="/.wb-restore/" /tmp/empty/ /mnt/data/
+
+        FACTORY_FIT_DIR="/mnt/data/.wb-restore"
+        FACTORY_FIT="${FACTORY_FIT_DIR}/factoryreset.fit"
+        if [[ ! -e "$FACTORY_FIT" ]]; then
+            echo "Saving current update file as factory default image"
+            mkdir -p "${FACTORY_FIT_DIR}"
+            cp "$FIT" "${FACTORY_FIT}"
+        fi
+    else
+        fatal "Factory reset is now supported only from initramfs environment"
+    fi
+}
+
 #---------------------------------------- main ----------------------------------------
 
 prepare_env
@@ -941,6 +978,16 @@ prepare_env
 # --fail flag allows to simulate failed update for testing purposes
 if flag_set fail; then
     fatal "Update failed by request"
+fi
+
+check_firmware_compatible
+
+if flag_set factoryreset; then
+    if ! flag_set from-initramfs; then
+        update_after_reboot
+    else
+        maybe_factory_reset
+    fi
 fi
 
 if flag_set from-emmc-factoryreset; then
