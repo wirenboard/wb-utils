@@ -942,11 +942,7 @@ check_firmware_compatible() {
 
     if ! fw_has_proper_dtb; then
         info "This firmware is too old for this device, please use newer one from https://fw-releases.wirenboard.com/"
-        die "Firmware is not compatible with this device, no proper DTB found"
-    fi
-
-    if ! disk_layout_is_ab && ! fw_compatible "single-rootfs"; then
-        die "Firmware is not compatible with single-rootfs layout"
+        fatal "Firmware is not compatible with this device, no proper DTB found"
     fi
 
     info "Firmware seems to be compatible with this controller"
