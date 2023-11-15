@@ -957,7 +957,7 @@ maybe_factory_reset() {
         mount -t auto $DATA_PART /mnt/data || true
 
         rm -rf /tmp/empty && mkdir /tmp/empty
-        rsync -a --delete --exclude="/.wb-restore/" /tmp/empty/ /mnt/data/
+        rsync -a --delete --exclude="/.wb-restore/" --exclude="/.wb-update/" /tmp/empty/ /mnt/data/
 
         FACTORY_FIT_DIR="/mnt/data/.wb-restore"
         FACTORY_FIT="${FACTORY_FIT_DIR}/factoryreset.fit"
