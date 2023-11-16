@@ -5,7 +5,7 @@ DIR_UPDATE="/mnt/data/.wb-update"
 
 if [[ "$1" != "--force" ]]; then
     echo "This will erase all your data and restore the system to factory defaults."
-    echo "Are you sure? (Yy/Nn)"
+    echo "Are you sure? (y/N)"
     read -r CONFIRM
     if [[ "$CONFIRM" != "y" && "$CONFIRM" != "Y" ]]; then
         echo "Aborting"
