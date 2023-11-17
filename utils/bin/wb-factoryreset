@@ -22,3 +22,5 @@ echo "Factory reset initiated, system will reboot soon"
 sleep 30
 
 echo "System did not reboot, something went wrong, check /mnt/data/.wb-update/wb-console.log"
+
+exit 1
