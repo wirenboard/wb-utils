@@ -581,6 +581,33 @@ select_new_partition() {
     esac
 }
 
+maybe_fix_tmpfs_size(){
+    info "Maybe resize tmpfs in /tmp before repartitioning"
+
+    MEMSIZE_KB=`cat /proc/meminfo | grep MemTotal | awk '{print $2}'`
+    MEMSIZE_MB=$((MEMSIZE_KB / 1024))
+
+    if ((MEMSIZE_MB>=490 && MEMSIZE_MB<=512)); then
+        NEW_SIZE=$((MEMSIZE_MB-200))
+        info "512M RAM size detected, remount tmpfs in /tmp with size=${NEW_SIZE}M"
+        mount -o remount,size=${NEW_SIZE}M /tmp
+
+        local mnt
+        mnt=$(mktemp -d)
+        mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
+
+        CURRENT_FACTORY_FIT="$mnt/.wb-restore/factoryreset.fit"
+
+        if ! FIT="$CURRENT_FACTORY_FIT" fw_compatible repartition-ramsize-fix; then
+            info "Replace factoryreset.fit with current fit to fix rootfs extending issue at 512M RAM" 
+            cp "$FIT" "$mnt/.wb-restore/factoryreset.fit"
+        fi
+
+        umount "$mnt" || true
+        sync
+    fi
+}
+
 maybe_repartition() {
     if flag_set restore-ab-rootfs ; then
         info "restoring A/B scheme as requested"
@@ -977,6 +1004,7 @@ if ! flag_set from-initramfs && flag_set "force-repartition"; then
 fi
 
 if ( ( flag_set "factoryreset" || flag_set "force-repartition" ) && ! flag_set "no-repartition" ); then
+    maybe_fix_tmpfs_size
     maybe_repartition
 fi
 

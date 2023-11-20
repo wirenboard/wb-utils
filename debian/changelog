@@ -1,3 +1,9 @@
+wb-utils (4.17.4ubuntu1) UNRELEASED; urgency=medium
+
+  * Remove creation of tar with tools from which install_update.sh depends on, move it to wb_initramfs 
+
+ -- Ekaterina Volkova <ekaterina.volkova@wirenboard.com>  Wed, 08 Nov 2023 18:36:15 +0300
+
 wb-utils (4.17.4) stable; urgency=medium
 
   * install_update.sh: various mass-update features
