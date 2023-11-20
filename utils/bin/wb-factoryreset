@@ -1,0 +1,26 @@
+#!/bin/bash
+
+DIR_RESTORE="/mnt/data/.wb-restore"
+DIR_UPDATE="/mnt/data/.wb-update"
+
+if [[ "$1" != "--force" ]]; then
+    echo "This will erase all your data and restore the system to factory defaults."
+    echo "Type \"factoryreset\" to confirm:"
+    read -e -r CONFIRM
+    if [[ ! "$CONFIRM" == "factoryreset" ]]; then
+        echo "Aborting"
+        exit 1
+    fi
+fi
+
+mkdir -p "$DIR_UPDATE"
+echo "--factoryreset " > "$DIR_UPDATE/install_update.web.flags"
+cp "$DIR_RESTORE/factoryreset.fit" "$DIR_UPDATE/webupd.fit"
+
+echo "Factory reset initiated, system will reboot soon"
+
+sleep 30
+
+echo "System did not reboot, something went wrong, check /mnt/data/.wb-update/wb-console.log"
+
+exit 1
