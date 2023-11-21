@@ -588,9 +588,16 @@ maybe_fix_tmpfs_size(){
     MEMSIZE_MB=$((MEMSIZE_KB / 1024))
 
     if ((MEMSIZE_MB>=490 && MEMSIZE_MB<=512)); then
+        CURRENT_SIZE=`df -h | grep tmpfs | awk '{print $2}' | head -n1 | head -c -2`
         NEW_SIZE=$((MEMSIZE_MB-200))
-        info "512M RAM size detected, remount tmpfs in /tmp with size=${NEW_SIZE}M"
-        mount -o remount,size=${NEW_SIZE}M /tmp
+
+        info "$CURRENT_SIZE"
+        info "$NEW_SIZE"
+
+        if ! [ $CURRENT_SIZE -eq $NEW_SIZE ]; then
+            info "512M RAM size detected, remount tmpfs in /tmp with size=${NEW_SIZE}M"
+            mount -o remount,size=${NEW_SIZE}M /tmp
+        fi
 
         local mnt
         mnt=$(mktemp -d)
