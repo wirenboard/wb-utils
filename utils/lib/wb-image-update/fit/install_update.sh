@@ -588,6 +588,20 @@ extend_tmpfs_size(){
 
     info "Remount tmpfs in /tmp with size=${MEMSIZE_MB}M"
     mount -o remount,size=${MEMSIZE_MB}M /tmp
+
+    info "Try to attach swap"
+
+    local swap=${ROOTDEV}p5
+    grep ${swap} /proc/swaps 2>&1 >/dev/null && return 0
+
+    [[ -e "${swap}" ]] || {
+        log_failure_msg "Swap device $swap not found"
+        return 1
+    }
+
+    info "Creating swap"
+    mkswap ${ROOTDEV}p5 &&
+    swapon -a
 }
 
 maybe_update_current_factory_tmpfs_size_fix(){
