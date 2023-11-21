@@ -581,23 +581,22 @@ select_new_partition() {
     esac
 }
 
-maybe_fix_tmpfs_size(){
-    info "Maybe resize tmpfs in /tmp before repartitioning"
+extend_tmpfs_size(){
+    info "Extend tmpfs size to whole RAM"
+    MEMSIZE_KB=`cat /proc/meminfo | grep MemTotal | awk '{print $2}'`
+    MEMSIZE_MB=$((MEMSIZE_KB / 1024))
+
+    info "Remount tmpfs in /tmp with size=${MEMSIZE_MB}M"
+    mount -o remount,size=${MEMSIZE_MB}M /tmp
+}
+
+maybe_update_current_factory_tmpfs_size_fix(){
+    info "Maybe update factoryreset.fit to fix tmpfs size issue at 512M RAM (with emmc update)"
 
     MEMSIZE_KB=`cat /proc/meminfo | grep MemTotal | awk '{print $2}'`
     MEMSIZE_MB=$((MEMSIZE_KB / 1024))
 
-    if ((MEMSIZE_MB>=490 && MEMSIZE_MB<=512)); then
-        CURRENT_SIZE=`df -h | grep tmpfs | awk '{print $2}' | head -n1 | head -c -2`
-        NEW_SIZE=$((MEMSIZE_MB-200))
-
-        info "$CURRENT_SIZE"
-        info "$NEW_SIZE"
-
-        if ! [ $CURRENT_SIZE -eq $NEW_SIZE ]; then
-            info "512M RAM size detected, remount tmpfs in /tmp with size=${NEW_SIZE}M"
-            mount -o remount,size=${NEW_SIZE}M /tmp
-        fi
+    if ((MEMSIZE_MB<1024)); then
 
         local mnt
         mnt=$(mktemp -d)
@@ -608,10 +607,14 @@ maybe_fix_tmpfs_size(){
         if ! FIT="$CURRENT_FACTORY_FIT" fw_compatible repartition-ramsize-fix; then
             info "Replace factoryreset.fit with current fit to fix rootfs extending issue at 512M RAM" 
             cp "$FIT" "$mnt/.wb-restore/factoryreset.fit"
+        else
+            info "Factoryreset.fit has a fix already"
         fi
 
         umount "$mnt" || true
         sync
+    else
+        info "Amount of RAM bigger than 1G, do not update factoryreset.fit" 
     fi
 }
 
@@ -1008,6 +1011,8 @@ maybe_factory_reset() {
 #---------------------------------------- main ----------------------------------------
 
 prepare_env
+extend_tmpfs_size
+maybe_update_current_factory_tmpfs_size_fix
 
 # --fail flag allows to simulate failed update for testing purposes
 if flag_set fail; then
