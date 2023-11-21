@@ -1058,7 +1058,6 @@ if ! flag_set from-initramfs && flag_set "force-repartition"; then
 fi
 
 if ( ( flag_set "factoryreset" || flag_set "force-repartition" ) && ! flag_set "no-repartition" ); then
-    maybe_fix_tmpfs_size
     maybe_repartition
 fi
 
