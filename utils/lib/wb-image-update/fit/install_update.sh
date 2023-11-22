@@ -589,19 +589,10 @@ extend_tmpfs_size(){
     info "Remount tmpfs in /tmp with size=${MEMSIZE_MB}M"
     mount -o remount,size=${MEMSIZE_MB}M /tmp
 
-    info "Try to attach swap"
+    info "Creating swap"
 
     local swap=${ROOTDEV}p5
-    grep ${swap} /proc/swaps 2>&1 >/dev/null && return 0
-
-    [[ -e "${swap}" ]] || {
-        log_failure_msg "Swap device $swap not found"
-        return 1
-    }
-
-    info "Creating swap"
-    mkswap ${ROOTDEV}p5 &&
-    swapon -a
+    swapon ${swap} || true
 }
 
 maybe_update_current_factory_tmpfs_size_fix(){
@@ -622,13 +613,11 @@ maybe_update_current_factory_tmpfs_size_fix(){
             info "Replace factoryreset.fit with current fit to fix rootfs extending issue at 512M RAM" 
             cp "$FIT" "$mnt/.wb-restore/factoryreset.fit"
         else
-            info "Factoryreset.fit has a fix already"
+            info "Factoryreset.fit has a 512M RAM repartition fix already (repartition-ramsize-fix comatibility)"
         fi
 
         umount "$mnt" || true
         sync
-    else
-        info "Amount of RAM bigger than 1G, do not update factoryreset.fit" 
     fi
 }
 
