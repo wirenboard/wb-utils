@@ -15,7 +15,8 @@ fi
 
 mkdir -p "$DIR_UPDATE"
 echo "--factoryreset " > "$DIR_UPDATE/install_update.web.flags"
-cp "$DIR_RESTORE/factoryreset.fit" "$DIR_UPDATE/webupd.fit"
+ln "$DIR_RESTORE/factoryreset.fit" "$DIR_UPDATE/webupd.fit"
+touch "$DIR_UPDATE/webupd.fit"
 
 echo "Factory reset initiated, system will reboot soon"
 
