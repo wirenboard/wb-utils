@@ -1,3 +1,9 @@
+wb-utils (4.19.1) stable; urgency=medium
+
+  * improve wb-factoryreset command, no functional changes
+
+ -- Aleksandr Kazadaev <aleksandr.kazadaev@wirenboard.com>  Wed, 22 Nov 2023 18:36:12 +0600
+
 wb-utils (4.19.0) stable; urgency=medium
 
   * add wb-factoryreset command
