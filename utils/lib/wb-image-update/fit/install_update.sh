@@ -583,9 +583,13 @@ extend_tmpfs_size(){
     MEMSIZE_KB=`cat /proc/meminfo | grep MemTotal | awk '{print $2}'`
     MEMSIZE_MB=$((MEMSIZE_KB / 1024))
 
-
     info "Remount tmpfs in /tmp with size=${MEMSIZE_MB}M"
     mount -o remount,size=${MEMSIZE_MB}M /tmp
+
+    info "Creating swap"
+
+    local swap=${ROOTDEV}p5
+    swapon ${swap} || true
 }
 
 maybe_update_current_factory_tmpfs_size_fix(){
