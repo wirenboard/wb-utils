@@ -588,11 +588,6 @@ extend_tmpfs_size(){
 
     info "Remount tmpfs in /tmp with size=${MEMSIZE_MB}M"
     mount -o remount,size=${MEMSIZE_MB}M /tmp
-
-    info "Creating swap"
-
-    local swap=${ROOTDEV}p5
-    swapon ${swap} || true
 }
 
 maybe_update_current_factory_tmpfs_size_fix(){
