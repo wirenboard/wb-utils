@@ -429,13 +429,10 @@ ensure_ab_rootfs_parttable() {
 
     cleanup_rootfs "$ROOTFS1_PART"
 
-    run_e2fsck "$ROOTFS1_PART"
-
-    # e2fsck returns 1 and 2 if some errors were fixed, it's OK for us
-    if [ "$E2FSCK_RC" -gt 2 ]; then
-        info "Filesystem check failed, can't proceed with resizing"
+    run_e2fsck "$ROOTFS1_PART" || {
+        info "Filesystem check failed, can't proceed with restoring A/B partition table"
         return 1
-    fi
+    }
 
     info "Shrinking filesystem on $ROOTFS1_PART"
     local e2fs_undofile
@@ -585,11 +582,10 @@ extend_tmpfs_size(){
     info "Extend tmpfs size to whole RAM"
     MEMSIZE_KB=`cat /proc/meminfo | grep MemTotal | awk '{print $2}'`
     MEMSIZE_MB=$((MEMSIZE_KB / 1024))
-    NEW_MEMSIZE_MB=$((MEMSIZE_MB - 200))
 
 
-    info "Remount tmpfs in /tmp with size=${NEW_MEMSIZE_MB}M"
-    mount -o remount,size=${NEW_MEMSIZE_MB}M /tmp
+    info "Remount tmpfs in /tmp with size=${MEMSIZE_MB}M"
+    mount -o remount,size=${MEMSIZE_MB}M /tmp
 }
 
 maybe_update_current_factory_tmpfs_size_fix(){
