@@ -605,7 +605,7 @@ maybe_update_current_factory_tmpfs_size_fix(){
             info "Replace factoryreset.fit with current fit to fix rootfs extending issue at 512M RAM" 
             cp "$FIT" "$mnt/.wb-restore/factoryreset.fit"
         else
-            info "Factoryreset.fit has a 512M RAM repartition fix already (repartition-ramsize-fix comatibility)"
+            info "Factoryreset.fit already includes a fix for the 512MB RAM repartition issue (repartition-ramsize-fix compatibility)"
         fi
 
         umount "$mnt" || true
