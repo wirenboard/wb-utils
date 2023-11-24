@@ -580,7 +580,7 @@ select_new_partition() {
 
 extend_tmpfs_size(){
     info "Extend tmpfs size to whole RAM"
-    MEMSIZE_KB=`cat /proc/meminfo | grep MemTotal | awk '{print $2}'`
+    MEMSIZE_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
     MEMSIZE_MB=$((MEMSIZE_KB / 1024))
 
     info "Remount tmpfs in /tmp with size=${MEMSIZE_MB}M"
@@ -590,7 +590,7 @@ extend_tmpfs_size(){
 maybe_update_current_factory_tmpfs_size_fix(){
     info "Maybe update factoryreset.fit to fix tmpfs size issue at 512M RAM (with emmc update)"
 
-    MEMSIZE_KB=`cat /proc/meminfo | grep MemTotal | awk '{print $2}'`
+    MEMSIZE_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
     MEMSIZE_MB=$((MEMSIZE_KB / 1024))
 
     if ((MEMSIZE_MB<1024)); then
