@@ -429,13 +429,10 @@ ensure_ab_rootfs_parttable() {
 
     cleanup_rootfs "$ROOTFS1_PART"
 
-    run_e2fsck "$ROOTFS1_PART"
-
-    # e2fsck returns 1 and 2 if some errors were fixed, it's OK for us
-    if [ "$E2FSCK_RC" -gt 2 ]; then
-        info "Filesystem check failed, can't proceed with resizing"
+    run_e2fsck "$ROOTFS1_PART" || {
+        info "Filesystem check failed, can't proceed with restoring A/B partition table"
         return 1
-    fi
+    }
 
     info "Shrinking filesystem on $ROOTFS1_PART"
     local e2fs_undofile
@@ -579,6 +576,41 @@ select_new_partition() {
             fi
             ;;
     esac
+}
+
+extend_tmpfs_size(){
+    info "Extend tmpfs size to whole RAM"
+    MEMSIZE_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    MEMSIZE_MB=$((MEMSIZE_KB / 1024))
+
+    info "Remount tmpfs in /tmp with size=${MEMSIZE_MB}M"
+    mount -o remount,size=${MEMSIZE_MB}M /tmp
+}
+
+maybe_update_current_factory_tmpfs_size_fix(){
+    info "Maybe update factoryreset.fit to fix tmpfs size issue at 512M RAM (with emmc update)"
+
+    MEMSIZE_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    MEMSIZE_MB=$((MEMSIZE_KB / 1024))
+
+    if ((MEMSIZE_MB<1024)); then
+
+        local mnt
+        mnt=$(mktemp -d)
+        mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
+
+        CURRENT_FACTORY_FIT="$mnt/.wb-restore/factoryreset.fit"
+
+        if ! FIT="$CURRENT_FACTORY_FIT" fw_compatible repartition-ramsize-fix; then
+            info "Replace factoryreset.fit with current fit to fix rootfs extending issue at 512M RAM" 
+            cp "$FIT" "$mnt/.wb-restore/factoryreset.fit"
+        else
+            info "Factoryreset.fit already includes a fix for the 512MB RAM repartition issue (repartition-ramsize-fix compatibility)"
+        fi
+
+        umount "$mnt" || true
+        sync
+    fi
 }
 
 maybe_repartition() {
@@ -974,6 +1006,8 @@ maybe_factory_reset() {
 #---------------------------------------- main ----------------------------------------
 
 prepare_env
+extend_tmpfs_size
+maybe_update_current_factory_tmpfs_size_fix
 
 # --fail flag allows to simulate failed update for testing purposes
 if flag_set fail; then

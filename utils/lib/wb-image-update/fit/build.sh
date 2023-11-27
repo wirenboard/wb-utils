@@ -87,6 +87,7 @@ cd "$BUILDDIR" && tar cvzf /var/lib/wb-image-update/deps.tar.gz .
 echo -n "+single-rootfs " > /var/lib/wb-image-update/firmware-compatible
 echo -n "+fit-factory-reset " >> /var/lib/wb-image-update/firmware-compatible
 echo -n "+force-repartition " >> /var/lib/wb-image-update/firmware-compatible
+echo -n "+repartition-ramsize-fix " >> /var/lib/wb-image-update/firmware-compatible
 
 if [[ ! -f /var/lib/wb-image-update/zImage ]] || [[ ! -f /var/lib/wb-image-update/boot.dtb ]]; then
     echo "bootlet is not found, something went wrong"
