@@ -1006,8 +1006,11 @@ maybe_factory_reset() {
 #---------------------------------------- main ----------------------------------------
 
 prepare_env
-extend_tmpfs_size
-maybe_update_current_factory_tmpfs_size_fix
+
+if flag_set from-initramfs; then
+    extend_tmpfs_size
+    maybe_update_current_factory_tmpfs_size_fix
+fi
 
 # --fail flag allows to simulate failed update for testing purposes
 if flag_set fail; then
