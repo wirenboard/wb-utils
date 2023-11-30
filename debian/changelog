@@ -1,3 +1,9 @@
+wb-utils (4.20.0) stable; urgency=medium
+
+  * Now publishing factoryreset fits info to mqtt topics
+
+ -- Aleksandr Kazadaev <aleksandr.kazadaev@wirenboard.com>  Thy, 30 Nov 2023 18:18:29 +0600
+
 wb-utils (4.19.3) stable; urgency=medium
 
   * Make tmpfs resize only in initramfs
