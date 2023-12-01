@@ -128,7 +128,7 @@ publish_factoryreset_fits_info() {
     publish_fit_info "$factoryreset_original_fit" "factoryreset-original"
 }
 
-publish_factoryreset_fit_info
+publish_factoryreset_fits_info
 
 maybe_publish_singlemode_update_status
 
