@@ -186,7 +186,7 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
   # Some sanity checks
   web_flags_file="$(dirname "$FIT")/install_update.web.flags"
   if [ -e "$web_flags_file" ]; then
-    if grep '--factoryreset ' "$web_flags_file"; then
+    if grep "\--factoryreset " "$web_flags_file"; then
       if ! fw_compatible fit-factory-reset; then
         msg="Factory reset requested, but FIT file does not support it, cancelling operation"
         log "$msg"
