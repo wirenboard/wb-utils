@@ -47,7 +47,7 @@ fi
 mkdir -p "$DIR_UPDATE"
 echo "--factoryreset " > "$DIR_UPDATE/install_update.web.flags"
 ln "$DIR_RESTORE/factoryreset.fit" "$DIR_UPDATE/webupd.fit"
-touch "$DIR_UPDATE/webupd.fit  # to trigger wb-watch-update"
+touch "$DIR_UPDATE/webupd.fit"  # to trigger wb-watch-update
 
 echo "Factory reset initiated, system will reboot soon"
 
