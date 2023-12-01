@@ -51,7 +51,7 @@ touch "$DIR_UPDATE/webupd.fit"  # to trigger wb-watch-update
 
 echo "Factory reset initiated, system will reboot soon"
 
-sleep 30
+sleep 60
 
 echo "System did not reboot, something went wrong, check /mnt/data/.wb-update/wb-console.log"
 
