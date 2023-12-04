@@ -128,6 +128,16 @@ publish_factoryreset_fits_info() {
     publish_fit_info "$factoryreset_original_fit" "factoryreset-original"
 }
 
+make_factoryreset_fit_accessible() {
+    if [ -f /mnt/data/.wb-restore/factoryreset.fit ]; then
+        chown root:www-data /mnt/data/.wb-restore/factoryreset.fit
+        chmod 0660 /mnt/data/.wb-restore/factoryreset.fit
+    fi
+}
+
+# Web FR needs rw access to factory fit to create hardlink and open it for writing to trigger wb-watch-update
+make_factoryreset_fit_accessible
+
 publish_factoryreset_fits_info
 
 maybe_publish_singlemode_update_status
