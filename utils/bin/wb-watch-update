@@ -128,7 +128,17 @@ publish_factoryreset_fits_info() {
     publish_fit_info "$factoryreset_original_fit" "factoryreset-original"
 }
 
-publish_factoryreset_fit_info
+make_factoryreset_fit_accessible() {
+	if [ -f /mnt/data/.wb-restore/factoryreset.fit ]; then
+		chown root:www-data /mnt/data/.wb-restore/factoryreset.fit
+		chmod 0660 /mnt/data/.wb-restore/factoryreset.fit
+	fi
+}
+
+# Web FR needs rw access to factory fit to create hardlink and open it for writing to trigger wb-watch-update
+make_factoryreset_fit_accessible
+
+publish_factoryreset_fits_info
 
 maybe_publish_singlemode_update_status
 
@@ -182,6 +192,24 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
 
 	# Remove old updates, we won't run it anyway
 	cleanup_watch_dir -not -name ${EVENT_FILE} -not -name 'install_update.*'
+
+	# Some sanity checks
+	web_flags_file="$(dirname "$FIT")/install_update.web.flags"
+	if [ -e "$web_flags_file" ]; then
+		if grep "\--factoryreset " "$web_flags_file"; then
+			if ! fw_compatible fit-factory-reset; then
+				msg="Factory reset requested, but FIT file does not support it, cancelling operation"
+				log "$msg"
+				mqtt_log "$msg"
+				mqtt_status "ERROR Incompatible FIT file"
+				mqtt_status "IDLE"
+				rm -f "$web_flags_file"
+				rm -f "$FIT"
+				LAST_FIT=""
+				continue
+			fi
+		fi
+	fi
 
 	msg="Received good update FIT $FIT, starting update"
 	log "$msg"

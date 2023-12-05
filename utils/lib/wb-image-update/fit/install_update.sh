@@ -986,7 +986,7 @@ maybe_factory_reset() {
 
         mkdir -p /mnt
         mkdir -p /mnt/data
-        mount -t auto $DATA_PART /mnt/data || true
+        mount -t auto $DATA_PART /mnt/data 2>/dev/null || true
 
         rm -rf /tmp/empty && mkdir /tmp/empty
         rsync -a --delete --exclude="/.wb-restore/" --exclude="/.wb-update/" /tmp/empty/ /mnt/data/
