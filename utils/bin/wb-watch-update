@@ -201,11 +201,11 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
         msg="Factory reset requested, but FIT file does not support it, cancelling operation"
         log "$msg"
         mqtt_log "$msg"
-		    mqtt_status "ERROR Incompatible FIT file"
-		    mqtt_status "IDLE"
+        mqtt_status "ERROR Incompatible FIT file"
+        mqtt_status "IDLE"
         rm -f "$web_flags_file"
         rm -f "$FIT"
-    		LAST_FIT=""
+        LAST_FIT=""
         continue
       fi
     fi
