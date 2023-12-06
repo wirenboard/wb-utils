@@ -1,3 +1,9 @@
+wb-utils (4.20.2) stable; urgency=medium
+
+  * fix upgrade from wb-2304 release, no functional changes
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Wed, 06 Dec 2023 15:34:26 +0600
+
 wb-utils (4.20.1) stable; urgency=medium
 
   * More fixes for factoryreset support, no functional changes
