@@ -1,0 +1,14 @@
+#!/bin/bash
+
+watchdog() {
+    while(true); do
+        if lsusb | grep -q "1e0e:9011"; then
+            systemd-notify WATCHDOG=1;
+        fi
+        sleep $(($WATCHDOG_USEC / 3000000))
+    done
+}
+
+wb-gsm mm_off
+wb-gsm mm_on
+watchdog
