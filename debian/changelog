@@ -1,3 +1,9 @@
+wb-utils (4.20.3) stable; urgency=medium
+
+  * Add modem watchdog
+
+ -- Petr Krasnoshchekov <petr.krasnoshchekov@wirenboard.com>  Tue, 30 Jan 2024 15:44:12 +0500
+
 wb-utils (4.20.2) stable; urgency=medium
 
   * fix upgrade from wb-2304 release, no functional changes

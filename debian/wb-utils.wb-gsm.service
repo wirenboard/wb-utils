@@ -5,11 +5,12 @@ Before=network-pre.target
 After=wb-hwconf-manager.service
 
 [Service]
-Type=oneshot
-ExecStart=wb-gsm mm_on
+Type=simple
+ExecStart=wb-gsm-mm
 ExecStop=wb-gsm mm_off
 ExecCondition=wb-gsm should_enable
-RemainAfterExit=yes
+Restart=on-failure
+WatchdogSec=300
 
 [Install]
 WantedBy=multi-user.target
