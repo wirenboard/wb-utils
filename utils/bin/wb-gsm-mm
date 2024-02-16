@@ -4,7 +4,7 @@ watchdog() {
     while true; do
         if lsusb | grep -q "1e0e:9011"; then
             if systemctl is-active --quiet ModemManager; then
-                output=$(mmcli -m wbc 2>&1)
+                output=$(LC_ALL=C mmcli -m wbc 2>&1)
                 if [ $? -ne 0 ] && [ "$output" = "error: couldn't find modem" ]; then
                     echo "ModemManager is running, but modem is not found"
                 else
