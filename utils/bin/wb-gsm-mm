@@ -1,9 +1,19 @@
 #!/bin/bash
 
 watchdog() {
+    sleep $(($WATCHDOG_USEC / 6000000))
     while true; do
         if lsusb | grep -q "1e0e:9011"; then
-            systemd-notify WATCHDOG=1
+            if systemctl is-active --quiet ModemManager; then
+                output=$(LC_ALL=C mmcli -m wbc 2>&1)
+                if [ $? -ne 0 ] && [ "$output" = "error: couldn't find modem" ]; then
+                    echo "ModemManager is running, but modem is not found"
+                else
+                    systemd-notify WATCHDOG=1
+                fi
+            else
+                systemd-notify WATCHDOG=1
+            fi
         fi
         sleep $(($WATCHDOG_USEC / 3000000))
     done
