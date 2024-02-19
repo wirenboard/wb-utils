@@ -1,6 +1,7 @@
 #!/bin/bash
 
 watchdog() {
+    sleep $(($WATCHDOG_USEC / 6000000))
     while true; do
         if lsusb | grep -q "1e0e:9011"; then
             if systemctl is-active --quiet ModemManager; then
