@@ -1,3 +1,9 @@
+wb-utils (4.21.0) stable; urgency=medium
+
+  * add Wiren Board 8 support
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.com>  Mon, 20 May 2024 16:03:58 +0500
+
 wb-utils (4.20.5) stable; urgency=medium
 
   * Fix compatibility checks for FIT updates

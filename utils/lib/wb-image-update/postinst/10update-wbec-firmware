@@ -41,7 +41,7 @@ fi
 COMPATIBLE=$(chroot "$ROOTFS" fdtget -t s "$FACTORY_DTB" / compatible)
 
 case "$COMPATIBLE" in
-    *wirenboard,wirenboard-74x*)
+    *wirenboard,wirenboard-74x*|*wirenboard,wirenboard-8xx*)
         echo "Trying to update WBEC firmware"
         chroot "$ROOTFS" /bin/bash -c "export DTB=$FACTORY_DTB; /usr/bin/wb-ec-firmware-update"
         ;;
