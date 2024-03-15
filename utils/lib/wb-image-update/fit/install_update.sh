@@ -966,6 +966,17 @@ log_mass_update() {
     fi
 }
 
+fw_has_proper_dtb() {
+    local EMMC=${EMMC:-/dev/mmcblk0}
+    local TMPFILE=$(mktemp)
+    # creating empty DTB to apply overlay to
+    echo "/dts-v1/; / { wirenboard {}; };" | dtc -I dts -O dtb -o "$TMPFILE"
+    dtb_name=$(dd "if=$EMMC" bs=512 skip=2016 count=32 | fdtoverlay -i "$TMPFILE" -o - - | fdtget -t s - /wirenboard factory-fdt)
+    rm -f $TMPFILE
+
+    fit_blob_data rootfs | tar tz | grep -q -m1 -F "$dtb_name"
+}
+
 check_firmware_compatible() {
     if flag_set force-fw-compatible; then
         info "Firmware compatibility check skipped"
