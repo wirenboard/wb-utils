@@ -1,3 +1,9 @@
+wb-utils (4.20.5) stable; urgency=medium
+
+  * Fix compatibility checks for FIT updates
+
+ -- Aleksandr Kazadaev <aleksandr.kazadaev@wirenboard.com>  Mon, 18 Mar 2024 14:43:29 +0500
+
 wb-utils (4.20.4) stable; urgency=medium
 
   * Fix modem watchdog
