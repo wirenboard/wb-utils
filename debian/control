@@ -16,3 +16,13 @@ Conflicts: wb-configs (<< 1.69.4)
 Breaks: wb-homa-ism-radio (<< 1.17.2), wb-rules-system (<< 1.6.1), wb-mqtt-serial (<< 1.47.2), wb-mqtt-homeui (<< 1.7.1),
         u-boot-wb7 (<< 2:2021.10+wb1.5.0~~), u-boot-wb6 (<< 2:2021.10+wb1.6.0~~)
 Description: Wiren Board command-line utils
+
+Package: wb-bootlet-wb8-dummy
+Architecture: all
+Provides: wb-bootlet
+Replaces: wb-bootlet
+Conflicts: wb-bootlet
+Depends: linux-image-wb8
+Description: dummy wb-bootlet package for Wiren Board 8
+  This empty package must be replaced with proper WB8 bootlet after it is done.
+  Now it is used to build FIT without conflicts.
