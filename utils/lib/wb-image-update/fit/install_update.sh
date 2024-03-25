@@ -98,10 +98,10 @@ prepare_env() {
         ln -s /proc/self/mounts /etc/mtab || true
     fi
 
-    if [ ! -e /sys/kernel/config/device-tree ]; then
-        mkdir -p /sys/kernel/config
-        mount -t configfs configfs /sys/kernel/config
-    fi
+    # if [ ! -e /sys/kernel/config/device-tree ]; then
+    #     mkdir -p /sys/kernel/config
+    #     mount -t configfs configfs /sys/kernel/config
+    # fi
 
     WEBUPD_DIR="/mnt/data/.wb-update"
 
