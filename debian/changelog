@@ -1,3 +1,10 @@
+wb-utils (4.20.6) stable; urgency=medium
+
+  * wb-watch-update: add is-update-from-cloud check
+  * add "+update-from-cloud" flag to fit
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Thu, 25 Apr 2024 18:21:45 +0300
+
 wb-utils (4.20.5) stable; urgency=medium
 
   * Fix compatibility checks for FIT updates
