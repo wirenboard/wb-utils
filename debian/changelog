@@ -1,3 +1,9 @@
+wb-utils (4.20.6) stable; urgency=medium
+
+  * fix USB device (Debug Network) mode on WB8
+
+ -- Evgeny Boger <boger@wirenboard.com>  Wed, 15 May 2024 20:12:24 +0300
+
 wb-utils (4.20.5) stable; urgency=medium
 
   * Fix compatibility checks for FIT updates
