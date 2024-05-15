@@ -9,7 +9,7 @@ RemainAfterExit=true
 ExecStop=/usr/lib/wb-utils/wb-usb-otg/wb-usb-otg-stop.sh
 StandardOutput=journal
 StandardError=journal
-ExecCondition=/usr/lib/wb-utils/wb-usb-otg/check-wb7.sh
+ExecCondition=/usr/lib/wb-utils/wb-usb-otg/check-if-supports-usb-network.sh
 
 [Install]
 WantedBy=multi-user.target
