@@ -10,6 +10,9 @@ ROOT_PARTITION=$(mount -l | grep " / " | cut -d " " -f1)
 . /usr/lib/wb-utils/prepare/vars.sh
 . /usr/lib/wb-utils/prepare/partitions.sh
 
+. /usr/lib/wb-utils/wb_env.sh
+wb_source "of"
+
 MB=1024*1024
 
 WB_DIR="/var/lib/wirenboard"
@@ -265,6 +268,14 @@ wb_fix_machine_id()
     systemd-machine-id-setup
 }
 
+# Allow to install armhf packages on wb8
+wb_add_foreign_arch()
+{
+    if of_machine_match "wirenboard,wirenboard-8xx"; then
+        dpkg --add-architecture armhf
+    fi
+}
+
 # This function should be called only on first boot of the rootfs
 wb_firstboot()
 {
@@ -287,6 +298,7 @@ wb_firstboot()
     wb_fix_macs
     wb_fix_short_sn
     wb_fix_machine_id
+    wb_add_foreign_arch
 
     log_action_msg "Generating SSH host keys if necessary"
     for keytype in ecdsa dsa rsa; do
