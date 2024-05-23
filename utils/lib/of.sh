@@ -207,7 +207,7 @@ of_get_prop_auto() {
 
 of_find_gpiochips() {
 	local n=0
-	for gpiochip in $(of_node_props /aliases | grep gpio); do
+	for gpiochip in $(of_node_props /aliases | grep gpio | grep -v mdio); do
 		node="$(of_get_prop_str /aliases "$gpiochip")"
 		phandle=$(of_get_prop_ulong "$node" phandle)
 		ncells=$(of_get_prop_ulong "$node" "#gpio-cells")

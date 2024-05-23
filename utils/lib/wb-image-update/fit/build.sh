@@ -90,7 +90,13 @@ echo -n "+force-repartition " >> /var/lib/wb-image-update/firmware-compatible
 echo -n "+repartition-ramsize-fix " >> /var/lib/wb-image-update/firmware-compatible
 echo -n "+update-from-cloud " >> /var/lib/wb-image-update/firmware-compatible
 
-if [[ ! -f /var/lib/wb-image-update/zImage ]] || [[ ! -f /var/lib/wb-image-update/boot.dtb ]]; then
+if of_machine_match "wirenboard,wirenboard-8xx"; then
+    KERNEL_IMAGE="Image.gz"
+else
+    KERNEL_IMAGE="zImage"
+fi
+
+if [[ ! -f "/var/lib/wb-image-update/$KERNEL_IMAGE" ]] || [[ ! -f /var/lib/wb-image-update/boot.dtb ]]; then
     echo "bootlet is not found, something went wrong"
     exit 1
 fi
