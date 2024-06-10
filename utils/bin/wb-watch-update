@@ -135,6 +135,18 @@ make_factoryreset_fit_accessible() {
 	fi
 }
 
+clear_incompatible_fit() {
+	local msg=$1
+	local mqtt_status=$2
+	local fit=$3
+
+	log "$msg"
+	mqtt_log "$msg"
+	mqtt_status "$mqtt_status"
+	mqtt_status "IDLE"
+	rm -f "$fit"
+}
+
 # Web FR needs rw access to factory fit to create hardlink and open it for writing to trigger wb-watch-update
 make_factoryreset_fit_accessible
 
@@ -182,10 +194,7 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
 	# Ensure that image was received completely
 	check_fully_received $FIT || {
 		msg="Received incomplete update FIT $FIT, don't starting update"
-		log "$msg"
-		mqtt_status "ERROR $msg"
-		mqtt_status "IDLE"
-		rm -f $FIT
+		clear_incompatible_fit $msg "ERROR $msg" $FIT
 		LAST_FIT=""
 		continue
 	}
@@ -199,12 +208,8 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
 		if grep "\--factoryreset " "$web_flags_file"; then
 			if ! fw_compatible fit-factory-reset; then
 				msg="Factory reset requested, but FIT file does not support it, cancelling operation"
-				log "$msg"
-				mqtt_log "$msg"
-				mqtt_status "ERROR Incompatible FIT file"
-				mqtt_status "IDLE"
+				clear_incompatible_fit $msg "ERROR Incompatible FIT file" $FIT
 				rm -f "$web_flags_file"
-				rm -f "$FIT"
 				LAST_FIT=""
 				continue
 			fi
@@ -212,12 +217,15 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
 		if grep "\--from-cloud " "$web_flags_file"; then
 			if ! fw_compatible update-from-cloud; then
 				msg="Chosen FIT file does not support updating from cloud (FIT does not include 'wb-cloud-agent' package -> connection will be lost)! Try latest FIT."
-				log "$msg"
-				mqtt_log "$msg"
-				mqtt_status "ERROR Update from cloud is not supported in chosen FIT! Try latest one."
-				mqtt_status "IDLE"
+				clear_incompatible_fit $msg "ERROR Update from cloud is not supported in chosen FIT! Try latest one." $FIT
 				rm -f "$web_flags_file"
-				rm -f "$FIT"
+				LAST_FIT=""
+				continue
+			fi
+			if grep "\--factoryreset " "$web_flags_file"; then
+				msg="Factoryreset is not supported via cloud (connections to all custom providers will be lost)!"
+				clear_incompatible_fit $msg "ERROR Factoryreset is not supported via cloud" $FIT
+				rm -f "$web_flags_file"
 				LAST_FIT=""
 				continue
 			fi
