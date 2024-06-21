@@ -1,3 +1,9 @@
+wb-utils (4.22.0) stable; urgency=medium
+
+  * wb-watch-update: add is-update-from-cloud check ("+update-from-cloud" flag)
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Thu, 23 May 2024 19:43:28 +0300
+
 wb-utils (4.21.1) stable; urgency=medium
 
   * fix USB device (Debug Network) mode on WB8

@@ -11,19 +11,19 @@ SINGLE_WATCH_DIR="/mnt/data/.wb-update"
 
 # added to read FIT compatibility flags
 fit_prop() {
-	local node=$1
-	local prop=$2
+    local node=$1
+    local prop=$2
 
-	local tmp=`fit_info -f $FIT -n $node -p $prop`
-	local len=`sed -rn 's#LEN: (.*)#\1#p' <<< "$tmp"`
-	local off=`sed -rn 's#OFF: (.*)#\1#p' <<< "$tmp"`
-	[[ -n "$len" && -n "$off" ]] || return 1
-	#dd if=$FIT skip=$off count=$len iflag=skip_bytes,count_bytes 2>/dev/null
-	tail -c +$((off + 1)) $FIT 2>/dev/null | head -c $len 2>/dev/null
+    local tmp=`fit_info -f $FIT -n $node -p $prop`
+    local len=`sed -rn 's#LEN: (.*)#\1#p' <<< "$tmp"`
+    local off=`sed -rn 's#OFF: (.*)#\1#p' <<< "$tmp"`
+    [[ -n "$len" && -n "$off" ]] || return 1
+    #dd if=$FIT skip=$off count=$len iflag=skip_bytes,count_bytes 2>/dev/null
+    tail -c +$((off + 1)) $FIT 2>/dev/null | head -c $len 2>/dev/null
 }
 
 fit_prop_string() {
-	fit_prop "$@" | tr -d '\0'
+    fit_prop "$@" | tr -d '\0'
 }
 
 fw_compatible() {
@@ -38,14 +38,14 @@ fw_compatible() {
 }
 
 cleanup() {
-	[[ -f "$PID_FILE" ]] && kill `cat "$PID_FILE"` 2>/dev/null
-	rm -f "$PID_FILE"
+    [[ -f "$PID_FILE" ]] && kill `cat "$PID_FILE"` 2>/dev/null
+    rm -f "$PID_FILE"
 }
 
 check_fully_received() {
-	local sig_len=`echo -n "$UPDATE_FIT_END_SIGNATURE" | wc -c`
-	local sig=`tail -c $sig_len $1`
-	[[ "$sig" == "$UPDATE_FIT_END_SIGNATURE" ]]
+    local sig_len=`echo -n "$UPDATE_FIT_END_SIGNATURE" | wc -c`
+    local sig=`tail -c $sig_len $1`
+    [[ "$sig" == "$UPDATE_FIT_END_SIGNATURE" ]]
 }
 
 cleanup_watch_dir() {
@@ -54,59 +54,59 @@ cleanup_watch_dir() {
 }
 
 log() {
-	logger -t wb-watch-update "$*"
+    logger -t wb-watch-update "$*"
 }
 
 mqtt_status() {
-	mosquitto_pub -r -t /firmware/status -m "$*"
+    mosquitto_pub -r -t /firmware/status -m "$*"
 }
 
 mqtt_log_retain() {
-	mosquitto_pub -t /firmware/log -m "$*" -r
+    mosquitto_pub -t /firmware/log -m "$*" -r
 }
 
 mqtt_log() {
-	mosquitto_pub -t /firmware/log -m "$*"
+    mosquitto_pub -t /firmware/log -m "$*"
 }
 
 mqtt_log_pipe() {
-	mosquitto_pub -t /firmware/log -l
+    mosquitto_pub -t /firmware/log -l
 }
 
 mqtt_log_reset() {
-	mosquitto_pub -t /firmware/log -m "" -r
+    mosquitto_pub -t /firmware/log -m "" -r
 }
 
 DEFAULT_STATUS="IDLE"
 
 maybe_publish_singlemode_update_status() {
-	local logfile="$SINGLE_WATCH_DIR/state/update.log"
-	local statusfile="$SINGLE_WATCH_DIR/state/update.status"
+    local logfile="$SINGLE_WATCH_DIR/state/update.log"
+    local statusfile="$SINGLE_WATCH_DIR/state/update.status"
 
-	if [ -e "$statusfile" ]; then
-		if [ -e "$logfile" ]; then
-			log "Seems like update just have been done, printing logs and saving it in retained"
-			log "Saved status: $(cat "$statusfile")"
-			log "Please reload page if there is no 'Done' button"
+    if [ -e "$statusfile" ]; then
+        if [ -e "$logfile" ]; then
+            log "Seems like update just have been done, printing logs and saving it in retained"
+            log "Saved status: $(cat "$statusfile")"
+            log "Please reload page if there is no 'Done' button"
 
-			mqtt_log_retain "$({
-				echo ">>> Installation logs:"
-				sed -e 's/^INFO /%%% /' -e 's/^REBOOT.*$/%%% (reboot)/' < "$logfile"
-			})"
-		fi
+            mqtt_log_retain "$({
+                echo ">>> Installation logs:"
+                sed -e 's/^INFO /%%% /' -e 's/^REBOOT.*$/%%% (reboot)/' < "$logfile"
+            })"
+        fi
 
-		# This is a combined status example. It should not be used anywhere
-		# but in this tool in order to preseve compatibility.
-		#
-		# See app/scripts/react-directives/firmware-update/store.js in homeui
-		# to know more about it.
+        # This is a combined status example. It should not be used anywhere
+        # but in this tool in order to preseve compatibility.
+        #
+        # See app/scripts/react-directives/firmware-update/store.js in homeui
+        # to know more about it.
 
-		DEFAULT_STATUS="$({
-			cat "$statusfile"
-			echo -ne "\nIDLE"
-		})"
-		rm -rf "$statusfile"
-	fi
+        DEFAULT_STATUS="$({
+            cat "$statusfile"
+            echo -ne "\nIDLE"
+        })"
+        rm -rf "$statusfile"
+    fi
 }
 
 publish_fit_info() {
@@ -129,10 +129,10 @@ publish_factoryreset_fits_info() {
 }
 
 make_factoryreset_fit_accessible() {
-	if [ -f /mnt/data/.wb-restore/factoryreset.fit ]; then
-		chown root:www-data /mnt/data/.wb-restore/factoryreset.fit
-		chmod 0660 /mnt/data/.wb-restore/factoryreset.fit
-	fi
+    if [ -f /mnt/data/.wb-restore/factoryreset.fit ]; then
+        chown root:www-data /mnt/data/.wb-restore/factoryreset.fit
+        chmod 0660 /mnt/data/.wb-restore/factoryreset.fit
+    fi
 }
 
 # Web FR needs rw access to factory fit to create hardlink and open it for writing to trigger wb-watch-update
@@ -150,10 +150,10 @@ chown www-data:www-data "$SINGLE_WATCH_DIR"
 LAST_FIT=''
 
 (
-	echo "$BASHPID" > "$PID_FILE"
-	2>/dev/null exec inotifywait -m -r \
-		--exclude "($AB_WATCH_DIR/state/|$SINGLE_WATCH_DIR/state/)" \
-		--event close_write $AB_WATCH_DIR/ $SINGLE_WATCH_DIR/ \
+    echo "$BASHPID" > "$PID_FILE"
+    2>/dev/null exec inotifywait -m -r \
+        --exclude "($AB_WATCH_DIR/state/|$SINGLE_WATCH_DIR/state/)" \
+        --event close_write $AB_WATCH_DIR/ $SINGLE_WATCH_DIR/ \
 ) | {
 trap cleanup EXIT
 
@@ -163,57 +163,81 @@ while ! mqtt_status "$DEFAULT_STATUS"; do
 done
 
 while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
-	FIT="${EVENT_DIR}${EVENT_FILE}"
+    FIT="${EVENT_DIR}${EVENT_FILE}"
 
-	# skip install_update.flags file event, it may be used for debugging
-	case "$FIT" in
-	*install_update.*)
-		continue
-		;;
-	esac
+    # skip install_update.flags file event, it may be used for debugging
+    case "$FIT" in
+    *install_update.*)
+        continue
+        ;;
+    esac
 
-	# Prevent endless loop
-	[[ "$FIT" != "$LAST_FIT" ]] || continue
-	[[ -e "$FIT" ]] || continue
-	LAST_FIT=$FIT
+    # Prevent endless loop
+    [[ "$FIT" != "$LAST_FIT" ]] || continue
+    [[ -e "$FIT" ]] || continue
+    LAST_FIT=$FIT
 
-	mqtt_log_reset
+    mqtt_log_reset
 
-	# Ensure that image was received completely
-	check_fully_received $FIT || {
-		msg="Received incomplete update FIT $FIT, don't starting update"
-		log "$msg"
-		mqtt_status "ERROR $msg"
-		mqtt_status "IDLE"
-		rm -f $FIT
-		LAST_FIT=""
-		continue
-	}
+    # Ensure that image was received completely
+    check_fully_received $FIT || {
+        msg="Received incomplete update FIT $FIT, don't starting update"
+        log "$msg"
+        mqtt_status "ERROR $msg"
+        mqtt_status "IDLE"
+        rm -f $FIT
+        LAST_FIT=""
+        continue
+    }
 
-	# Remove old updates, we won't run it anyway
-	cleanup_watch_dir -not -name ${EVENT_FILE} -not -name 'install_update.*'
+    # Remove old updates, we won't run it anyway
+    cleanup_watch_dir -not -name ${EVENT_FILE} -not -name 'install_update.*'
 
-	# Some sanity checks
-	web_flags_file="$(dirname "$FIT")/install_update.web.flags"
-	if [ -e "$web_flags_file" ]; then
-		if grep "\--factoryreset " "$web_flags_file"; then
-			if ! fw_compatible fit-factory-reset; then
-				msg="Factory reset requested, but FIT file does not support it, cancelling operation"
-				log "$msg"
-				mqtt_log "$msg"
-				mqtt_status "ERROR Incompatible FIT file"
-				mqtt_status "IDLE"
-				rm -f "$web_flags_file"
-				rm -f "$FIT"
-				LAST_FIT=""
-				continue
-			fi
-		fi
-	fi
+    # Some sanity checks
+    web_flags_file="$(dirname "$FIT")/install_update.web.flags"
+    if [ -e "$web_flags_file" ]; then
+        if grep "\--factoryreset " "$web_flags_file"; then
+            if ! fw_compatible fit-factory-reset; then
+                msg="Factory reset requested, but FIT file does not support it, cancelling operation"
+                log "$msg"
+                mqtt_log "$msg"
+                mqtt_status "ERROR Incompatible FIT file"
+                mqtt_status "IDLE"
+                rm -f "$web_flags_file"
+                rm -f "$FIT"
+                LAST_FIT=""
+                continue
+            fi
+        fi
+        if grep "\--from-cloud " "$web_flags_file"; then
+            if ! fw_compatible update-from-cloud; then
+                msg="Chosen FIT file does not support updating from cloud (FIT does not include 'wb-cloud-agent' package -> connection will be lost)! Try latest FIT."
+                log "$msg"
+                mqtt_log "$msg"
+                mqtt_status "ERROR Update from cloud is not supported in chosen FIT! Try latest one."
+                mqtt_status "IDLE"
+                rm -f "$web_flags_file"
+                rm -f "$FIT"
+                LAST_FIT=""
+                continue
+            fi
+            if grep "\--factoryreset " "$web_flags_file"; then
+                msg="Factoryreset is not supported via cloud (connections to all custom providers will be lost)!"
+                log "$msg"
+                mqtt_log "$msg"
+                mqtt_status "ERROR Factoryreset is not supported via cloud"
+                mqtt_status "IDLE"
+                rm -f "$web_flags_file"
+                rm -f "$FIT"
+                LAST_FIT=""
+                continue
+            fi
+        fi
+    fi
 
-	msg="Received good update FIT $FIT, starting update"
-	log "$msg"
-	mqtt_log "$msg"
+    msg="Received good update FIT $FIT, starting update"
+    log "$msg"
+    mqtt_log "$msg"
 
   if ! fw_compatible force-repartition; then
       web_flags_file="$(dirname "$FIT")/install_update.web.flags"
@@ -225,17 +249,17 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
       fi
   fi
 
-	wb-run-update $FIT 2>&1 | tee -a "$UPDATE_LOG" | mqtt_log_pipe
-	if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-		FIT=""
-		LAST_FIT=""
-	fi
+    wb-run-update $FIT 2>&1 | tee -a "$UPDATE_LOG" | mqtt_log_pipe
+    if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+        FIT=""
+        LAST_FIT=""
+    fi
 
-	if [ -e "$SINGLE_WATCH_DIR/state/update.status" ] ; then
-		log "Exiting wb-watch-update, restart is required by FIT"
-		exit 0
-	fi
-	
-	rm -f $FIT
+    if [ -e "$SINGLE_WATCH_DIR/state/update.status" ] ; then
+        log "Exiting wb-watch-update, restart is required by FIT"
+        exit 0
+    fi
+
+    rm -f $FIT
 done
 }
