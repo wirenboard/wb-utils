@@ -1,3 +1,9 @@
+wb-utils (4.22.1) stable; urgency=medium
+
+  * wb-gsm: temporarily watch status-gpio via libgpiod
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Tue, 25 Jun 2024 12:54:12 +0300
+
 wb-utils (4.22.0) stable; urgency=medium
 
   * wb-watch-update: add is-update-from-cloud check ("+update-from-cloud" flag)
