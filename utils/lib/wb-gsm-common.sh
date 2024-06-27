@@ -739,11 +739,17 @@ function mm_on() {
     local gpio_gsm_status=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "status-gpios")
     local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
     local gpio_gsm_pwrkey=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "pwrkey-gpios")
+    local gpio_gsm_simselect=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "simselect-gpios")
 
     if [[ `$GPIOD_GET_CMD $(gpiofind "GSM STATUS")` = "1" ]]; then
         debug "Modem is already switched on"
         return 0
     fi
+
+    # MM assumes simselect to be output and released
+    gpio_setup $gpio_gsm_simselect out
+    gpio_set_value $gpio_gsm_simselect 0  # sim1
+    gpio_unexport $gpio_gsm_simselect
 
     gpio_set_value $gpio_gsm_power 1
     sleep 1
