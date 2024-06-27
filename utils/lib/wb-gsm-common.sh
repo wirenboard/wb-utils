@@ -367,7 +367,7 @@ function gsm_init() {
     fi
 
     if [[ -n $gpio_gsm_status ]]; then
-        # gpio_setup $gpio_gsm_status in
+        gpio_unexport $gpio_gsm_status || true  # release for gpiod
         if of_gpio_is_inverted $(of_prop_required of_get_prop_gpio $OF_GSM_NODE "status-gpios"); then
             GPIOD_GET_CMD="gpioget -l"
         fi
@@ -725,7 +725,7 @@ function mm_gsm_init() {
 
     gpio_setup $gpio_gsm_pwrkey out
     gpio_setup $gpio_gsm_power out
-    # gpio_setup $gpio_gsm_status in
+    gpio_unexport $gpio_gsm_status || true  # release for gpiod
 
     if of_gpio_is_inverted $(of_prop_required of_get_prop_gpio $OF_GSM_NODE "status-gpios"); then
         GPIOD_GET_CMD="gpioget -l"
