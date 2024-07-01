@@ -1,3 +1,9 @@
+wb-utils (4.22.1) stable; urgency=medium
+
+  * wb-gsm: fix modem turning-on & simselect on 6.8 kernel
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Thu, 27 Jun 2024 18:02:17 +0300
+
 wb-utils (4.22.0) stable; urgency=medium
 
   * wb-watch-update: add is-update-from-cloud check ("+update-from-cloud" flag)
