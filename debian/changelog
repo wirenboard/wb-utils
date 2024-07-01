@@ -1,3 +1,9 @@
+wb-utils (4.21.1-wb100) stable; urgency=medium
+
+  * wb-gsm: fix modem turning-on & simselect on 6.8 kernel
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Thu, 27 Jun 2024 18:02:17 +0300
+
 wb-utils (4.21.1) stable; urgency=medium
 
   * fix USB device (Debug Network) mode on WB8
