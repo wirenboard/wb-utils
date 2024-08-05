@@ -47,7 +47,8 @@ install: build_mass_storage
 		utils/lib/prepare/vars.sh
 
 	install -Dm0755 -t $(PREPARE_LIBDIR) \
-		utils/lib/prepare/wb-prepare.sh
+		utils/lib/prepare/wb-prepare.sh \
+		utils/lib/prepare/wb-fix-hardware.sh
 
 	install -Dm0755 -t $(BINDIR) \
 		utils/bin/wb-gen-serial \

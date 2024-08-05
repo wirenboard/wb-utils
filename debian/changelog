@@ -1,6 +1,9 @@
-wb-utils (4.22.2) stable; urgency=medium
+wb-utils (4.23.0) stable; urgency=medium
 
   * wb-usb-otg: is supported on all wirenboard-8xx compatible devices
+  * add wb-fix-hardware.service:
+    reconfigures hardware-dependent packages (actually: wb-configs) at firstboot
+    to acquire actually loaded dts
 
  -- Vladimir Romanov <v.romanov@wirenboard.com>  Wed, 31 Jul 2024 18:45:21 +0300
 
