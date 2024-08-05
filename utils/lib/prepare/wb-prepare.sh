@@ -265,6 +265,16 @@ wb_fix_machine_id()
     systemd-machine-id-setup
 }
 
+# Rootfs could be built with a default many-boards-compatible dtb
+# => re-trigger services manually to fix their of_compatible-based configs
+wb_fix_hardware()
+{
+    for service in wb-configs ; do
+        log_action_msg "Reconfigure $service to consume actual booted dtb"
+        dpkg-reconfigure wb-configs
+    done
+}
+
 # This function should be called only on first boot of the rootfs
 wb_firstboot()
 {
@@ -283,6 +293,7 @@ wb_firstboot()
 		log_end_msg $?
     }
 
+    wb_fix_hardware
     wb_fix_serial
     wb_fix_macs
     wb_fix_short_sn
