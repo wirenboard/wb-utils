@@ -1,7 +1,7 @@
 [Unit]
 Description=fix hardware-dependent services configs at first boot (with actual dts loaded)
 Conflicts=shutdown.target
-After=first-boot-complete.target wb-init.service wb-configs.service
+After=first-boot-complete.target wb-init.service wb-configs.service watchdog.service
 Wants=first-boot-complete.target
 RefuseManualStop=true
 ConditionFirstBoot=yes
