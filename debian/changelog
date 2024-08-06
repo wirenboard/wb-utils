@@ -1,3 +1,11 @@
+wb-utils (4.23.0) stable; urgency=medium
+
+  * introduce wb-fix-hardware.service:
+    reconfigures hw-dependent services at firstboot
+    to acquire correct configs, dependent on actually loaded dts
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Tue, 06 Aug 2024 12:11:09 +0300
+
 wb-utils (4.22.2) stable; urgency=medium
 
   * wb-usb-otg: is supported on all wirenboard-8xx compatible devices

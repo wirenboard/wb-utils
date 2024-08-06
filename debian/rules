@@ -5,6 +5,7 @@
 override_dh_installsystemd:
 	dh_installsystemd --name=wb-prepare --no-start --no-restart-after-upgrade --no-restart-on-upgrade
 	dh_installsystemd --name=wb-init --no-start --no-restart-after-upgrade --no-restart-on-upgrade
+	dh_installsystemd --name=wb-fix-hardware --no-start --no-restart-after-upgrade --no-restart-on-upgrade
 	dh_installsystemd --name=wb-watch-update
 	dh_installsystemd --name=wb-gsm
 	dh_installsystemd --name=wb-usb-otg
@@ -12,6 +13,7 @@ override_dh_installsystemd:
 override_dh_systemd_enable:
 	dh_systemd_enable --name=wb-prepare wb-prepare.service
 	dh_systemd_enable --name=wb-init wb-init.service
+	dh_systemd_enable --name=wb-fix-hardware wb-fix-hardware.service
 	dh_systemd_enable --name=wb-watch-update wb-watch-update.service
 	dh_systemd_enable --name=wb-gsm wb-gsm.service
 	dh_systemd_enable --name=wb-usb-otg wb-usb-otg.service
@@ -19,6 +21,7 @@ override_dh_systemd_enable:
 override_dh_systemd_start:
 	dh_systemd_start --name=wb-prepare --no-start wb-prepare.service
 	dh_systemd_start --name=wb-init --no-start wb-init.service
+	dh_systemd_start --name=wb-fix-hardware --no-start wb-fix-hardware.service
 	dh_systemd_start --name=wb-watch-update --restart-after-upgrade wb-watch-update.service
 	dh_systemd_start --name=wb-gsm wb-gsm.service
 	dh_systemd_start --name=wb-usb-otg wb-usb-otg.service
