@@ -1,3 +1,9 @@
+wb-utils (4.22.2) stable; urgency=medium
+
+  * wb-usb-otg: is supported on all wirenboard-8xx compatible devices
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Wed, 31 Jul 2024 18:45:21 +0300
+
 wb-utils (4.22.1) stable; urgency=medium
 
   * wb-gsm: fix modem turning-on & simselect on 6.8 kernel
