@@ -1,3 +1,9 @@
+wb-utils (4.23.0) stable; urgency=medium
+
+  * wb-prepare: run scripts from /etc/wb-prepare.d on firstboot
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Fri, 09 Aug 2024 17:53:39 +0300
+
 wb-utils (4.22.2) stable; urgency=medium
 
   * wb-usb-otg: is supported on all wirenboard-8xx compatible devices
