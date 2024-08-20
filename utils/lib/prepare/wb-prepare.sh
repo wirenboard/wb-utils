@@ -265,6 +265,14 @@ wb_fix_machine_id()
     systemd-machine-id-setup
 }
 
+wb_run_scripts()
+{
+    local scriptsdir=$1
+    if [[ -d $scriptsdir ]]; then
+        run-parts -v $scriptsdir
+    fi
+}
+
 # This function should be called only on first boot of the rootfs
 wb_firstboot()
 {
@@ -309,6 +317,8 @@ wb_firstboot()
     done
 
     sync
+
+    wb_run_scripts /etc/wb-prepare.d
 
     if $FIRSTBOOT_NEED_REBOOT; then
         reboot
