@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+FIT=${FIT:-/mnt/data/.wb-restore/factoryreset.fit}
+
+fit_prop() {
+    local node=$1
+    local prop=$2
+
+    local tmp=$(fit_info -f "$FIT" -n "$node" -p "$prop")
+    local len=$(sed -rn 's#LEN: (.*)#\1#p' <<< "$tmp")
+    local off=$(sed -rn 's#OFF: (.*)#\1#p' <<< "$tmp")
+    [[ -n "$len" && -n "$off" ]] || return 1
+    tail -c +$((off + 1)) "$FIT" 2>/dev/null | head -c "$len" 2>/dev/null
+}
+
+fit_prop_string() {
+    fit_prop "$@" | tr -d '\0'
+}
+
+if [ ! -f "$FIT" ]; then
+    echo "No FIT image found at $FIT"
+    exit 1
+fi
+
+fw_compat=$(fit_prop_string / firmware-compatible)
+
+if [ -z "$1" ]; then
+    echo "$fw_compat"
+else
+    feature="$1"
+    case "$fw_compat" in
+        *"+$feature "*) exit 0 ;;
+        *) exit 1 ;;
+    esac
+fi
