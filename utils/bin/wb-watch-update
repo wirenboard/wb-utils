@@ -9,6 +9,8 @@ PID_FILE="/var/run/wb-watch-update.pid"
 AB_WATCH_DIR="/var/www/uploads"
 SINGLE_WATCH_DIR="/mnt/data/.wb-update"
 
+WB_FACTORY_FIT="/mnt/data/.wb-restore/factoryreset.fit"
+
 # added to read FIT compatibility flags
 fit_prop() {
     local node=$1
@@ -121,22 +123,13 @@ publish_fit_info() {
 }
 
 publish_factoryreset_fits_info() {
-    local factoryreset_fit="/mnt/data/.wb-restore/factoryreset.fit"
     local factoryreset_original_fit="/mnt/data/.wb-restore/factoryreset.original.fit"
 
-    publish_fit_info "$factoryreset_fit" "factoryreset"
+    publish_fit_info "$WB_FACTORY_FIT" "factoryreset"
     publish_fit_info "$factoryreset_original_fit" "factoryreset-original"
 }
 
-make_factoryreset_fit_accessible() {
-    if [ -f /mnt/data/.wb-restore/factoryreset.fit ]; then
-        chown root:www-data /mnt/data/.wb-restore/factoryreset.fit
-        chmod 0660 /mnt/data/.wb-restore/factoryreset.fit
-    fi
-}
-
-# Web FR needs rw access to factory fit to create hardlink and open it for writing to trigger wb-watch-update
-make_factoryreset_fit_accessible
+chattr +i $WB_FACTORY_FIT
 
 publish_factoryreset_fits_info
 
@@ -181,13 +174,24 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
 
     # Ensure that image was received completely
     check_fully_received $FIT || {
-        msg="Received incomplete update FIT $FIT, don't starting update"
-        log "$msg"
-        mqtt_status "ERROR $msg"
-        mqtt_status "IDLE"
-        rm -f $FIT
-        LAST_FIT=""
-        continue
+        if [[ $EVENT_FILE == "wb_use_factory_fit.flag" ]]; then
+            echo "--factoryreset --from-emmc-factoryreset " > "${EVENT_DIR}install_update.web.flags"
+            webupd_fit_file="webupd.fit"
+            FIT="${EVENT_DIR}${webupd_fit_file}"
+            EVENT_FILE="$webupd_fit_file"
+            chattr -i $WB_FACTORY_FIT
+            ln "$WB_FACTORY_FIT" "$FIT"  # uboot has hardcoded webupd fit name
+            sync
+            chattr +i $WB_FACTORY_FIT
+        else
+            msg="Received incomplete update FIT $FIT, don't starting update"
+            log "$msg"
+            mqtt_status "ERROR $msg"
+            mqtt_status "IDLE"
+            rm -f $FIT
+            LAST_FIT=""
+            continue
+        fi
     }
 
     # Remove old updates, we won't run it anyway

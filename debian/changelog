@@ -1,3 +1,9 @@
+wb-utils (4.24.0) stable; urgency=medium
+
+  * support immutable factory-fit
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Tue, 24 Sep 2024 10:56:21 +0300
+
 wb-utils (4.23.0) stable; urgency=medium
 
   * wb-prepare: run scripts from /etc/wb-prepare.d on firstboot

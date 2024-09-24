@@ -26,6 +26,7 @@ flag_set() {
 rm_fit() {
 	flag_set no-remove && return 0
 	info "Removing FIT $FIT"
+	chattr -i "$FIT"
 	rm -f "$FIT"
 }
 
