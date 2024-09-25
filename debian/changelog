@@ -1,10 +1,3 @@
-wb-utils (4.24.0) stable; urgency=medium
-
-  * add wb-fw-compatible command
-  * wb-watch-update: move mqtt publishing to wb-rules-system
-
- -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com> Mon, 23 Sep 2024 11:30:00 +0400
-
 wb-utils (4.23.0) stable; urgency=medium
 
   * wb-prepare: run scripts from /etc/wb-prepare.d on firstboot
@@ -85,7 +78,7 @@ wb-utils (4.19.3) stable; urgency=medium
 
 wb-utils (4.19.2) stable; urgency=medium
 
-  * Fix rootfs extending on 512M RAM
+  * Fix rootfs extending on 512M RAM 
 
  -- Ekaterina Volkova <ekaterina.volkova@wirenboard.com>  Mon, 20 Nov 2023 18:36:15 +0300
 

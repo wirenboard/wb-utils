@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #set -e
 #set -x
 
@@ -151,6 +151,17 @@ disk_layout_is_ab() {
     [ "$(blockdev --getsz "$ROOTFS1_PART")" -eq "$(blockdev --getsz "$ROOTFS2_PART")" ]
 }
 
+fw_compatible() {
+    local feature="$1"
+    local fw_compat
+    fw_compat=$(fit_prop_string / firmware-compatible)
+
+    case "$fw_compat" in
+        *"+$feature "*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 fw_has_proper_dtb() {
     local dtb_name
     dtb_name=$(/usr/lib/wb-utils/device-factory-fdt.sh)
@@ -171,7 +182,7 @@ check_firmware_compatible() {
         die "Firmware is not compatible with this device, no proper DTB found"
     fi
 
-    if ! disk_layout_is_ab && ! FIT=$FIT wb-fw-compatible "single-rootfs"; then
+    if ! disk_layout_is_ab && ! fw_compatible "single-rootfs"; then
         die "Firmware is not compatible with single-rootfs layout"
     fi
 
@@ -285,7 +296,7 @@ EOF
 fit_blob_verify_hash install
 
 if flag_set factoryreset; then
-    if FIT=$FIT wb-fw-compatible "fit-factory-reset"; then
+    if fw_compatible "fit-factory-reset"; then
         info "Requested factory reset will be performed by firmware itself"
     else
         if flag_set from-initramfs; then

@@ -55,7 +55,6 @@ install: build_mass_storage
 		utils/bin/wb-gsm \
 		utils/bin/wb-gsm-mm \
 		utils/bin/wb-factoryreset \
-		utils/bin/wb-fw-compatible \
 		utils/bin/wb-watch-update \
 		utils/bin/wb-run-update
 
