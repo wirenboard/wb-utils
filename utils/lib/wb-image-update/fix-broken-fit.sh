@@ -34,10 +34,11 @@ if of_machine_match "wirenboard,wirenboard-7xx" || of_machine_match "wirenboard,
                 if [[ "$FACTORYRESET_SHA256" == "$broken" ]]; then
                     echo "Broken factory FIT found, downloading a working one"
                     wget -O "${FACTORYRESET_FIT}.new" "${URL}?broken&from=${FACTORYRESET_SHA256}&serial=$(wb-gen-serial -s)"
+                    local was_immutable=$(lsattr -l $FACTORYRESET_FIT | grep "Immutable" || true)
                     chattr -i $FACTORYRESET_FIT
                     mv "${FACTORYRESET_FIT}.new" "$FACTORYRESET_FIT"
                     sync
-                    chattr +i $FACTORYRESET_FIT
+                    [[ -n "$was_immutable" ]] && chattr +i $FACTORYRESET_FIT
                     break
                 fi
             done
