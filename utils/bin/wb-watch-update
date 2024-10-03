@@ -140,6 +140,13 @@ chown www-data:www-data "$SINGLE_WATCH_DIR"
 
 LAST_FIT=''
 
+mosquitto_sub -t '$SYS/broker/uptime' | while read -r message; do
+    if [[ "$message" == "0 seconds" ]]; then
+        publish_factoryreset_fits_info
+        mqtt_status "IDLE"
+    fi
+done &
+
 (
     echo "$BASHPID" > "$PID_FILE"
     2>/dev/null exec inotifywait -m -r \
