@@ -45,7 +45,6 @@ if [[ "$1" != "--force" ]]; then
 fi
 
 mkdir -p "$DIR_UPDATE"
-echo "--factoryreset --from-emmc-factoryreset " > "$DIR_UPDATE/install_update.web.flags"
 touch "$DIR_UPDATE/wb_use_factory_fit.flag"  # to trigger wb-watch-update
 
 echo "Factory reset initiated, system will reboot soon"
