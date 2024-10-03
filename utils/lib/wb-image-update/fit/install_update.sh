@@ -603,10 +603,7 @@ maybe_update_current_factory_tmpfs_size_fix(){
 
         if ! FIT="$CURRENT_FACTORY_FIT" fw_compatible repartition-ramsize-fix; then
             info "Replace factoryreset.fit with current fit to fix rootfs extending issue at 512M RAM" 
-            local was_immutable=$(lsattr -l $CURRENT_FACTORY_FIT | grep "Immutable" || true)
-            chattr -i $CURRENT_FACTORY_FIT
-            cp "$FIT" "$CURRENT_FACTORY_FIT"
-            [[ -n "$was_immutable" ]] && chattr +i $CURRENT_FACTORY_FIT
+            copy_this_fit_to_factory
         else
             info "Factoryreset.fit already includes a fix for the 512MB RAM repartition issue (repartition-ramsize-fix compatibility)"
         fi
@@ -812,11 +809,9 @@ maybe_update_current_factory_fit() {
         info "Storing this update as factory FIT to use as bootlet"
         info "Old factory FIT will be kept as factoryreset.original.fit and will still be used to restore firmware"
 
-        was_immutable=$(lsattr -l $CURRENT_FACTORY_FIT | grep "Immutable" || true)
-        chattr -i $CURRENT_FACTORY_FIT
-        mv "$CURRENT_FACTORY_FIT" "$mnt/.wb-restore/factoryreset.original.fit"
-        cp "$FIT" "$CURRENT_FACTORY_FIT"
-        [[ -n "$was_immutable" ]] && chattr +i $CURRENT_FACTORY_FIT
+        cp "$CURRENT_FACTORY_FIT" "$mnt/.wb-restore/factoryreset.original.fit"
+        sync
+        copy_this_fit_to_factory
     else
         info "Current factory FIT supports single-rootfs feature, keeping it"
     fi

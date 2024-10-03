@@ -173,6 +173,7 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
     # Ensure that image was received completely
     check_fully_received $FIT || {
         if [[ $EVENT_FILE == "wb_use_factory_fit.flag" ]]; then
+            log "received wb_use_factory_fit.flag; hardlinking factory-fit to webupd file"
             echo "--factoryreset --from-emmc-factoryreset " > "${EVENT_DIR}install_update.web.flags"
             webupd_fit_file="webupd.fit"
             FIT="${EVENT_DIR}${webupd_fit_file}"
