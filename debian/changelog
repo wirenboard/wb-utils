@@ -1,3 +1,9 @@
+wb-utils (4.24.0) stable; urgency=medium
+
+  * support immutable factory-fit
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Thu, 03 Oct 2024 16:13:39 +0300
+
 wb-utils (4.23.1) stable; urgency=medium
 
   * wb-watch-update: republish retained messages on reconnect to mqtt broker

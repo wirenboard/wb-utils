@@ -17,6 +17,8 @@ FLAGS=""
 # for factory reset
 DATA_PART="/dev/mmcblk0p6"
 DATA_LABEL="data"
+FACTORY_FIT_DIR="/mnt/data/.wb-restore"
+FACTORY_FIT="${FACTORY_FIT_DIR}/factoryreset.fit"
 
 # Some handy functions, usable in install script
 flag_set() {
@@ -26,7 +28,16 @@ flag_set() {
 rm_fit() {
 	flag_set no-remove && return 0
 	info "Removing FIT $FIT"
-	rm -f "$FIT"
+	if [ "$FIT" -ef "$FACTORY_FIT" ]; then
+		info "$FIT is a hardlink to factory-fit; saving factory-fit immutability"
+		was_immutable=$(lsattr -l $FACTORY_FIT | grep "Immutable" || true)
+		chattr -i $FIT
+		rm -f "$FIT"
+		sync
+		[[ -n "$was_immutable" ]] && chattr +i $FACTORY_FIT
+	else
+		rm -f "$FIT"
+	fi
 }
 
 led() {
@@ -309,8 +320,6 @@ if flag_set factoryreset; then
             rm -rf /tmp/empty && mkdir /tmp/empty
             rsync -a --delete --exclude="/.wb-restore/" /tmp/empty/ /mnt/data/
 
-            FACTORY_FIT_DIR="/mnt/data/.wb-restore"
-            FACTORY_FIT="${FACTORY_FIT_DIR}/factoryreset.fit"
             if [[ ! -e "$FACTORY_FIT" ]]; then
                 echo "Saving current update file as factory default image"
                 mkdir -p "${FACTORY_FIT_DIR}"

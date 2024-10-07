@@ -603,7 +603,7 @@ maybe_update_current_factory_tmpfs_size_fix(){
 
         if ! FIT="$CURRENT_FACTORY_FIT" fw_compatible repartition-ramsize-fix; then
             info "Replace factoryreset.fit with current fit to fix rootfs extending issue at 512M RAM" 
-            cp "$FIT" "$mnt/.wb-restore/factoryreset.fit"
+            copy_this_fit_to_factory
         else
             info "Factoryreset.fit already includes a fix for the 512MB RAM repartition issue (repartition-ramsize-fix compatibility)"
         fi
@@ -782,7 +782,13 @@ copy_this_fit_to_factory() {
     info "Copying $FIT to factory default location as requested"
 
     mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
-    cp "$FIT" "$mnt/.wb-restore/factoryreset.fit"
+    local factory_fit
+    factory_fit="$mnt/.wb-restore/factoryreset.fit"
+
+    local was_immutable=$(lsattr -l $factory_fit | grep "Immutable" || true)
+    chattr -i $factory_fit
+    cp "$FIT" "$factory_fit"
+    [[ -n "$was_immutable" ]] && chattr +i $factory_fit
     umount "$mnt" || true
     sync
 }
@@ -798,13 +804,14 @@ maybe_update_current_factory_fit() {
     if [[ ! -e "$CURRENT_FACTORY_FIT" ]]; then
         info "No factory FIT found, storing this update as factory FIT to use as bootlet"
         mkdir -p "$mnt/.wb-restore"
-        cp "$FIT" "$mnt/.wb-restore/factoryreset.fit"
+        cp "$FIT" "$CURRENT_FACTORY_FIT"
     elif ! FIT="$CURRENT_FACTORY_FIT" fw_compatible single-rootfs; then
         info "Storing this update as factory FIT to use as bootlet"
         info "Old factory FIT will be kept as factoryreset.original.fit and will still be used to restore firmware"
 
-        mv "$mnt/.wb-restore/factoryreset.fit" "$mnt/.wb-restore/factoryreset.original.fit"
-        cp "$FIT" "$mnt/.wb-restore/factoryreset.fit"
+        cp "$CURRENT_FACTORY_FIT" "$mnt/.wb-restore/factoryreset.original.fit"
+        sync
+        copy_this_fit_to_factory
     else
         info "Current factory FIT supports single-rootfs feature, keeping it"
     fi
