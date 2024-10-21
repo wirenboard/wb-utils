@@ -1,3 +1,9 @@
+wb-utils (4.25.0) stable; urgency=medium
+
+  * install_update: replace factory fit, if wb8-debug-network-update-fix is not supported
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Mon, 21 Oct 2024 14:15:16 +0300
+
 wb-utils (4.24.0) stable; urgency=medium
 
   * support immutable factory-fit
