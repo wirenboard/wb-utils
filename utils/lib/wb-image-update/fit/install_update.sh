@@ -785,10 +785,15 @@ copy_this_fit_to_factory() {
     local factory_fit
     factory_fit="$mnt/.wb-restore/factoryreset.fit"
 
-    local was_immutable=$(lsattr -l $factory_fit | grep "Immutable" || true)
-    chattr -i $factory_fit
-    cp "$FIT" "$factory_fit"
-    [[ -n "$was_immutable" ]] && chattr +i $factory_fit
+    if FIT="$factory_fit" fw_compatible "fit-immutable-support"; then
+        info "Saving immutability state of $factory_fit"
+        local was_immutable=$(lsattr -l $factory_fit | grep "Immutable" || true)
+        chattr -i $factory_fit
+        cp "$FIT" "$factory_fit"
+        [[ -n "$was_immutable" ]] && chattr +i $factory_fit
+    else  # no chattr / lsattr in factory fit
+        cp "$FIT" "$factory_fit"
+    fi
     umount "$mnt" || true
     sync
 }
