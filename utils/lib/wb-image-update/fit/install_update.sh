@@ -785,15 +785,21 @@ copy_this_fit_to_factory() {
     local factory_fit
     factory_fit="$mnt/.wb-restore/factoryreset.fit"
 
-    local was_immutable=$(lsattr -l $factory_fit | grep "Immutable" || true)
-    chattr -i $factory_fit
-    cp "$FIT" "$factory_fit"
-    [[ -n "$was_immutable" ]] && chattr +i $factory_fit
+    if FIT="$factory_fit" fw_compatible "fit-immutable-support"; then
+        info "Saving immutability state of $factory_fit"
+        local was_immutable=$(lsattr -l $factory_fit | grep "Immutable" || true)
+        chattr -i $factory_fit
+        cp "$FIT" "$factory_fit"
+        [[ -n "$was_immutable" ]] && chattr +i $factory_fit
+    else  # no chattr / lsattr in factory fit
+        cp "$FIT" "$factory_fit"
+    fi
     umount "$mnt" || true
     sync
 }
 
-maybe_update_current_factory_fit() {
+update_current_factory_fit_if_not_compatible() {
+    local fit_compat_features=$1
     local mnt
     mnt=$(mktemp -d)
     mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
@@ -801,19 +807,32 @@ maybe_update_current_factory_fit() {
     # check if current fit supports +single-rootfs feature
     CURRENT_FACTORY_FIT="$mnt/.wb-restore/factoryreset.fit"
 
+    info "Checking, $CURRENT_FACTORY_FIT supports features: $fit_compat_features"
     if [[ ! -e "$CURRENT_FACTORY_FIT" ]]; then
         info "No factory FIT found, storing this update as factory FIT to use as bootlet"
         mkdir -p "$mnt/.wb-restore"
         cp "$FIT" "$CURRENT_FACTORY_FIT"
-    elif ! FIT="$CURRENT_FACTORY_FIT" fw_compatible single-rootfs; then
-        info "Storing this update as factory FIT to use as bootlet"
+        umount "$mnt" || true
+        sync
+        return
+    fi
+
+    local features_required
+    local features_unsupported
+    IFS=' ' read -ra features_required <<< "$fit_compat_features"
+    for feature in "${features_required[@]}"; do
+        FIT="$CURRENT_FACTORY_FIT" fw_compatible $feature || features_unsupported="$features_unsupported $feature"
+        fw_compatible $feature || die "$feature is required, but not supported in $FIT! Choose another FIT"
+    done
+    if [[ -n "$features_unsupported" ]]; then
+        info "Storing this update as factory FIT to use as bootlet (supports $fit_compat_features)"
         info "Old factory FIT will be kept as factoryreset.original.fit and will still be used to restore firmware"
 
         cp "$CURRENT_FACTORY_FIT" "$mnt/.wb-restore/factoryreset.original.fit"
         sync
         copy_this_fit_to_factory
     else
-        info "Current factory FIT supports single-rootfs feature, keeping it"
+        info "Current factory FIT supports: $fit_compat_features, keeping it"
     fi
 
     umount "$mnt" || true
@@ -1074,7 +1093,7 @@ else
 fi
 
 if ! flag_set from-initramfs && flag_set "force-repartition"; then
-    maybe_update_current_factory_fit
+    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix"
     update_after_reboot
 fi
 
@@ -1124,7 +1143,7 @@ fi
 if flag_set copy-to-factory; then
     copy_this_fit_to_factory
 elif flag_set factoryreset; then
-    maybe_update_current_factory_fit
+    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix"
 fi
 
 info "Switching to new rootfs"
