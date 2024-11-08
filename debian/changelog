@@ -14,7 +14,7 @@ wb-utils (4.23.1) stable; urgency=medium
 
   * wb-watch-update: republish retained messages on reconnect to mqtt broker
 
- -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com> Wed, 25 Sep 2024 17:30:00 +0400
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Wed, 25 Sep 2024 17:30:00 +0400
 
 wb-utils (4.23.0) stable; urgency=medium
 
