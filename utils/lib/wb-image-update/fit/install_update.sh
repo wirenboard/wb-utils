@@ -839,7 +839,7 @@ update_current_factory_fit_if_not_compatible() {
     sync
 }
 
-maybe_trigger_original_factory_fit() {
+maybe_trigger_original_factory_fit_to_restore_ab() {
     local mnt
     mnt=$(mktemp -d)
     mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
@@ -847,8 +847,8 @@ maybe_trigger_original_factory_fit() {
     # check if current fit supports +single-rootfs feature
     ORIGINAL_FACTORY_FIT="$mnt/.wb-restore/factoryreset.original.fit"
 
-    if [ -e "$ORIGINAL_FACTORY_FIT" ]; then
-        info "Original factory FIT exists, ensuring A/B rootfs scheme and use it to restore firmware"
+    if [ -e "$ORIGINAL_FACTORY_FIT" ] && (! FIT=$ORIGINAL_FACTORY_FIT fw_compatible "single-rootfs"); then
+        info "Original factory FIT exists and not support single-rootfs, ensuring A/B rootfs scheme and use it to restore firmware"
         ensure_ab_rootfs_parttable || fatal "Failed to restore A/B rootfs scheme"
 
         info "Decoding current flags from '$FLAGS'"
@@ -1065,7 +1065,7 @@ if flag_set factoryreset; then
 fi
 
 if flag_set from-emmc-factoryreset; then
-    maybe_trigger_original_factory_fit
+    maybe_trigger_original_factory_fit_to_restore_ab
 fi
 
 if flag_set force-compatible; then

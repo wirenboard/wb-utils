@@ -1,3 +1,9 @@
+wb-utils (4.25.1) stable; urgency=medium
+
+  * install_update: trigger FR from factoryreset.original.fit only if single-rootfs is not supported here
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Wed, 20 Nov 2024 16:02:21 +0300
+
 wb-utils (4.25.0) stable; urgency=medium
 
   * install_update: replace factory fit, if wb8-debug-network-update-fix is not supported
