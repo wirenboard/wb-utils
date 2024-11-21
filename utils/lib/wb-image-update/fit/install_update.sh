@@ -407,6 +407,7 @@ ensure_enlarged_rootfs_parttable() {
     info "Expanding filesystem on this partition"
     local e2fs_undofile
     e2fs_undofile=$(mktemp)
+    run_tool e2fsck -y "$ROOTFS1_PART"
     run_tool resize2fs -z "$e2fs_undofile" "$ROOTFS1_PART" || {
         info "Filesystem expantion failed, restoring everything"
         run_tool e2undo "$e2fs_undofile" "$ROOTFS1_PART" || true
@@ -839,7 +840,7 @@ update_current_factory_fit_if_not_compatible() {
     sync
 }
 
-maybe_trigger_original_factory_fit() {
+maybe_trigger_original_factory_fit_to_restore_ab() {
     local mnt
     mnt=$(mktemp -d)
     mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
@@ -847,8 +848,8 @@ maybe_trigger_original_factory_fit() {
     # check if current fit supports +single-rootfs feature
     ORIGINAL_FACTORY_FIT="$mnt/.wb-restore/factoryreset.original.fit"
 
-    if [ -e "$ORIGINAL_FACTORY_FIT" ]; then
-        info "Original factory FIT exists, ensuring A/B rootfs scheme and use it to restore firmware"
+    if [ -e "$ORIGINAL_FACTORY_FIT" ] && (! FIT=$ORIGINAL_FACTORY_FIT fw_compatible "single-rootfs"); then
+        info "Original factory FIT exists and not support single-rootfs, ensuring A/B rootfs scheme and use it to restore firmware"
         ensure_ab_rootfs_parttable || fatal "Failed to restore A/B rootfs scheme"
 
         info "Decoding current flags from '$FLAGS'"
@@ -1065,7 +1066,7 @@ if flag_set factoryreset; then
 fi
 
 if flag_set from-emmc-factoryreset; then
-    maybe_trigger_original_factory_fit
+    maybe_trigger_original_factory_fit_to_restore_ab
 fi
 
 if flag_set force-compatible; then
@@ -1093,7 +1094,7 @@ else
 fi
 
 if ! flag_set from-initramfs && flag_set "force-repartition"; then
-    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix"
+    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix wrong-ab-layout-fix"
     update_after_reboot
 fi
 
@@ -1143,7 +1144,7 @@ fi
 if flag_set copy-to-factory; then
     copy_this_fit_to_factory
 elif flag_set factoryreset; then
-    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix"
+    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix wrong-ab-layout-fix"
 fi
 
 info "Switching to new rootfs"
