@@ -407,6 +407,7 @@ ensure_enlarged_rootfs_parttable() {
     info "Expanding filesystem on this partition"
     local e2fs_undofile
     e2fs_undofile=$(mktemp)
+    run_tool e2fsck -y "$ROOTFS1_PART"
     run_tool resize2fs -z "$e2fs_undofile" "$ROOTFS1_PART" || {
         info "Filesystem expantion failed, restoring everything"
         run_tool e2undo "$e2fs_undofile" "$ROOTFS1_PART" || true
@@ -1093,7 +1094,7 @@ else
 fi
 
 if ! flag_set from-initramfs && flag_set "force-repartition"; then
-    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix"
+    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix wrong-ab-layout-fix"
     update_after_reboot
 fi
 
@@ -1143,7 +1144,7 @@ fi
 if flag_set copy-to-factory; then
     copy_this_fit_to_factory
 elif flag_set factoryreset; then
-    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix"
+    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix wrong-ab-layout-fix"
 fi
 
 info "Switching to new rootfs"
