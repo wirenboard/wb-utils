@@ -1,5 +1,17 @@
 #!/bin/bash
 
+reattach_modem_if_needed() {
+    output=$(mmcli -m wbc -K | grep "modem.generic.state" | grep -qE "enabled|registered")
+    if [ $? -eq 0 ]; then
+        output=$(mmcli -m wbc -K | grep "modem.3gpp.packet-service-state" | grep -q "detached")
+        if [ $? -eq 0 ]; then
+            mmcli -m wbc --3gpp-set-packet-service-state=detached
+            sleep 10
+            mmcli -m wbc --3gpp-set-packet-service-state=attached
+        fi
+    fi
+}
+
 watchdog() {
     sleep $(($WATCHDOG_USEC / 6000000))
     while true; do
@@ -10,6 +22,7 @@ watchdog() {
                     echo "ModemManager is running, but modem is not found"
                 else
                     systemd-notify WATCHDOG=1
+                    reattach_modem_if_needed
                 fi
             else
                 systemd-notify WATCHDOG=1
