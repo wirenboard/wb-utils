@@ -1,3 +1,9 @@
+wb-utils (4.25.3-cb8ea449) stable; urgency=medium
+
+  * Merge vendor related changes from 2410-cb8ea449 custom release
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Tue, 22 Apr 2025 18:19:56 +0300
+
 wb-utils (4.25.3) stable; urgency=medium
 
   * Fix text in logs. No functional changes
