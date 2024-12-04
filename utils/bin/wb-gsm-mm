@@ -1,14 +1,12 @@
 #!/bin/bash
 
 reattach_modem_if_needed() {
-    output=$(mmcli -m wbc -K | grep "modem.generic.state" | grep -qE "enabled|registered")
-    if [ $? -eq 0 ]; then
-        output=$(mmcli -m wbc -K | grep "modem.3gpp.packet-service-state" | grep -q "detached")
-        if [ $? -eq 0 ]; then
-            mmcli -m wbc --3gpp-set-packet-service-state=detached
-            sleep 10
-            mmcli -m wbc --3gpp-set-packet-service-state=attached
-        fi
+    if mmcli -m wbc -K | grep -qE "modem\.generic\.state.*(enabled|registered)" && \
+       mmcli -m wbc -K | grep -q "modem\.3gpp\.packet-service-state.*detached";
+    then
+        mmcli -m wbc --3gpp-set-packet-service-state=detached
+        sleep 10
+        mmcli -m wbc --3gpp-set-packet-service-state=attached
     fi
 }
 
