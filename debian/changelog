@@ -1,3 +1,9 @@
+wb-utils (4.25.3) stable; urgency=medium
+
+  * Fix text in logs. No functional changes
+
+ -- Ekaterina Volkova <ekaterina.volkova@wirenboard.com>  Mon, 03 Feb 2025 15:55:26 +0300
+
 wb-utils (4.25.2) stable; urgency=medium
 
   * Reattach modem to packet service if it was detached

@@ -729,11 +729,11 @@ recover_certificates() {
 
     if mount "$LO_DEVICE" "$HIDDENFS_MNT" >/dev/null 2>&1; then
         cat "$HIDDENFS_MNT/$INTERM_NAME" "$HIDDENFS_MNT/$DEVCERT_NAME" > "$ROOTFS_MNT/$ROOTFS_CERT_PATH" ||
-            info "WARNING: Failed to copy device certificate bundle into new rootfs. Please report it to info@wirenboard.com"
+            info "WARNING: Failed to copy device certificate bundle into new rootfs. Please report it to our support service"
         umount "$HIDDENFS_MNT"
         sync
     else
-        info "WARNING: Failed to find certificates of device. Please report it to info@contactless.ru"
+        info "WARNING: Failed to find certificates of device. Please report it to our support service"
     fi
 }
 
