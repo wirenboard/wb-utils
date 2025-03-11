@@ -342,7 +342,7 @@ ensure_enlarged_rootfs_parttable() {
     info "Backing up old MBR (and partition table)"
     local mbr_backup
     mbr_backup=$(mktemp)
-    dd if=/dev/mmcblk0 of="$mbr_backup" bs=512 count=1 || {
+    dd if="$ROOTDEV" of="$mbr_backup" bs=512 count=1 || {
         info "Failed to save MBR backup"
         return 1
     }
@@ -515,6 +515,105 @@ ensure_ab_rootfs_parttable() {
     info "Repartition is done!"
 }
 
+##
+## Новая функция для factoryreset — один большой раздел под root + 512 МБ под swap
+##
+ensure_factoryreset_partitioning() {
+    info "Creating single rootfs + swap partition scheme for factory reset"
+
+    # # Перед тем как править разметку, желательно проверить и почистить rootfs2
+    # # (т.к. он мог существовать ранее). Но в большинстве случаев нам важен p2 как rootfs.
+    # # Выполним проверку/чистку p2, если там что-то было.
+    # run_e2fsck "$ROOTFS1_PART" || {
+    #     info "Filesystem check on $ROOTFS1_PART failed, can't proceed"
+    #     return 1
+    # }
+
+    info "Backing up old MBR (and partition table)"
+    local mbr_backup
+    mbr_backup=$(mktemp)
+    dd if="$ROOTDEV" of="$mbr_backup" bs=512 count=1 || {
+        info "Failed to save MBR backup"
+        return 1
+    }
+
+    # Общий размер диска в блоках 512 байт (есть виранты с 16Гб и 64Гб флешки):
+    local TOT_SIZE_BLOCKS
+    TOT_SIZE_BLOCKS=$(blockdev --getsz "$ROOTDEV")
+
+    # Размер swap-раздела 512 МБ = 1024 * 1024 блоков по 512 байт
+    local SWAP_SIZE_BLOCKS=1048576
+
+    # Начало и размер rootfs (p2)
+    # p2 обычно стартует с 34816 как и раньше:
+    local ROOTFS_START_BLOCKS=34816
+    local ROOTFS_SIZE_BLOCKS=$(( TOT_SIZE_BLOCKS - ROOTFS_START_BLOCKS - SWAP_SIZE_BLOCKS ))
+
+    if (( ROOTFS_SIZE_BLOCKS < 1 )); then
+        info "Not enough space for rootfs + swap partition"
+        return 1
+    fi
+
+    info "New rootfs partition size: $ROOTFS_SIZE_BLOCKS blocks, swap: $SWAP_SIZE_BLOCKS"
+
+    local TEMP_DUMP
+    TEMP_DUMP="$(mktemp)"
+    info "New disk dump will be saved in $TEMP_DUMP"
+
+    # Используем sfdisk --dump, правим нужные строки.
+    # Удаляем p4, p5, p6 (если есть), меняем size p2, записываем p3 под swap
+    sfdisk --dump "$ROOTDEV" | \
+        # Удаляем любые старые записи p4..p6
+        sed '/\/dev\/mmcblk0p[4-9]/d' | \
+        # Изменяем p2
+        sfdisk_set_size  "$ROOTFS1_PART" "$ROOTFS_SIZE_BLOCKS" | \
+        sfdisk_set_start "$ROOTFS2_PART" "$((ROOTFS_START_BLOCKS + ROOTFS_SIZE_BLOCKS))" | \
+        # Делаем размер p3 = SWAP_SIZE_BLOCKS
+        sfdisk_set_size  "$ROOTFS2_PART" "$SWAP_SIZE_BLOCKS" | \
+        tee "$TEMP_DUMP" | \
+        sfdisk -f "$ROOTDEV" --no-reread >/dev/null || {
+            info "New partition table creation failed, restoring saved MBR backup"
+            dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
+            sync
+            reload_parttable
+            return 1
+        }
+
+    sync
+    reload_parttable
+
+    # Проверяем, что действительно всё записалось
+    if [ "$(blockdev --getsz "$ROOTFS1_PART")" != "$ROOTFS_SIZE_BLOCKS" ]; then
+        info "New partition table is not applied, restoring saved MBR backup and exit"
+        dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
+        sync
+        reload_parttable
+        fatal "Failed to apply a new partition table"
+    fi
+
+    info "Formatting rootfs partition $ROOTFS1_PART"
+    mkfs_ext4 "$ROOTFS1_PART" "rootfs" || {
+        info "Failed to create filesystem on $ROOTFS1_PART"
+        info "Restoring saved MBR backup"
+        dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
+        sync
+        reload_parttable
+        return 1
+    }
+
+    info "Formatting swap partition $ROOTFS2_PART"
+    mkswap "$ROOTFS2_PART" || {
+        info "Failed to create swap on $ROOTFS2_PART"
+        info "Restoring saved MBR backup"
+        dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
+        sync
+        reload_parttable
+        return 1
+    }
+
+    info "Single rootfs + swap partition scheme is created"
+}
+
 cleanup_rootfs() {
     local ROOT_PART="$1"
     local mountpoint
@@ -621,6 +720,13 @@ maybe_repartition() {
             info "A/B scheme restored!"
         else
             fatal "Failed to restore A/B scheme"
+        fi
+    elif flag_set factoryreset; then
+        info "Creating single rootfs + swap partition scheme as requested by factoryreset"
+        if ensure_factoryreset_partitioning; then
+            info "Factoryreset partition scheme is done!"
+        else
+            fatal "Failed to create single rootfs + swap partition scheme"
         fi
     else
         if ensure_enlarged_rootfs_parttable; then
