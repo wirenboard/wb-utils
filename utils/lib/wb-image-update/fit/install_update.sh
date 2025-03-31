@@ -529,6 +529,10 @@ ensure_factoryreset_partitioning() {
     #     return 1
     # }
 
+    RESERVE_PART=${ROOTDEV}p2
+    SWAP_PART=${ROOTDEV}p3
+    ROOTFS_PART=${ROOTDEV}p4
+
     info "Backing up old MBR (and partition table)"
     local mbr_backup
     mbr_backup=$(mktemp)
@@ -541,20 +545,24 @@ ensure_factoryreset_partitioning() {
     local TOT_SIZE_BLOCKS
     TOT_SIZE_BLOCKS=$(blockdev --getsz "$ROOTDEV")
 
-    # Размер swap-раздела 512 МБ = 1024 * 1024 блоков по 512 байт
-    local SWAP_SIZE_BLOCKS=1048576
+    # Начало и размер резервного раздела (p2):
+    local RESERVE_START_BLOCKS=49152  # выравнивание по границе в 8Мб
+    local RESERVE_SIZE_BLOCKS=1048576 # 512Мб
+    
+    # Начало и размер swap-раздела (p3):
+    local SWAP_START_BLOCKS=1097728   # выравнивание по границе в 8Мб 
+    local SWAP_SIZE_BLOCKS=524288     # 256Мб
 
-    # Начало и размер rootfs (p2)
-    # p2 обычно стартует с 34816 как и раньше:
-    local ROOTFS_START_BLOCKS=34816
-    local ROOTFS_SIZE_BLOCKS=$(( TOT_SIZE_BLOCKS - ROOTFS_START_BLOCKS - SWAP_SIZE_BLOCKS ))
+    # Начало и размер rootfs (p4):
+    local ROOTFS_START_BLOCKS=1622015 # выравнивание по границе в 8Мб 
+    local ROOTFS_SIZE_BLOCKS=$((TOT_SIZE_BLOCKS - ROOTFS_START_BLOCKS))
 
     if (( ROOTFS_SIZE_BLOCKS < 1 )); then
-        info "Not enough space for rootfs + swap partition"
+        info "Not enough space for rootfs"
         return 1
     fi
 
-    info "New rootfs partition size: $ROOTFS_SIZE_BLOCKS blocks, swap: $SWAP_SIZE_BLOCKS"
+    info "New rootfs partition size: $ROOTFS_SIZE_BLOCKS blocks"
 
     local TEMP_DUMP
     TEMP_DUMP="$(mktemp)"
@@ -563,13 +571,14 @@ ensure_factoryreset_partitioning() {
     # Используем sfdisk --dump, правим нужные строки.
     # Удаляем p4, p5, p6 (если есть), меняем size p2, записываем p3 под swap
     sfdisk --dump "$ROOTDEV" | \
-        # Удаляем любые старые записи p4..p6
-        sed '/\/dev\/mmcblk0p[4-9]/d' | \
-        # Изменяем p2
-        sfdisk_set_size  "$ROOTFS1_PART" "$ROOTFS_SIZE_BLOCKS" | \
-        sfdisk_set_start "$ROOTFS2_PART" "$((ROOTFS_START_BLOCKS + ROOTFS_SIZE_BLOCKS))" | \
-        # Делаем размер p3 = SWAP_SIZE_BLOCKS
-        sfdisk_set_size  "$ROOTFS2_PART" "$SWAP_SIZE_BLOCKS" | \
+        # Удаляем любые старые записи p2..p6
+        sed '/\/dev\/mmcblk0p[2-9]/d' | \
+        sfdisk_set_size  "${RESERVE_PART}" "$RESERVE_SIZE_BLOCKS" | \
+        sfdisk_set_start "${RESERVE_PART}" "$RESERVE_START_BLOCKS" | \
+        sfdisk_set_size  "${SWAP_PART}" "$SWAP_SIZE_BLOCKS" | \
+        sfdisk_set_start "${SWAP_PART}" "$SWAP_START_BLOCKS" | \
+        sfdisk_set_size  "${ROOTFS_PART}" "$ROOTFS_SIZE_BLOCKS" | \
+        sfdisk_set_start "${ROOTFS_PART}" "$ROOTFS_START_BLOCKS" | \
         tee "$TEMP_DUMP" | \
         sfdisk -f "$ROOTDEV" --no-reread >/dev/null || {
             info "New partition table creation failed, restoring saved MBR backup"
@@ -591,9 +600,9 @@ ensure_factoryreset_partitioning() {
         fatal "Failed to apply a new partition table"
     fi
 
-    info "Formatting rootfs partition $ROOTFS1_PART"
-    mkfs_ext4 "$ROOTFS1_PART" "rootfs" || {
-        info "Failed to create filesystem on $ROOTFS1_PART"
+    info "Formatting reserve partition $RESERVE_PART"
+    mkfs_ext4 "$RESERVE_PART" "rootfs" || {
+        info "Failed to create filesystem on $RESERVE_PART"
         info "Restoring saved MBR backup"
         dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
         sync
@@ -601,9 +610,19 @@ ensure_factoryreset_partitioning() {
         return 1
     }
 
-    info "Formatting swap partition $ROOTFS2_PART"
-    mkswap "$ROOTFS2_PART" || {
-        info "Failed to create swap on $ROOTFS2_PART"
+    info "Formatting rootfs partition $ROOTFS_PART"
+    mkfs_ext4 "$ROOTFS_PART" "rootfs" || {
+        info "Failed to create filesystem on $ROOTFS_PART"
+        info "Restoring saved MBR backup"
+        dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
+        sync
+        reload_parttable
+        return 1
+    }
+
+    info "Formatting swap partition $SWAP_PART"
+    mkswap "$SWAP_PART" || {
+        info "Failed to create swap on $SWAP_PART"
         info "Restoring saved MBR backup"
         dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
         sync
