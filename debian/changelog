@@ -1,3 +1,9 @@
+wb-utils (4.26.0) stable; urgency=medium
+
+  *  Add a function to create a single extended ROOTFS during factoryreset.
+
+ -- Anton <anton.tarasov@wirenboard.com>  Tue, 11 Mar 2025 10:32:21 +0300
+
 wb-utils (4.25.3) stable; urgency=medium
 
   * Fix text in logs. No functional changes
