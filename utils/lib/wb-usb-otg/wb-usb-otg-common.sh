@@ -4,9 +4,27 @@ IMAGE_FILE=/usr/lib/wb-utils/wb-usb-otg/mass_storage.img
 USBDEV="usb0"
 USBGADGET_CONFIG=/sys/kernel/config/usb_gadget/g1
 RNDIS_IFNAME="dbg%d"
+NETWORK_CONNAME="wb-debug"
+NETWORK_TIMEOUT=5
 
 log() {
     >&2 echo "${FUNCNAME[2]}: $*"
+}
+
+wait_for_nm_connection() {
+    log "Waiting for NM connection ${NETWORK_CONNAME}"
+
+    timeout=${NETWORK_TIMEOUT}
+    while [[ ! $(nmcli c | grep ${NETWORK_CONNAME}) ]]; do
+        sleep 1
+        ((timeout--))
+        if [ $timeout -eq 0 ]; then
+            log "Timeout waiting for NM connection ${NETWORK_CONNAME}"
+            return 1
+        fi
+    done
+    log "NM connection ${NETWORK_CONNAME} is up"
+    return 0
 }
 
 setup_usb() {
