@@ -515,13 +515,30 @@ ensure_ab_rootfs_parttable() {
     info "Repartition is done!"
 }
 
-##
-## Новая функция для factoryreset — один большой раздел под root + 512 МБ под swap
-##
 ensure_factoryreset_partitioning() {
-    RESERVE_PART=${ROOTDEV}p2
+    info "Start repartition for extended-rootfs"
+    ROOTFS_PART=${ROOTDEV}p2
     SWAP_PART=${ROOTDEV}p3
-    ROOTFS_PART=${ROOTDEV}p4
+    RESERVE_PART=${ROOTDEV}p4
+    
+    ### Вычисление начала разделов ###
+    # Общий размер диска в блоках 512 байт (есть виранты с 16Гб и 64Гб флешки):
+    local TOT_SIZE_BLOCKS
+    TOT_SIZE_BLOCKS=$(blockdev --getsz "$ROOTDEV")
+    
+    local ROOTFS_START_BLOCKS=49152   # p2: начало rootfs = конец p1 c выравниванием по границе в 8Мб 
+    local SWAP_SIZE_BLOCKS=1048576    # p3: размер swap-раздела = 512Мб
+    local RESERVE_SIZE_BLOCKS=1048576 # p4: размер резервного раздела = 512Мб
+
+    local RESERVE_START_BLOCKS=$(( TOT_SIZE_BLOCKS - RESERVE_SIZE_BLOCKS ))
+    local SWAP_START_BLOCKS=$(( RESERVE_START_BLOCKS - SWAP_SIZE_BLOCKS ))
+    local ROOTFS_SIZE_BLOCKS=$(( SWAP_START_BLOCKS - ROOTFS_START_BLOCKS ))
+
+
+    if (( $ROOTFS_SIZE_BLOCKS <= 0 )); then
+        info "Not enough space for ROOTFS"
+        return 1
+    fi
 
     info "Ensuring all partitions of $ROOTDEV are unmounted before repartitioning"
     while read -r dev on mp fs opts rest; do
@@ -540,45 +557,25 @@ ensure_factoryreset_partitioning() {
         return 1
     }
 
-    # Общий размер диска в блоках 512 байт (есть виранты с 16Гб и 64Гб флешки):
-    local TOT_SIZE_BLOCKS
-    TOT_SIZE_BLOCKS=$(blockdev --getsz "$ROOTDEV")
-
-    # Начало и размер резервного раздела (p2):
-    local RESERVE_START_BLOCKS=49152  # выравнивание по границе в 8Мб
-    local RESERVE_SIZE_BLOCKS=1048576 # 512Мб
-    
-    # Начало и размер swap-раздела (p3):
-    local SWAP_START_BLOCKS=1097728   # выравнивание по границе в 8Мб 
-    local SWAP_SIZE_BLOCKS=524288     # 256Мб
-
-    # Начало и размер rootfs (p4):
-    local ROOTFS_START_BLOCKS=1622016 # выравнивание по границе в 8Мб 
-    local ROOTFS_SIZE_BLOCKS=$((TOT_SIZE_BLOCKS - ROOTFS_START_BLOCKS))
-
-    if (( $ROOTFS_SIZE_BLOCKS < 1 )); then
-        info "Not enough space for rootfs"
-        return 1
-    fi
-
     info "New rootfs partition size: $ROOTFS_SIZE_BLOCKS blocks"
 
     local TEMP_DUMP
     TEMP_DUMP="$(mktemp)"
     info "New disk dump will be saved in $TEMP_DUMP"
 
+    info "Create new partition table"
     # p1 оставляем как есть
     # Удаляем разделы 2-9 (если есть)
     # Создаем:
-    #   p2 - резервный раздел
+    #   p2 - все оставшееся место под ROOTFS (зависит от размера флешки)
     #   p3 - SWAP
-    #   p4 - все оставшееся место под ROOTFS (зависит от размера флешки)
+    #   p4 - резервный раздел
     ( 
         sfdisk --dump "$ROOTDEV" | sed '/\/dev\/mmcblk0p[2-9]/d'
         cat <<-EOF
-			${RESERVE_PART} : size= $RESERVE_SIZE_BLOCKS, start= $RESERVE_START_BLOCKS, type=83
-			${SWAP_PART}	: size= $SWAP_SIZE_BLOCKS,	start= $SWAP_START_BLOCKS,	type=82
 			${ROOTFS_PART}  : size= $ROOTFS_SIZE_BLOCKS,  start= $ROOTFS_START_BLOCKS,  type=83
+			${SWAP_PART}	: size= $SWAP_SIZE_BLOCKS,	start= $SWAP_START_BLOCKS,	type=82
+			${RESERVE_PART} : size= $RESERVE_SIZE_BLOCKS, start= $RESERVE_START_BLOCKS, type=83
 EOF
     ) | tee "$TEMP_DUMP" | sfdisk -f "$ROOTDEV" --no-reread >/dev/null || {
         info "New partition table creation failed, restoring saved MBR backup"
@@ -598,16 +595,6 @@ EOF
         fatal "Failed to apply a new partition table"
     fi
 
-    info "Formatting reserve partition $RESERVE_PART"
-    mkfs_ext4 "$RESERVE_PART" "rootfs" || {
-        info "Failed to create filesystem on $RESERVE_PART"
-        info "Restoring saved MBR backup"
-        dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
-        sync
-        reload_parttable
-        return 1
-    }
-
     info "Formatting rootfs partition $ROOTFS_PART"
     mkfs_ext4 "$ROOTFS_PART" "rootfs" || {
         info "Failed to create filesystem on $ROOTFS_PART"
@@ -621,6 +608,16 @@ EOF
     info "Formatting swap partition $SWAP_PART"
     mkswap "$SWAP_PART" || {
         info "Failed to create swap on $SWAP_PART"
+        info "Restoring saved MBR backup"
+        dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
+        sync
+        reload_parttable
+        return 1
+    }
+
+    info "Formatting reserve partition $RESERVE_PART"
+    mkfs_ext4 "$RESERVE_PART" "rootfs" || {
+        info "Failed to create filesystem on $RESERVE_PART"
         info "Restoring saved MBR backup"
         dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
         sync
@@ -738,7 +735,7 @@ maybe_repartition() {
         else
             fatal "Failed to restore A/B scheme"
         fi
-    elif flag_set factoryreset && flag_set from-initramfs ; then
+    elif flag_set factoryreset && flag_set from-initramfs && fw_compatible "extended-rootfs"; then
         info "Creating single rootfs + swap partition scheme as requested by factoryreset"
         if ensure_factoryreset_partitioning; then
             info "Factoryreset partition scheme is done!"
@@ -1229,16 +1226,8 @@ if disk_layout_is_ab; then
     select_new_partition
 else
     info "Configuring environment for repartitioned eMMC"
-    #TODO возможно необходимо ориентироваться на:
-    #  FIT="$CURRENT_FACTORY_FIT" fw_compatible "extended-rootfs"; then
-    #  но тогда и переразметку тоже нужно переделать! 
-    if flag_set factoryreset && flag_set from-initramfs ; then
-        PART=4
-        PREVIOUS_PART=nosuchpartition
-    else
-        PART=2
-        PREVIOUS_PART=nosuchpartition
-    fi
+    PART=2
+    PREVIOUS_PART=nosuchpartition
 fi
 
 ROOT_PART=${ROOTDEV}p${PART}
