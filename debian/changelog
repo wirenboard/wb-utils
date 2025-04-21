@@ -1,6 +1,7 @@
 wb-utils (4.25.5) stable; urgency=medium
 
-  * Fix dependencies
+  * Add missed dependencies (e2fsprogs, ppp, python3)
+  * Remove unused dependencies (parted)
 
  -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Fri, 18 Apr 2025 17:30:00 +0400
 
