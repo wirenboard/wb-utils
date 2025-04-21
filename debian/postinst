@@ -7,8 +7,6 @@ if [[ -e "/usr/sbin/policy-rc.d" ]] && [[ "$(cat /usr/sbin/policy-rc.d)" == "exi
     /usr/lib/wb-image-update/fit/build.sh
 fi
 
-/usr/lib/wb-utils/prepare/wb-prepare.sh fix_hosts
-
 /usr/lib/wb-image-update/fix-broken-fit.sh || {
     >&2 echo -e "\nFailed to fix factory FIT (maybe we are offline?)"
     >&2 echo -e "You can try again later by calling 'apt install --reinstall wb-utils'.\n"
