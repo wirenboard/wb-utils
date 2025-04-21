@@ -1,6 +1,6 @@
 wb-utils (4.26.0) stable; urgency=medium
 
-  * Move fixing hosts to wb-configs
+  * Move fixing hosts from postinst to wb-configs
   * Move wb-configs from depends to recommends
 
  -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Mon, 21 Apr 2025 11:30:00 +0400
