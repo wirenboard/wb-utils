@@ -9,6 +9,10 @@ ROOTFS1_PART=${ROOTDEV}p2
 ROOTFS2_PART=${ROOTDEV}p3
 DATA_PART=${ROOTDEV}p6
 
+# NEW LAYOUT:
+SWAP_PART=${ROOTDEV}p3
+RESERVE_PART=${ROOTDEV}p4
+
 # appends a command to a trap
 #
 # - 1st arg:  code to add
@@ -517,9 +521,6 @@ ensure_ab_rootfs_parttable() {
 
 ensure_factoryreset_partitioning() {
     info "Start repartition for extended-rootfs"
-    ROOTFS_PART=${ROOTDEV}p2
-    SWAP_PART=${ROOTDEV}p3
-    RESERVE_PART=${ROOTDEV}p4
     
     ### Вычисление начала разделов ###
     # Общий размер диска в блоках 512 байт (есть виранты с 16Гб и 64Гб флешки):
@@ -573,7 +574,7 @@ ensure_factoryreset_partitioning() {
     ( 
         sfdisk --dump "$ROOTDEV" | sed '/\/dev\/mmcblk0p[2-9]/d'
         cat <<-EOF
-			${ROOTFS_PART}  : size= $ROOTFS_SIZE_BLOCKS,  start= $ROOTFS_START_BLOCKS,  type=83
+			${ROOTFS1_PART}  : size= $ROOTFS_SIZE_BLOCKS,  start= $ROOTFS_START_BLOCKS,  type=83
 			${SWAP_PART}	: size= $SWAP_SIZE_BLOCKS,	start= $SWAP_START_BLOCKS,	type=82
 			${RESERVE_PART} : size= $RESERVE_SIZE_BLOCKS, start= $RESERVE_START_BLOCKS, type=83
 EOF
@@ -585,9 +586,9 @@ EOF
         return 1
     }
 
-    NEW_ROOTFS_SIZE_BLOCKS=$(blockdev --getsz "$ROOTFS_PART")
+    NEW_ROOTFS_SIZE_BLOCKS=$(blockdev --getsz "$ROOTFS1_PART")
     if [ "$NEW_ROOTFS_SIZE_BLOCKS" != "$ROOTFS_SIZE_BLOCKS" ]; then
-        info "New size ROOTS ($ROOTFS_PART): $NEW_ROOTFS_SIZE_BLOCKS != $ROOTFS_SIZE_BLOCKS !!!"
+        info "New size ROOTS ($ROOTFS1_PART): $NEW_ROOTFS_SIZE_BLOCKS != $ROOTFS_SIZE_BLOCKS !!!"
         info "New partition table is not applied, restoring saved MBR backup and exit"
         dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
         sync
@@ -595,9 +596,9 @@ EOF
         fatal "Failed to apply a new partition table"
     fi
 
-    info "Formatting rootfs partition $ROOTFS_PART"
-    mkfs_ext4 "$ROOTFS_PART" "rootfs" || {
-        info "Failed to create filesystem on $ROOTFS_PART"
+    info "Formatting rootfs partition $ROOTFS1_PART"
+    mkfs_ext4 "$ROOTFS1_PART" "rootfs" || {
+        info "Failed to create filesystem on $ROOTFS1_PART"
         info "Restoring saved MBR backup"
         dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
         sync
@@ -739,6 +740,8 @@ maybe_repartition() {
         info "Creating single rootfs + swap partition scheme as requested by factoryreset"
         if ensure_factoryreset_partitioning; then
             info "Factoryreset partition scheme is done!"
+            # Помечаем, что repartition по-factoryreset прошёл успешно:
+            export FACTORYRESET_REPARTED=1
         else
             fatal "Failed to create single rootfs + swap partition scheme"
         fi
@@ -1242,6 +1245,31 @@ cleanup_rootfs "$ROOT_PART"
 MNT="$(mktemp -d)"
 mount_rootfs "$ROOT_PART" "$MNT"
 extract_rootfs "$MNT"
+
+# Также восстанавливаем ключи/сертификаты после упешного factoryreset-repartition:
+if [ "${FACTORYRESET_REPARTED:-}" = "1" ]; then
+    MNT_RESERVE=$(mktemp -d)
+    if mount -t ext4 "$RESERVE_PART" "$MNT_RESERVE"; then
+        #TODO заменить этот костыль в пользу copy_this_fit_to_factory
+        info "Copying FIT file to reserve partition ($RESERVE_PART)"
+        cp "$FIT" "$MNT_RESERVE/" || fatal "Failed to copy FIT to reserve partition"
+        sync
+        umount "$MNT_RESERVE"
+        info "FIT file successfully copied to $RESERVE_PART"
+    else
+        fatal "Unable to mount reserve partition $RESERVE_PART"
+    fi
+    rmdir "$MNT_RESERVE"
+
+    # info "Recovering SSH keys and certificates (factoryreset mode)"
+    # recover_certificates "$MNT" || fatal "Failed to copy FIT to reserve partition"
+
+    info "Update u-boot"
+    u-boot-install-wb -f || fatal "Failed to update U-boot"
+
+    info "Update /etc/fstab"
+    cp "$MNT/etc/fstab.extended.wb" "$MNT/etc/fstab"
+fi
 
 # Save serial number so we can use it later for logfile name
 if flag_set mass-update; then
