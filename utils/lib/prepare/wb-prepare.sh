@@ -297,7 +297,7 @@ wb_firstboot()
     wb_fix_machine_id
 
     log_action_msg "Generating SSH host keys if necessary"
-    for keytype in ecdsa dsa rsa; do
+    for keytype in ecdsa ed25519 rsa; do
         log_action_begin_msg "  $keytype"
         local keyfile=/etc/ssh_host_${keytype}_key
         [[ -n "$data_mounted" && -e "/mnt/data/$keyfile" ]] &&
