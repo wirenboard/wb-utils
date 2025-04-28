@@ -1,3 +1,9 @@
+wb-utils (4.26.1) stable; urgency=medium
+
+  *  Fix add firmware-compatible property
+
+ -- Anton <anton.tarasov@wirenboard.com>  Mon, 28 Apr 2025 13:57:07 +0300
+
 wb-utils (4.26.0) stable; urgency=medium
 
   *  Add a function to create a single extended ROOTFS during factoryreset.
