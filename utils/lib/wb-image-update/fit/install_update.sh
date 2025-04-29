@@ -519,17 +519,20 @@ ensure_ab_rootfs_parttable() {
     info "Repartition is done!"
 }
 
-ensure_factoryreset_partitioning() {
+ensure_extended_rootfs_layout(){
     info "Start repartition for extended-rootfs"
     
     ### Вычисление начала разделов ###
-    # Общий размер диска в блоках 512 байт (есть виранты с 16Гб и 64Гб флешки):
+    # Общий размер диска в блоках 512 байт (так как есть виранты с 16Гб и 64Гб emmc):
     local TOT_SIZE_BLOCKS
     TOT_SIZE_BLOCKS=$(blockdev --getsz "$ROOTDEV")
-    
-    local ROOTFS_START_BLOCKS=49152   # p2: начало rootfs = конец p1 c выравниванием по границе в 8Мб 
-    local SWAP_SIZE_BLOCKS=1048576    # p3: размер swap-раздела = 512Мб
-    local RESERVE_SIZE_BLOCKS=1048576 # p4: размер резервного раздела = 512Мб
+   
+    local BLOCKS_PER_MB=2048   # Количество блоков в 1Мб
+    # Так как для защиты emmc необходимо выравнивать разделы по границе в 8Мб и p1 начинается не с 0,
+    # то не могу использовать 16Мб для начала p2, а использую уже 24Мб:
+    local ROOTFS_START_BLOCKS=$((24 * BLOCKS_PER_MB))   # p2: начало rootfs >= конец p1 
+    local SWAP_SIZE_BLOCKS=$((512 * BLOCKS_PER_MB))     # p3: swap-раздел = 512Мб
+    local RESERVE_SIZE_BLOCKS=$((512 * BLOCKS_PER_MB))  # p4: резервный раздел = 512Мб
 
     local RESERVE_START_BLOCKS=$(( TOT_SIZE_BLOCKS - RESERVE_SIZE_BLOCKS ))
     local SWAP_START_BLOCKS=$(( RESERVE_START_BLOCKS - SWAP_SIZE_BLOCKS ))
@@ -558,7 +561,8 @@ ensure_factoryreset_partitioning() {
         return 1
     }
 
-    info "New rootfs partition size: $ROOTFS_SIZE_BLOCKS blocks"
+    local SIZE_ROOTFS_IN_MB=$(( ROOTFS_SIZE_BLOCKS / BLOCKS_PER_MB ))
+    info "New rootfs partition size: $SIZE_ROOTFS_IN_MB MB"
 
     local TEMP_DUMP
     TEMP_DUMP="$(mktemp)"
@@ -738,7 +742,7 @@ maybe_repartition() {
         fi
     elif flag_set factoryreset && flag_set from-initramfs && fw_compatible "extended-rootfs"; then
         info "Creating single rootfs + swap partition scheme as requested by factoryreset"
-        if ensure_factoryreset_partitioning; then
+        if ensure_extended_rootfs_layout; then
             info "Factoryreset partition scheme is done!"
             # Помечаем, что repartition по-factoryreset прошёл успешно:
             export FACTORYRESET_REPARTED=1
