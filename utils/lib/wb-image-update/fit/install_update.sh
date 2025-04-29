@@ -1264,11 +1264,11 @@ if [ "${FACTORYRESET_REPARTED:-}" = "1" ]; then
     # info "Recovering SSH keys and certificates (factoryreset mode)"
     # recover_certificates "$MNT" || fatal "Failed to copy FIT to reserve partition"
 
-    info "Update u-boot"
-    u-boot-install-wb -f || fatal "Failed to update U-boot"
-
     info "Update /etc/fstab"
     cp "$MNT/etc/fstab.extended.wb" "$MNT/etc/fstab"
+
+    info "Update u-boot"
+    $MNT/usr/bin/u-boot-install-wb -f || fatal "Failed to update U-boot"
 fi
 
 # Save serial number so we can use it later for logfile name
