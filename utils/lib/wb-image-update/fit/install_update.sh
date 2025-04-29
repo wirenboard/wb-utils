@@ -738,8 +738,9 @@ maybe_repartition() {
         info "Creating single rootfs + swap partition scheme as requested by factoryreset"
         if ensure_extended_rootfs_layout; then
             info "Factoryreset partition scheme is done!"
-            # Помечаем, что repartition по-factoryreset прошёл успешно:
-            export FACTORYRESET_REPARTED=1
+
+            info "Update /etc/fstab"
+            cp "$MNT/etc/fstab.extended.wb" "$MNT/etc/fstab"
         else
             fatal "Failed to create single rootfs + swap partition scheme"
         fi
@@ -903,7 +904,12 @@ copy_this_fit_to_factory() {
 
     info "Copying $FIT to factory default location as requested"
 
-    mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
+    if [ -b "$DATA_PART" ]; then
+        mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
+    else
+        mount "$RESERVE_PART" "$mnt" || fatal "Unable to mount reserve partition"
+    fi
+
     local factory_fit
     factory_fit="$mnt/.wb-restore/factoryreset.fit"
 
@@ -924,7 +930,12 @@ update_current_factory_fit_if_not_compatible() {
     local fit_compat_features=$1
     local mnt
     mnt=$(mktemp -d)
-    mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
+    if [ -b "$DATA_PART" ]; then
+        mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
+    else
+        mount "$RESERVE_PART" "$mnt" || fatal "Unable to mount reserve partition"
+    fi
+
 
     # check if current fit supports +single-rootfs feature
     CURRENT_FACTORY_FIT="$mnt/.wb-restore/factoryreset.fit"
@@ -1141,21 +1152,25 @@ check_firmware_compatible() {
 
 maybe_factory_reset() {
     if flag_set from-initramfs; then
-        info "Wiping data partition (factory reset)"
+        if [ -b "$DATA_PART" ]; then
+            info "Wiping data partition (factory reset)"
 
-        mkdir -p /mnt
-        mkdir -p /mnt/data
-        mount -t auto $DATA_PART /mnt/data 2>/dev/null || true
+            mkdir -p /mnt
+            mkdir -p /mnt/data
+            mount -t auto $DATA_PART /mnt/data 2>/dev/null || true
 
-        rm -rf /tmp/empty && mkdir /tmp/empty
-        rsync -a --delete --exclude="/.wb-restore/" --exclude="/.wb-update/" /tmp/empty/ /mnt/data/
+            rm -rf /tmp/empty && mkdir /tmp/empty
+            rsync -a --delete --exclude="/.wb-restore/" --exclude="/.wb-update/" /tmp/empty/ /mnt/data/
 
-        FACTORY_FIT_DIR="/mnt/data/.wb-restore"
-        FACTORY_FIT="${FACTORY_FIT_DIR}/factoryreset.fit"
-        if [[ ! -e "$FACTORY_FIT" ]]; then
-            echo "Saving current update file as factory default image"
-            mkdir -p "${FACTORY_FIT_DIR}"
-            cp "$FIT" "${FACTORY_FIT}"
+            FACTORY_FIT_DIR="/mnt/data/.wb-restore"
+            FACTORY_FIT="${FACTORY_FIT_DIR}/factoryreset.fit"
+            if [[ ! -e "$FACTORY_FIT" ]]; then
+                echo "Saving current update file as factory default image"
+                mkdir -p "${FACTORY_FIT_DIR}"
+                cp "$FIT" "${FACTORY_FIT}"
+            fi
+        else
+            info "Data partition wipe is not required, as there is no separate data partition"
         fi
     else
         fatal "Factory reset is now supported only from initramfs environment"
@@ -1244,31 +1259,6 @@ MNT="$(mktemp -d)"
 mount_rootfs "$ROOT_PART" "$MNT"
 extract_rootfs "$MNT"
 
-# Также восстанавливаем ключи/сертификаты после упешного factoryreset-repartition:
-if [ "${FACTORYRESET_REPARTED:-}" = "1" ]; then
-    MNT_RESERVE=$(mktemp -d)
-    if mount -t ext4 "$RESERVE_PART" "$MNT_RESERVE"; then
-        #TODO заменить этот костыль в пользу copy_this_fit_to_factory
-        info "Copying FIT file to reserve partition ($RESERVE_PART)"
-        cp "$FIT" "$MNT_RESERVE/" || fatal "Failed to copy FIT to reserve partition"
-        sync
-        umount "$MNT_RESERVE"
-        info "FIT file successfully copied to $RESERVE_PART"
-    else
-        fatal "Unable to mount reserve partition $RESERVE_PART"
-    fi
-    rmdir "$MNT_RESERVE"
-
-    info "Recovering SSH keys and certificates (factoryreset mode)"
-    recover_certificates "$MNT" || fatal "Failed to copy FIT to reserve partition"
-
-    info "Update /etc/fstab"
-    cp "$MNT/etc/fstab.extended.wb" "$MNT/etc/fstab"
-
-    info "Update u-boot"
-    chroot "$MNT" /usr/bin/u-boot-install-wb -f || fatal "Failed to update U-boot"
-fi
-
 # Save serial number so we can use it later for logfile name
 if flag_set mass-update; then
     populate_serial_and_fit_ver "$MNT"
@@ -1290,7 +1280,7 @@ fi
 if flag_set copy-to-factory; then
     copy_this_fit_to_factory
 elif flag_set factoryreset; then
-    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix wrong-ab-layout-fix"
+    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix wrong-ab-layout-fix extended-rootfs"
 fi
 
 info "Switching to new rootfs"
