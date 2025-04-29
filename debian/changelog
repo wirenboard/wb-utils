@@ -1,3 +1,9 @@
+wb-utils (4.26.3) stable; urgency=medium
+
+  * Add small decorations
+
+ -- Anton Tarasov <anton.tarasov@wirenboard.com>  Tue, 29 Apr 2025 10:56:36 +0300
+
 wb-utils (4.26.2) stable; urgency=medium
 
   *  Change the call to the u-boot update script
