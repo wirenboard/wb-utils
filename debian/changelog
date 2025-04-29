@@ -1,3 +1,9 @@
+wb-utils (4.26.2) stable; urgency=medium
+
+  *  Change the call to the u-boot update script
+
+ -- Anton Tarasov <anton.tarasov@wirenboard.com>  Tue, 29 Apr 2025 09:24:07 +0300
+
 wb-utils (4.26.1) stable; urgency=medium
 
   *  Fix add firmware-compatible property
