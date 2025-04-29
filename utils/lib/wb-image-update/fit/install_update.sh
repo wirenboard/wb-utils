@@ -545,13 +545,7 @@ ensure_extended_rootfs_layout(){
     fi
 
     info "Ensuring all partitions of $ROOTDEV are unmounted before repartitioning"
-    while read -r dev on mp fs opts rest; do
-        # Проверяем, что путь к блочному устройству начинается с $ROOTDEV
-        if [[ "$dev" == "$ROOTDEV"* ]]; then
-            info "Unmounting $dev from $mp"
-            umount -f "$mp" || true
-        fi
-    done < <(mount)
+    umount "$ROOTDEV"p* || true
 
     info "Backing up old MBR (and partition table)"
     local mbr_backup
@@ -1265,14 +1259,14 @@ if [ "${FACTORYRESET_REPARTED:-}" = "1" ]; then
     fi
     rmdir "$MNT_RESERVE"
 
-    # info "Recovering SSH keys and certificates (factoryreset mode)"
-    # recover_certificates "$MNT" || fatal "Failed to copy FIT to reserve partition"
+    info "Recovering SSH keys and certificates (factoryreset mode)"
+    recover_certificates "$MNT" || fatal "Failed to copy FIT to reserve partition"
 
     info "Update /etc/fstab"
     cp "$MNT/etc/fstab.extended.wb" "$MNT/etc/fstab"
 
     info "Update u-boot"
-    $MNT/usr/bin/u-boot-install-wb -f || fatal "Failed to update U-boot"
+    chroot "$MNT" /usr/bin/u-boot-install-wb -f || fatal "Failed to update U-boot"
 fi
 
 # Save serial number so we can use it later for logfile name
