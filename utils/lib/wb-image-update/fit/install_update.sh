@@ -1148,8 +1148,11 @@ elif flag_set factoryreset; then
 fi
 
 info "Switching to new rootfs"
-fw_setenv mmcpart "$PART"
-fw_setenv upgrade_available 1
+# fw_setenv mmcpart "$PART"
+# fw_setenv upgrade_available 1
+
+# TODO: temp disable to prevent overwriting uboot (caused by writing env with either old config)
+# TODO: fix env config in wb-initramfs & bootlet
 
 info "Done!"
 rm_fit
