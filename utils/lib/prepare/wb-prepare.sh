@@ -273,10 +273,52 @@ wb_run_scripts()
     fi
 }
 
+update_fw_env_config()
+{
+    local config_file="/etc/fw_env.config"
+    local device_name="/dev/mmcblk0"
+    local offset size offset_hex size_hex
+
+    echo "Reading environment configuration from device tree..."
+
+    if ! offset=$(dtc -I fs -O dtb /proc/device-tree 2>/dev/null | fdtget - /wirenboard env-offset 2>/dev/null); then
+        echo "Error: Could not read env-offset from device tree"
+        return 1
+    fi
+
+    if ! size=$(dtc -I fs -O dtb /proc/device-tree 2>/dev/null | fdtget - /wirenboard env-size 2>/dev/null); then
+        echo "Error: Could not read env-size from device tree"
+        return 1
+    fi
+
+    if [[ ! "$offset" =~ ^[0-9]+$ ]] || [[ ! "$size" =~ ^[0-9]+$ ]]; then
+        echo "Error: Invalid offset ($offset) or size ($size) - not numeric"
+        return 1
+    fi
+
+    offset_hex=$(printf "0x%x" $offset)
+    size_hex=$(printf "0x%x" $size)
+
+    cat > "$config_file" << EOF
+# Configuration file for fw_(printenv/saveenv) utility.
+# Up to two entries are valid, in this case the redundant
+# environment sector is assumed present.
+#
+# XXX this configuration might miss a fifth parameter for the "Number of
+# sectors"
+
+# MTD device name   Device offset   Env. size   Flash sector size
+$device_name        $offset_hex         $size_hex
+EOF
+    echo "Successfully updated $config_file"
+}
+
 # This function should be called only on first boot of the rootfs
 wb_firstboot()
 {
     log_action_msg "Preparing rootfs for the first boot"
+
+    update_fw_env_config
 
     wb_check_data && local data_mounted=1
 
