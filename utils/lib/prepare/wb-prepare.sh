@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+. /usr/lib/wb-utils/wb_env.sh
+
 ROOT_PARTITION=$(mount -l | grep " / " | cut -d " " -f1)
 
 # legacy: load log_*_msg functions
@@ -273,7 +275,7 @@ wb_run_scripts()
     fi
 }
 
-update_fw_env_config()
+wb_update_fw_env_config()
 {
     local config_file="/etc/fw_env.config"
     local device_name="/dev/mmcblk0"
@@ -292,7 +294,7 @@ update_fw_env_config()
     fi
 
     if [[ ! "$offset" =~ ^[0-9]+$ ]] || [[ ! "$size" =~ ^[0-9]+$ ]]; then
-        log_error_msg "Invalid offset ($offset) or size ($size) - not numeric"
+        log_failure_msg "Invalid offset ($offset) or size ($size) - not numeric"
         return 1
     fi
 
@@ -317,8 +319,6 @@ EOF
 wb_firstboot()
 {
     log_action_msg "Preparing rootfs for the first boot"
-
-    update_fw_env_config
 
     wb_check_data && local data_mounted=1
 
@@ -371,6 +371,7 @@ wb_firstboot()
 
 case "$1" in
   firstboot)
+    wb_update_fw_env_config
     wb_prepare_filesystems
     wb_firstboot
     exit $?
