@@ -1,6 +1,7 @@
 #!/bin/bash -e
 
 . /usr/lib/wb-utils/wb_env.sh
+wb_source "of"
 
 ROOT_PARTITION=$(mount -l | grep " / " | cut -d " " -f1)
 
@@ -283,23 +284,26 @@ wb_update_fw_env_config()
 
     log_action_msg "Reading uboot env offset/size from device tree..."
 
-    if ! offset=$(wb_source of && of_get_prop_ulong wirenboard uboot-env-offset); then
+    if of_has_prop "wirenboard" "uboot-env-offset"; then
+        offset=$(of_get_prop_ulong "wirenboard" "uboot-env-offset")
+        offset_hex=$(printf "0x%x" $offset)
+    else
         log_warning_msg "Could not read uboot-env-offset from device tree. Keeping old fw_env.config from rootfs"
-        return 1
+        return 0
     fi
 
-    if ! size=$(wb_source of && of_get_prop_ulong wirenboard uboot-env-size); then
+    if of_has_prop "wirenboard" "uboot-env-size"; then
+        size=$(of_get_prop_ulong "wirenboard" "uboot-env-size")
+        size_hex=$(printf "0x%x" $size)
+    else
         log_warning_msg "Could not read uboot-env-size from device tree. Keeping old fw_env.config from rootfs"
-        return 1
+        return 0
     fi
 
     if [[ ! "$offset" =~ ^[0-9]+$ ]] || [[ ! "$size" =~ ^[0-9]+$ ]]; then
         log_failure_msg "Invalid offset ($offset) or size ($size) - not numeric"
         return 1
     fi
-
-    offset_hex=$(printf "0x%x" $offset)
-    size_hex=$(printf "0x%x" $size)
 
     cat > "$config_file" << EOF
 # Configuration file for fw_(printenv/saveenv) utility.
