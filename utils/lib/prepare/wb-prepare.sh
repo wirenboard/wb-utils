@@ -281,12 +281,12 @@ update_fw_env_config()
 
     log_action_msg "Reading uboot env offset/size from device tree..."
 
-    if ! offset=$(dtc -I fs -O dtb /proc/device-tree 2>/dev/null | fdtget - /wirenboard uboot-env-offset 2>/dev/null); then
+    if ! offset=$(wb_source of && of_get_prop_ulong wirenboard uboot-env-offset); then
         log_warning_msg "Could not read uboot-env-offset from device tree. Keeping old fw_env.config from rootfs"
         return 1
     fi
 
-    if ! size=$(dtc -I fs -O dtb /proc/device-tree 2>/dev/null | fdtget - /wirenboard uboot-env-size 2>/dev/null); then
+    if ! size=$(wb_source of && of_get_prop_ulong wirenboard uboot-env-size); then
         log_warning_msg "Could not read uboot-env-size from device tree. Keeping old fw_env.config from rootfs"
         return 1
     fi
