@@ -279,20 +279,20 @@ update_fw_env_config()
     local device_name="/dev/mmcblk0"
     local offset size offset_hex size_hex
 
-    echo "Reading environment configuration from device tree..."
+    log_action_msg "Reading uboot env offset/size from device tree..."
 
     if ! offset=$(dtc -I fs -O dtb /proc/device-tree 2>/dev/null | fdtget - /wirenboard uboot-env-offset 2>/dev/null); then
-        echo "Error: Could not read uboot-env-offset from device tree"
+        log_warning_msg "Could not read uboot-env-offset from device tree. Keeping old fw_env.config from rootfs"
         return 1
     fi
 
     if ! size=$(dtc -I fs -O dtb /proc/device-tree 2>/dev/null | fdtget - /wirenboard uboot-env-size 2>/dev/null); then
-        echo "Error: Could not read uboot-env-size from device tree"
+        log_warning_msg "Could not read uboot-env-size from device tree. Keeping old fw_env.config from rootfs"
         return 1
     fi
 
     if [[ ! "$offset" =~ ^[0-9]+$ ]] || [[ ! "$size" =~ ^[0-9]+$ ]]; then
-        echo "Error: Invalid offset ($offset) or size ($size) - not numeric"
+        log_error_msg "Invalid offset ($offset) or size ($size) - not numeric"
         return 1
     fi
 
@@ -310,7 +310,7 @@ update_fw_env_config()
 # MTD device name   Device offset   Env. size   Flash sector size
 $device_name        $offset_hex         $size_hex
 EOF
-    echo "Successfully updated $config_file"
+    log_action_msg "Successfully updated $config_file"
 }
 
 # This function should be called only on first boot of the rootfs
