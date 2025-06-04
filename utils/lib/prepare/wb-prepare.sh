@@ -281,13 +281,13 @@ update_fw_env_config()
 
     echo "Reading environment configuration from device tree..."
 
-    if ! offset=$(dtc -I fs -O dtb /proc/device-tree 2>/dev/null | fdtget - /wirenboard env-offset 2>/dev/null); then
-        echo "Error: Could not read env-offset from device tree"
+    if ! offset=$(dtc -I fs -O dtb /proc/device-tree 2>/dev/null | fdtget - /wirenboard uboot-env-offset 2>/dev/null); then
+        echo "Error: Could not read uboot-env-offset from device tree"
         return 1
     fi
 
-    if ! size=$(dtc -I fs -O dtb /proc/device-tree 2>/dev/null | fdtget - /wirenboard env-size 2>/dev/null); then
-        echo "Error: Could not read env-size from device tree"
+    if ! size=$(dtc -I fs -O dtb /proc/device-tree 2>/dev/null | fdtget - /wirenboard uboot-env-size 2>/dev/null); then
+        echo "Error: Could not read uboot-env-size from device tree"
         return 1
     fi
 
