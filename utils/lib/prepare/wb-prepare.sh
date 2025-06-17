@@ -280,29 +280,22 @@ wb_update_fw_env_config()
 {
     local config_file="/etc/fw_env.config"
     local device_name="/dev/mmcblk0"
-    local offset size offset_hex size_hex
+    local offset size
 
     log_action_msg "Reading uboot env offset/size from device tree..."
 
     if of_has_prop "wirenboard" "uboot-env-offset"; then
-        offset=$(of_get_prop_ulong "wirenboard" "uboot-env-offset")
-        offset_hex=$(printf "0x%x" $offset)
+        offset=$(of_get_prop_str "wirenboard" "uboot-env-offset")
     else
         log_warning_msg "Could not read uboot-env-offset from device tree. Keeping old fw_env.config from rootfs"
         return 0
     fi
 
     if of_has_prop "wirenboard" "uboot-env-size"; then
-        size=$(of_get_prop_ulong "wirenboard" "uboot-env-size")
-        size_hex=$(printf "0x%x" $size)
+        size=$(of_get_prop_str "wirenboard" "uboot-env-size")
     else
         log_warning_msg "Could not read uboot-env-size from device tree. Keeping old fw_env.config from rootfs"
         return 0
-    fi
-
-    if [[ ! "$offset" =~ ^[0-9]+$ ]] || [[ ! "$size" =~ ^[0-9]+$ ]]; then
-        log_failure_msg "Invalid offset ($offset) or size ($size) - not numeric"
-        return 1
     fi
 
     cat > "$config_file" << EOF
@@ -314,7 +307,7 @@ wb_update_fw_env_config()
 # sectors"
 
 # MTD device name   Device offset   Env. size   Flash sector size
-$device_name        $offset_hex         $size_hex
+$device_name        $offset             $size
 EOF
     log_action_msg "Successfully updated $config_file"
 }
