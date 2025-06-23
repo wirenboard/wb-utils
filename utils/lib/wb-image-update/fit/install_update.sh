@@ -2,6 +2,9 @@
 
 set -e
 
+. /usr/lib/wb-utils/wb_env.sh
+wb_source "of"
+
 ROOTDEV="${ROOTDEV:-/dev/mmcblk0}"
 TMPDIR="${TMPDIR:-/dev/shm}"
 
@@ -603,7 +606,7 @@ maybe_update_current_factory_tmpfs_size_fix(){
         CURRENT_FACTORY_FIT="$mnt/.wb-restore/factoryreset.fit"
 
         if ! FIT="$CURRENT_FACTORY_FIT" fw_compatible repartition-ramsize-fix; then
-            info "Replace factoryreset.fit with current fit to fix rootfs extending issue at 512M RAM" 
+            info "Replace factoryreset.fit with current fit to fix rootfs extending issue at 512M RAM"
             copy_this_fit_to_factory
         else
             info "Factoryreset.fit already includes a fix for the 512MB RAM repartition issue (repartition-ramsize-fix compatibility)"
@@ -1041,9 +1044,46 @@ maybe_factory_reset() {
     fi
 }
 
+wb_update_fw_env_config()
+{
+    local config_file="/etc/fw_env.config"
+    local device_name="/dev/mmcblk0"
+    local offset size
+
+    info "Reading uboot env offset/size from device tree..."
+
+    if of_has_prop "wirenboard" "uboot-env-offset"; then
+        offset=$(of_get_prop_str "wirenboard" "uboot-env-offset")
+    else
+        info "Could not read uboot-env-offset from device tree. Keeping old fw_env.config from rootfs"
+        return 0
+    fi
+
+    if of_has_prop "wirenboard" "uboot-env-size"; then
+        size=$(of_get_prop_str "wirenboard" "uboot-env-size")
+    else
+        info "Could not read uboot-env-size from device tree. Keeping old fw_env.config from rootfs"
+        return 0
+    fi
+
+    cat > "$config_file" << EOF
+# Configuration file for fw_(printenv/saveenv) utility.
+# Up to two entries are valid, in this case the redundant
+# environment sector is assumed present.
+#
+# XXX this configuration might miss a fifth parameter for the "Number of
+# sectors"
+
+# MTD device name   Device offset   Env. size   Flash sector size
+$device_name        $offset             $size
+EOF
+    info "Successfully updated $config_file"
+}
+
 #---------------------------------------- main ----------------------------------------
 
 prepare_env
+wb_update_fw_env_config
 
 if flag_set from-initramfs; then
     extend_tmpfs_size
