@@ -2,9 +2,6 @@
 
 set -e
 
-. /usr/lib/wb-utils/wb_env.sh
-wb_source "of"
-
 ROOTDEV="${ROOTDEV:-/dev/mmcblk0}"
 TMPDIR="${TMPDIR:-/dev/shm}"
 
@@ -1052,15 +1049,16 @@ wb_update_fw_env_config()
 
     info "Reading uboot env offset/size from device tree..."
 
-    if of_has_prop "wirenboard" "uboot-env-offset"; then
-        offset=$(of_get_prop_str "wirenboard" "uboot-env-offset")
+    local node=$(readlink -f "/proc/device-tree/wirenboard")
+    if [[ -e "$node/uboot-env-offset" ]]; then
+        offset=$(< "$node/uboot-env-offset" sed 's/\x0$//g' | tr '\000' ' ')
     else
         info "Could not read uboot-env-offset from device tree. Keeping old fw_env.config from rootfs"
         return 0
     fi
 
-    if of_has_prop "wirenboard" "uboot-env-size"; then
-        size=$(of_get_prop_str "wirenboard" "uboot-env-size")
+    if [[ -e "$node/uboot-env-size" ]]; then
+        size=$(< "$node/uboot-env-size" sed 's/\x0$//g' | tr '\000' ' ')
     else
         info "Could not read uboot-env-size from device tree. Keeping old fw_env.config from rootfs"
         return 0
