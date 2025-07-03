@@ -1185,9 +1185,14 @@ elif flag_set factoryreset; then
     update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix wrong-ab-layout-fix"
 fi
 
-info "Switching to new rootfs"
-fw_setenv mmcpart "$PART"
-fw_setenv upgrade_available 1
+if disk_layout_is_ab; then
+    # as less fw_setenv operations as possible
+    # actually loaded uboot could be a without-env-params-in-dts one
+    # => we cannot perform env-fixup at this moment => uboot could be corrupted
+    info "Switching to new rootfs"
+    fw_setenv mmcpart "$PART"
+    fw_setenv upgrade_available 1
+fi
 
 info "Done!"
 rm_fit

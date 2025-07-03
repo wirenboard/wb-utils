@@ -1,3 +1,9 @@
+wb-utils (4.26.2) stable; urgency=medium
+
+  * Reduce unnecessary fw_setenv calls in install_update
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Fri, 04 Jul 2025 01:43:21 +0300
+
 wb-utils (4.26.1) stable; urgency=medium
 
   * Fix lintian, no functional changes
