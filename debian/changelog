@@ -1,6 +1,7 @@
 wb-utils (4.26.2) stable; urgency=medium
 
   * Auto detect swap partition
+  * Remove obsolete repartition code
 
  -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Fri, 11 Jul 2025 17:30:00 +0400
 
