@@ -3,7 +3,8 @@
 . /usr/lib/wb-utils/wb_env.sh
 wb_source "of"
 
-ROOT_PARTITION=$(mount -l | grep " / " | cut -d " " -f1)
+ROOT_PARTITION=$(mount -l | awk '$3 == "/" { print $1 }')
+SWAP_PARTITION=$(awk '$3 == "swap" { print $1 }' /etc/fstab)
 
 # legacy: load log_*_msg functions
 # once upon a time this script was an init.d script
@@ -113,7 +114,7 @@ wb_check_alt_rootfs()
 
 wb_check_swap()
 {
-    local swap=${WB_STORAGE}p5
+    local swap=$1
     grep ${swap} /proc/swaps 2>&1 >/dev/null && return 0
 
     [[ -e "${swap}" ]] || {
@@ -122,8 +123,7 @@ wb_check_swap()
     }
 
     log_action_begin_msg "Creating swap"
-    mkswap ${WB_STORAGE}p5 &&
-    swapon -a
+    mkswap ${swap} && swapon -a
     log_end_msg $?
 }
 
@@ -161,7 +161,7 @@ wb_prepare_filesystems()
     resize2fs $ROOT_PARTITION >/dev/null
     log_end_msg $?
 
-    wb_check_swap
+    wb_check_swap $SWAP_PARTITION
 
     wb_check_alt_rootfs
 }
