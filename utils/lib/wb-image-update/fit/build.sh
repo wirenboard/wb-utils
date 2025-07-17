@@ -22,6 +22,7 @@ fi
 wb_source "of"
 
 BUILDDIR="$(mktemp -d)"
+IMAGEUPDATE_DIR=/var/lib/wb-image-update
 
 cleanup() {
     rm -rf "$BUILDDIR"
@@ -30,40 +31,40 @@ cleanup() {
 trap cleanup EXIT 
 
 install_dir() {
-        echo "dir $1"
-        mkdir -p "$BUILDDIR/$1"
+    echo "dir $1"
+    mkdir -p "$BUILDDIR/$1"
 }
 
 install_file() {
-        local src="$1"
-        local dst="$2"
+    local src="$1"
+    local dst="$2"
 
-        local dstdir
-        dstdir=$(dirname "$dst")
-        [[ -d "$BUILDDIR/$dstdir" ]] || install_dir "$dstdir"
+    local dstdir
+    dstdir=$(dirname "$dst")
+    [[ -d "$BUILDDIR/$dstdir" ]] || install_dir "$dstdir"
 
-        echo "file $dst <- $src"
-        cp "$src" "$BUILDDIR/$dst"
+    echo "file $dst <- $src"
+    cp "$src" "$BUILDDIR/$dst"
 }
 
 install_from_rootfs() {
-        local src="$1"
-        local dst="$2"
+    local src="$1"
+    local dst="$2"
 
-        [[ -z "$dst" ]] && {
-                dst="$src"
-                shift
-        }
-        install_file "$src" "$dst"
+    [[ -z "$dst" ]] && {
+        dst="$src"
+        shift
+    }
+    install_file "$src" "$dst"
 
-        # If file is executable, need to get its shared lib dependencies too
-        if [[ -x "$src" ]]; then
-                ldd "$src" |
-                sed -rn 's#[^/]*(/[^ ]*).*#\1#p' |
-                while read -r lib; do
-                        [[ -e "$BUILDDIR/$lib" ]] || install_from_rootfs "$lib"
-                done
-        fi
+    # If file is executable, need to get its shared lib dependencies too
+    if [[ -x "$src" ]]; then
+        ldd "$src" |
+        sed -rn 's#[^/]*(/[^ ]*).*#\1#p' |
+        while read -r lib; do
+            [[ -e "$BUILDDIR/$lib" ]] || install_from_rootfs "$lib"
+        done
+    fi
 }
 
 FROM_ROOTFS=(
@@ -79,18 +80,20 @@ for file in "${FROM_ROOTFS[@]}"; do
     install_from_rootfs "$file"
 done
 
-mkdir -p /var/lib/wb-image-update
+mkdir -p $IMAGEUPDATE_DIR
 
-cp /usr/lib/wb-image-update/fit/install_update.sh /var/lib/wb-image-update/install_update.sh
-cd "$BUILDDIR" && tar cvzf /var/lib/wb-image-update/deps.tar.gz .
+cp /usr/lib/wb-image-update/fit/install_update.sh $IMAGEUPDATE_DIR/install_update.sh
+cd "$BUILDDIR" && tar cvzf $IMAGEUPDATE_DIR/deps.tar.gz .
 
-echo -n "+single-rootfs " > /var/lib/wb-image-update/firmware-compatible
-echo -n "+fit-factory-reset " >> /var/lib/wb-image-update/firmware-compatible
-echo -n "+force-repartition " >> /var/lib/wb-image-update/firmware-compatible
-echo -n "+repartition-ramsize-fix " >> /var/lib/wb-image-update/firmware-compatible
-echo -n "+fit-immutable-support " >> /var/lib/wb-image-update/firmware-compatible
-echo -n "+wb8-debug-network-update-fix " >> /var/lib/wb-image-update/firmware-compatible
-echo -n "+wrong-ab-layout-fix " >> /var/lib/wb-image-update/firmware-compatible
+{
+    echo -n "+single-rootfs "
+    echo -n "+fit-factory-reset "
+    echo -n "+force-repartition "
+    echo -n "+repartition-ramsize-fix "
+    echo -n "+fit-immutable-support "
+    echo -n "+wb8-debug-network-update-fix "
+    echo -n "+wrong-ab-layout-fix "
+} >> $IMAGEUPDATE_DIR/firmware-compatible
 
 if of_machine_match "wirenboard,wirenboard-8xx"; then
     KERNEL_IMAGE="Image.gz"
@@ -98,7 +101,7 @@ else
     KERNEL_IMAGE="zImage"
 fi
 
-if [[ ! -f "/var/lib/wb-image-update/$KERNEL_IMAGE" ]] || [[ ! -f /var/lib/wb-image-update/boot.dtb ]]; then
+if [[ ! -f "$IMAGEUPDATE_DIR/$KERNEL_IMAGE" ]] || [[ ! -f "$IMAGEUPDATE_DIR/boot.dtb" ]]; then
     echo "bootlet is not found, something went wrong"
     exit 1
 fi

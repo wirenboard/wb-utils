@@ -342,7 +342,7 @@ ensure_enlarged_rootfs_parttable() {
     info "Backing up old MBR (and partition table)"
     local mbr_backup
     mbr_backup=$(mktemp)
-    dd if=/dev/mmcblk0 of="$mbr_backup" bs=512 count=1 || {
+    dd if="$ROOTDEV" of="$mbr_backup" bs=512 count=1 || {
         info "Failed to save MBR backup"
         return 1
     }
@@ -616,18 +616,18 @@ maybe_update_current_factory_tmpfs_size_fix(){
 
 maybe_repartition() {
     if flag_set restore-ab-rootfs ; then
-        info "restoring A/B scheme as requested"
-        if ensure_ab_rootfs_parttable; then
-            info "A/B scheme restored!"
-        else
+        info "Restoring A/B scheme as requested"
+        if ! ensure_ab_rootfs_parttable; then
             fatal "Failed to restore A/B scheme"
         fi
+        info "A/B scheme restored!"
+        return
+    fi
+
+    if ensure_enlarged_rootfs_parttable; then
+        info "rootfs enlarged!"
     else
-        if ensure_enlarged_rootfs_parttable; then
-            info "rootfs enlarged!"
-        else
-            info "Repartition failed, continuing without it"
-        fi
+        info "Repartition failed, continuing without it"
     fi
 }
 

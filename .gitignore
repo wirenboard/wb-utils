@@ -7,15 +7,6 @@
 *.debhelper
 *.substvars
 *.o
-*/debian/libmosquitto-dev/*
-*/debian/libmosquitto1/*
-*/debian/libmosquittopp-dev/*
-*/debian/libmosquittopp1/*
-*/debian/mosquitto-clients/*
-*/debian/mosquitto-dbg/*
-*/debian/mosquitto-dev/*
-*/debian/mosquitto/*
-*/debian/wb-rules-system/*
 *.swp
 *.un~
 
@@ -28,13 +19,8 @@ utils/debian/wb-utils/
 wb-utils_*.deb
 wb-utils_*.changes
 
-configs/debian/wb-configs/
-wb-configs_*.*
-*.pyc
-
 .tern-port
 debian/wb-utils/
-adc/injection/lradc-set-current
 debian/debhelper-build-stamp
 
 build_scripts/mass_storage.img

@@ -10,11 +10,8 @@ SWAP_PARTITION=$(awk '$3 == "swap" { print $1 }' /etc/fstab)
 # once upon a time this script was an init.d script
 . /lib/lsb/init-functions
 
-# some constants for convenience
-. /usr/lib/wb-utils/prepare/vars.sh
-. /usr/lib/wb-utils/prepare/partitions.sh
-
-MB=1024*1024
+# Main storage device name (EMMC)
+WB_STORAGE=/dev/mmcblk0
 
 WB_DIR="/var/lib/wirenboard"
 SERIAL="$WB_DIR/serial.conf"
@@ -27,35 +24,6 @@ FIRSTBOOT_NEED_REBOOT=false
 wb_check_mounted()
 {
     grep "$1" /proc/mounts 2>&1 >/dev/null
-}
-
-wb_erase_partition()
-{
-    local part=${WB_STORAGE}p$1
-    local start=`wb_get_partition_start $1`
-
-    log_action_begin_msg "Erasing partition $part"
-    dd if=/dev/zero of=$WB_STORAGE seek=$start bs=$WB_SECTOR_SIZE count=$[1*MB/WB_SECTOR_SIZE] 2>&1 >/dev/null
-    log_end_msg $?
-}
-
-# Run mkfs.ext4 with custom options
-# Args:
-# - device file
-# - label (optional)
-wb_mkfs_ext4()
-{
-    local dev=$1
-    local label=$2
-
-    [[ -e "$dev" ]] || {
-        log_failure_msg "Device $dev not found"
-        return 1
-    }
-
-    log_action_begin_msg "Formatting $dev ($label)"
-    yes | mkfs.ext4 -E stride=2,stripe-width=1024 -b 4096 -L "$label" "$dev"
-    log_end_msg $?
 }
 
 wb_check_alt_rootfs()
@@ -91,22 +59,6 @@ wb_check_alt_rootfs()
         log_warning_msg "Alternative rootfs is unusable, disabling rootfs switching"
         fw_setenv upgrade_available 0
     }
-#        wb_mkfs_ext4 ${alt_part} rootfs || return $?
-#
-#        mount ${alt_part} ${mnt_rootfs_dst} || {
-#            log_failure_msg "Unable to mount ${alt_part}"
-#            return 1
-#        }
-#
-#        log_action_begin_msg "Copying active rootfs to alternative partition"
-#        local mnt_rootfs_src=`mktemp -d`
-#        mount --bind / $mnt_rootfs_src &&
-#        cp -a $mnt_rootfs_src/. $mnt_rootfs_dst &&
-#        umount $mnt_rootfs_src
-#        rm -rf $mnt_rootfs_src
-#        log_end_msg $?
-#        ret=$?
-#    }
     rm -rf ${mnt_rootfs_dst}
 
     return $ret
@@ -133,17 +85,6 @@ wb_check_data()
     wb_check_mounted ${data} && {
         return 0
     }
-
-    # QUICKFIX: sometimes this script accidentially
-    # formats a good partition only because is was not
-    # mounted at the moment. This problem was detected
-    # at WB6 stretch. To prevent this, we just don't allow
-    # script to format data partition.
-    #
-    # In case user really need to format data partition,
-    # he can use factory reset feature while updating.
-    #
-    # wb_mkfs_ext4 ${data} data || return $?
 
     mkdir -p /mnt/data
     mount ${data} /mnt/data || {
@@ -325,9 +266,9 @@ wb_firstboot()
     }
 
     [[ -e "/dev/ttyGSM" ]] && {
-		log_action_begin_msg "Fixing GSM modem baudrate"
-		wb-gsm init_baud || log_failure_msg "No answer from gsm modem"
-		log_end_msg $?
+        log_action_begin_msg "Fixing GSM modem baudrate"
+        wb-gsm init_baud || log_failure_msg "No answer from gsm modem"
+        log_end_msg $?
     }
 
     wb_fix_serial
@@ -367,26 +308,26 @@ wb_firstboot()
 }
 
 case "$1" in
-  firstboot)
-    wb_update_fw_env_config
-    wb_prepare_filesystems
-    wb_firstboot
-    exit $?
-    ;;
-  fix_macs)
-    wb_fix_macs
-    exit 0
-    ;;
-  fix_short_sn)
-    wb_fix_short_sn
-    exit 0
-    ;;
-  fix_hosts)
-    wb_fix_hosts
-    exit 0
-    ;;
-  *)
-    echo "Usage: $0 {firstboot|fix_macs|fix_short_sn|fix_hosts}" >&2
-    exit 3
-    ;;
+    firstboot)
+        wb_update_fw_env_config
+        wb_prepare_filesystems
+        wb_firstboot
+        exit $?
+        ;;
+    fix_macs)
+        wb_fix_macs
+        exit 0
+        ;;
+    fix_short_sn)
+        wb_fix_short_sn
+        exit 0
+        ;;
+    fix_hosts)
+        wb_fix_hosts
+        exit 0
+        ;;
+    *)
+        echo "Usage: $0 {firstboot|fix_macs|fix_short_sn|fix_hosts}" >&2
+        exit 3
+        ;;
 esac
