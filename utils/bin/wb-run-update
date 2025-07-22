@@ -16,7 +16,6 @@ FLAGS=""
 
 # for factory reset
 DATA_PART="/dev/mmcblk0p6"
-DATA_LABEL="data"
 FACTORY_FIT_DIR="/mnt/data/.wb-restore"
 FACTORY_FIT="${FACTORY_FIT_DIR}/factoryreset.fit"
 
