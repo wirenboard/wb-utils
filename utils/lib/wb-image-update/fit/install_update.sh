@@ -285,6 +285,10 @@ disk_layout_is_ab() {
     [ "$(blockdev --getsz "$ROOTFS1_PART")" -eq "$(blockdev --getsz "$ROOTFS2_PART")" ]
 }
 
+disk_layout_is_extended() {
+    [ ! -e "$DATA_PART" ]
+}
+
 sfdisk_set_size() {
     sed "s#^\\($1.*size=\\s\\+\\)[0-9]\\+\\(.*\\)#\\1 $2\\2#"
 }
@@ -327,6 +331,19 @@ run_e2fsck() {
         dumpe2fs_output=$(run_tool dumpe2fs "$part")
         info "$dumpe2fs_output"
     fi
+}
+
+ensure_extended_rootfs_parttable() {
+    if ! disk_layout_is_extended; then
+        info "Partition table seems to be changed already, continue"
+        return 0
+    fi
+
+    info "Start repartition for extended-rootfs"
+
+    #todo
+
+    info "Repartition is done!"
 }
 
 ensure_enlarged_rootfs_parttable() {
@@ -526,7 +543,7 @@ cleanup_rootfs() {
     rm -rf /tmp/empty && mkdir /tmp/empty
     if which rsync >/dev/null; then
         info "Cleaning up using rsync"
-        rsync -a --delete /tmp/empty/ "$mountpoint" || fatal "Failed to cleanup rootfs"
+        rsync -a --delete --exclude="/mnt/data/.wb-restore/" --exclude="/mnt/data/.wb-update/" /tmp/empty/ "$mountpoint" || fatal "Failed to cleanup rootfs"
     else
         info "Can't find rsync, cleaning up using rm -rf (may be slower)"
         rm -rf "$mountpoint"/..?* "$mountpoint"/.[!.]* "${mountpoint:?}"/* || fatal "Failed to cleanup rootfs"
@@ -588,7 +605,19 @@ extend_tmpfs_size(){
     mount -o remount,size=${MEMSIZE_MB}M /tmp
 }
 
-maybe_update_current_factory_tmpfs_size_fix(){
+mount_data_dir() {
+    local mnt
+    mnt=$(mktemp -d)
+    if disk_layout_is_extended; then
+        mount "$ROOTFS1_PART" "$mnt" || fatal "Unable to mount root partition"
+        echo "$mnt /mnt/data"
+    else
+        mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
+        echo "$mnt /"
+    fi
+}
+
+maybe_update_current_factory_tmpfs_size_fix() {
     info "Maybe update factoryreset.fit to fix tmpfs size issue at 512M RAM (with emmc update)"
 
     MEMSIZE_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
@@ -596,13 +625,13 @@ maybe_update_current_factory_tmpfs_size_fix(){
 
     if ((MEMSIZE_MB<1024)); then
 
-        local mnt
-        mnt=$(mktemp -d)
-        mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
+        local mnt prefix factory_fit
+        set -- $(mount_data_dir) || fatal "Unable to mount data partition"
+        mnt=$1
+        prefix=$2
+        factory_fit="$mnt$prefix.wb-restore/factoryreset.fit"
 
-        CURRENT_FACTORY_FIT="$mnt/.wb-restore/factoryreset.fit"
-
-        if ! FIT="$CURRENT_FACTORY_FIT" fw_compatible repartition-ramsize-fix; then
+        if ! FIT="$factory_fit" fw_compatible repartition-ramsize-fix; then
             info "Replace factoryreset.fit with current fit to fix rootfs extending issue at 512M RAM"
             copy_this_fit_to_factory
         else
@@ -621,6 +650,15 @@ maybe_repartition() {
             fatal "Failed to restore A/B scheme"
         fi
         info "A/B scheme restored!"
+        return
+    fi
+
+    if flag_set extend-rootfs; then
+        info "Extending rootfs as requested"
+        if ! ensure_extended_rootfs_parttable; then
+            fatal "Failed to extend rootfs"
+        fi
+        info "rootfs extended!"
         return
     fi
 
@@ -777,14 +815,13 @@ run_postinst() {
 }
 
 copy_this_fit_to_factory() {
-    local mnt
-    mnt=$(mktemp -d)
-
     info "Copying $FIT to factory default location as requested"
 
-    mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
-    local factory_fit
-    factory_fit="$mnt/.wb-restore/factoryreset.fit"
+    local mnt prefix factory_fit
+    set -- $(mount_data_dir) || fatal "Unable to mount data partition"
+    mnt=$1
+    prefix=$2
+    factory_fit="$mnt$prefix.wb-restore/factoryreset.fit"
 
     if FIT="$factory_fit" fw_compatible "fit-immutable-support"; then
         info "Saving immutability state of $factory_fit"
@@ -801,18 +838,21 @@ copy_this_fit_to_factory() {
 
 update_current_factory_fit_if_not_compatible() {
     local fit_compat_features=$1
-    local mnt
-    mnt=$(mktemp -d)
-    mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
+    local mnt prefix factory_fit
+    set -- $(mount_data_dir) || fatal "Unable to mount data partition"
+    mnt=$1
+    prefix=$2
 
     # check if current fit supports +single-rootfs feature
-    CURRENT_FACTORY_FIT="$mnt/.wb-restore/factoryreset.fit"
+    wb_restore_dir="$mnt$prefix.wb-restore"
+    factory_fit="$wb_restore_dir/factoryreset.fit"
+    original_factory_fit="$wb_restore_dir/factoryreset.original.fit"
 
-    info "Checking, $CURRENT_FACTORY_FIT supports features: $fit_compat_features"
-    if [[ ! -e "$CURRENT_FACTORY_FIT" ]]; then
+    info "Checking, $factory_fit supports features: $fit_compat_features"
+    if [[ ! -e "$factory_fit" ]]; then
         info "No factory FIT found, storing this update as factory FIT to use as bootlet"
-        mkdir -p "$mnt/.wb-restore"
-        cp "$FIT" "$CURRENT_FACTORY_FIT"
+        mkdir -p "$wb_restore_dir"
+        cp "$FIT" "$factory_fit"
         umount "$mnt" || true
         sync
         return
@@ -822,14 +862,14 @@ update_current_factory_fit_if_not_compatible() {
     local features_unsupported
     IFS=' ' read -ra features_required <<< "$fit_compat_features"
     for feature in "${features_required[@]}"; do
-        FIT="$CURRENT_FACTORY_FIT" fw_compatible $feature || features_unsupported="$features_unsupported $feature"
+        FIT="$factory_fit" fw_compatible $feature || features_unsupported="$features_unsupported $feature"
         fw_compatible $feature || die "$feature is required, but not supported in $FIT! Choose another FIT"
     done
     if [[ -n "$features_unsupported" ]]; then
         info "Storing this update as factory FIT to use as bootlet (supports $fit_compat_features)"
         info "Old factory FIT will be kept as factoryreset.original.fit and will still be used to restore firmware"
 
-        cp "$CURRENT_FACTORY_FIT" "$mnt/.wb-restore/factoryreset.original.fit"
+        cp "$factory_fit" "$original_factory_fit"
         sync
         copy_this_fit_to_factory
     else
@@ -841,22 +881,23 @@ update_current_factory_fit_if_not_compatible() {
 }
 
 maybe_trigger_original_factory_fit_to_restore_ab() {
-    local mnt
-    mnt=$(mktemp -d)
-    mount "$DATA_PART" "$mnt" || fatal "Unable to mount data partition"
+    local mnt prefix original_factory_fit
+    set -- $(mount_data_dir) || fatal "Unable to mount data partition"
+    mnt=$1
+    prefix=$2
 
     # check if current fit supports +single-rootfs feature
-    ORIGINAL_FACTORY_FIT="$mnt/.wb-restore/factoryreset.original.fit"
+    original_factory_fit="$mnt$prefix.wb-restore/factoryreset.original.fit"
 
-    if [ -e "$ORIGINAL_FACTORY_FIT" ] && (! FIT=$ORIGINAL_FACTORY_FIT fw_compatible "single-rootfs"); then
+    if [ -e "$original_factory_fit" ] && (! FIT=$original_factory_fit fw_compatible "single-rootfs"); then
         info "Original factory FIT exists and not support single-rootfs, ensuring A/B rootfs scheme and use it to restore firmware"
         ensure_ab_rootfs_parttable || fatal "Failed to restore A/B rootfs scheme"
 
         info "Decoding current flags from '$FLAGS'"
         read -r -a FLAGS_ARRAY <<< "$FLAGS" || fatal "Failed to decode flags"
 
-        info "Restoring original firmware from $ORIGINAL_FACTORY_FIT, flags ${FLAGS_ARRAY[*]}"
-        wb-run-update "${FLAGS_ARRAY[@]}" --no-remove --no-confirm --original-factory-fit "$ORIGINAL_FACTORY_FIT" || fatal "Failed to restore firmware from original FIT"
+        info "Restoring original firmware from $original_factory_fit, flags ${FLAGS_ARRAY[*]}"
+        wb-run-update "${FLAGS_ARRAY[@]}" --no-remove --no-confirm --original-factory-fit "$original_factory_fit" || fatal "Failed to restore firmware from original FIT"
 
         info "Original factory FIT restored, rebooting system"
         trap_add maybe_reboot EXIT
@@ -1024,7 +1065,13 @@ maybe_factory_reset() {
 
         mkdir -p /mnt
         mkdir -p /mnt/data
-        mount -t auto $DATA_PART /mnt/data 2>/dev/null || true
+        if [[ -b "$DATA_PART" ]]; then
+            mount -t auto $DATA_PART /mnt/data 2>/dev/null || true
+        else
+            mkdir -p /mnt/rootfs
+            mount -t auto "${ROOT_PART}" /mnt/rootfs || true
+            mount --bind /mnt/rootfs/mnt/data /mnt/data || true
+        fi
 
         rm -rf /tmp/empty && mkdir /tmp/empty
         rsync -a --delete --exclude="/.wb-restore/" --exclude="/.wb-update/" /tmp/empty/ /mnt/data/
