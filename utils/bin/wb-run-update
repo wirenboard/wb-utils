@@ -14,8 +14,10 @@ TMPDIR="/dev/shm"
 FIT=""
 FLAGS=""
 
+EMMC="/dev/mmcblk0"
 # for factory reset
-DATA_PART="/dev/mmcblk0p6"
+ROOT_PART="${EMMC}p2"
+DATA_PART="${EMMC}p6"
 FACTORY_FIT_DIR="/mnt/data/.wb-restore"
 FACTORY_FIT="${FACTORY_FIT_DIR}/factoryreset.fit"
 
@@ -76,7 +78,6 @@ led_prompt() {
 	led red delay_on 100
 	led red delay_off 100
 }
-
 
 mkfs_ext4() {
 	local part=$1
@@ -156,8 +157,8 @@ fit_blob_verify_hash() {
 }
 
 disk_layout_is_ab() {
-    local ROOTFS1_PART=/dev/mmcblk0p2
-    local ROOTFS2_PART=/dev/mmcblk0p3
+    local ROOTFS1_PART="${EMMC}p2"
+    local ROOTFS2_PART="${EMMC}p3"
     [ "$(blockdev --getsz "$ROOTFS1_PART")" -eq "$(blockdev --getsz "$ROOTFS2_PART")" ]
 }
 
@@ -198,6 +199,8 @@ check_firmware_compatible() {
 
     info "Firmware seems to be compatible with this controller"
 }
+
+#---------------------------------------- main ----------------------------------------
 
 [[ $EUID != 0 ]] && die "Need root privileges to install update"
 
@@ -314,7 +317,13 @@ if flag_set factoryreset; then
 
             mkdir -p /mnt
             mkdir -p /mnt/data
-            mount -t auto $DATA_PART /mnt/data || true
+            if [[ -b "$DATA_PART" ]]; then
+                mount -t auto $DATA_PART /mnt/data || true
+            else
+                mkdir -p /mnt/rootfs
+                mount -t auto "${ROOT_PART}" /mnt/rootfs || true
+                mount --bind /mnt/rootfs/mnt/data /mnt/data || true
+            fi
 
             rm -rf /tmp/empty && mkdir /tmp/empty
             rsync -a --delete --exclude="/.wb-restore/" /tmp/empty/ /mnt/data/
@@ -332,7 +341,7 @@ fi
 
 check_firmware_compatible
 
-info "Extracting install script"
+info "Extracting install script (install_update.sh) from FIT"
 INSTALL_SCRIPT=`mktemp -p $TMPDIR`
 fit_blob_data install > "$INSTALL_SCRIPT" || die
 

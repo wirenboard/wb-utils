@@ -1,0 +1,22 @@
+#!/bin/bash -e
+
+# Called from install_update.sh with arguments
+# /path/to/script /path/to/new/rootfs [flag1 [flag2 ...]]
+#
+# This script may run in Busybox initramfs environment,
+# so if you need some special tools or features, use ones from rootfs.
+#
+# /dev, /proc and /sys are already bind-mounted
+# from host system to rootfs tree.
+
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 path/to/rootfs [flag1 [flag2 ...]]"
+    exit 2
+fi
+
+ROOTFS="$1"
+DATA_PART="/dev/mmcblk0p6"
+
+if [[ ! -b "DATA_PART" ]]; then
+    cp "$ROOTFS/etc/fstab.extended.wb" "$ROOTFS/etc/fstab"
+fi
