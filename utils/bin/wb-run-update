@@ -31,7 +31,7 @@ rm_fit() {
 	info "Removing FIT $FIT"
 	if [ "$FIT" -ef "$FACTORY_FIT" ]; then
 		info "$FIT is a hardlink to factory-fit; saving factory-fit immutability"
-		was_immutable=$(lsattr -l $FACTORY_FIT | grep "Immutable" || true)
+		local was_immutable=$(lsattr -l $FACTORY_FIT | grep "Immutable" || true)
 		chattr -i $FIT
 		rm -f "$FIT"
 		sync
@@ -202,23 +202,6 @@ check_firmware_compatible() {
 
 #---------------------------------------- main ----------------------------------------
 
-[[ $EUID != 0 ]] && die "Need root privileges to install update"
-
-while [[ -n "$1" ]]; do
-	case "$1" in
-		--*|-*)
-			FLAGS+="$1 "
-			;;
-		*)
-			[[ -n "$FIT" ]] && die "Bad arguments"
-			FIT=`readlink -f $1`
-			;;
-	esac
-	shift
-done
-
-[[ -f "$FIT" ]] || die "FIT $FIT not found"
-
 flag_set no-mqtt && {
 	mqtt_status() { :; }
 
@@ -271,6 +254,23 @@ EOF
 		true
 	}
 }
+
+[[ $EUID != 0 ]] && die "Need root privileges to install update"
+
+while [[ -n "$1" ]]; do
+	case "$1" in
+		--*|-*)
+			FLAGS+="$1 "
+			;;
+		*)
+			[[ -n "$FIT" ]] && die "Bad arguments"
+			FIT=`readlink -f $1`
+			;;
+	esac
+	shift
+done
+
+[[ -f "$FIT" ]] || die "FIT $FIT not found"
 
 flag_set no-mqtt && {
 	# check factory reset condition here and add flag in this case
