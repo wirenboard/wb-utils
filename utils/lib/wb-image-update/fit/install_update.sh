@@ -8,6 +8,7 @@ TMPDIR="${TMPDIR:-/dev/shm}"
 # Single or A/B rootfs layout
 ROOTFS1_PART=${ROOTDEV}p2
 ROOTFS2_PART=${ROOTDEV}p3
+SWAP_PART=${ROOTDEV}p5
 DATA_PART=${ROOTDEV}p6
 
 # Extended rootfs layout
@@ -302,6 +303,14 @@ sfdisk_set_start() {
     sed "s#^\\($1.*start=\\s\\+\\)[0-9]\\+\\(.*\\)#\\1 $2\\2#"
 }
 
+sfdisk_set_type() {
+    sed "s#^\\($1.*type=\\s\\+\\)[0-9]\\+\\(.*\\)#\\1 $2\\2#"
+}
+
+sfdisk_rm_partition() {
+    sed "\#$1#d"
+}
+
 run_e2fsck() {
     local part=$1
     local E2FSCK_RC
@@ -409,12 +418,17 @@ ensure_extended_rootfs_parttable() {
         sfdisk_set_size  "$EXT_ROOTFS_PART" "$ROOTFS_SIZE_BLOCKS" | \
         sfdisk_set_start "$EXT_SWAP_PART" "$SWAP_START_BLOCKS" | \
         sfdisk_set_size "$EXT_SWAP_PART" "$SWAP_SIZE_BLOCKS" | \
+        sfdisk_set_type "$EXT_SWAP_PART" 82 | \
         sfdisk_set_start "$EXT_RESERVED_PART" "$RESERVED_START_BLOCKS" | \
         sfdisk_set_size "$EXT_RESERVED_PART" "$RESERVED_SIZE_BLOCKS" | \
+        sfdisk_set_type "$EXT_RESERVED_PART" 83 | \
+        sfdisk_rm_partition "$SWAP_PART" | \
+        sfdisk_rm_partition "$DATA_PART" | \
         tee "$TEMP_DUMP" | \
         sfdisk -f "$ROOTDEV" --no-reread >/dev/null || {
 
         info "New parttable creation failed, restoring saved MBR backup"
+        cat "$TEMP_DUMP"
         dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
         sync
         reload_parttable
