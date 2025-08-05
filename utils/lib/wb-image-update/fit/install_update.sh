@@ -339,7 +339,7 @@ run_e2fsck() {
 }
 
 ensure_extended_rootfs_parttable() {
-    if ! disk_layout_is_extended; then
+    if disk_layout_is_extended; then
         info "Partition table seems to be changed already, continue"
         return 0
     fi
