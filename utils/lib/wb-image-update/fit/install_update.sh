@@ -424,14 +424,14 @@ ensure_extended_rootfs_parttable() {
 
     sfdisk --dump "$ROOTDEV" | \
         sfdisk_set_size  "$EXT_ROOTFS_PART" "$ROOTFS_SIZE_BLOCKS" | \
+        sfdisk_rm_partition "$SWAP_PART" | \
+        sfdisk_rm_partition "$DATA_PART" | \
         sfdisk_set_start "$EXT_SWAP_PART" "$SWAP_START_BLOCKS" | \
         sfdisk_set_size "$EXT_SWAP_PART" "$SWAP_SIZE_BLOCKS" | \
         sfdisk_set_type "$EXT_SWAP_PART" 82 | \
         sfdisk_set_start "$EXT_RESERVED_PART" "$RESERVED_START_BLOCKS" | \
         sfdisk_set_size "$EXT_RESERVED_PART" "$RESERVED_SIZE_BLOCKS" | \
         sfdisk_set_type "$EXT_RESERVED_PART" 83 | \
-        sfdisk_rm_partition "$SWAP_PART" | \
-        sfdisk_rm_partition "$DATA_PART" | \
         tee "$TEMP_DUMP" | \
         sfdisk -f "$ROOTDEV" --no-reread >/dev/null || {
 
@@ -794,7 +794,7 @@ maybe_repartition() {
         return
     fi
 
-    if flag_set extend-rootfs; then
+    if flag_set extend-rootfs && ! flag_set from-webupdate && ! flag_set from-emmc-factoryreset; then
         info "Extending rootfs as requested"
         if ! ensure_extended_rootfs_parttable; then
             fatal "Failed to extend rootfs"
