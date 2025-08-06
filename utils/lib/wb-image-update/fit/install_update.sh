@@ -422,6 +422,10 @@ ensure_extended_rootfs_parttable() {
             ;;
     esac
 
+    umount "$ROOTFS1_PART" >/dev/null 2>&1 || true
+    umount "$ROOTFS2_PART" >/dev/null 2>&1 || true
+    umount "$DATA_PART" >/dev/null 2>&1 || true
+
     sfdisk --dump "$ROOTDEV" | \
         sfdisk_set_size  "$EXT_ROOTFS_PART" "$ROOTFS_SIZE_BLOCKS" | \
         sfdisk_rm_partition "$SWAP_PART" | \
