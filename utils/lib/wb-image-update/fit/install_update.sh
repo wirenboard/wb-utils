@@ -418,6 +418,7 @@ ensure_extended_rootfs_parttable() {
             ;;
         *)
             info "Unknown emmc size: $emmc_size bytes"
+            return 1
             ;;
     esac
 
