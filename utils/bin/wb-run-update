@@ -35,8 +35,7 @@ rm_fit() {
 		chattr -i $FIT
 		rm -f "$FIT"
 		sync
-		# FIXME: "!!! Error at line 1361 ([[ -n "$was_immutable" ]])"
-		#[[ -n "$was_immutable" ]] && chattr +i $FACTORY_FIT
+		[[ -n "$was_immutable" ]] && chattr +i $FACTORY_FIT
 	else
 		rm -f "$FIT"
 	fi
