@@ -1330,7 +1330,7 @@ if ! flag_set from-initramfs && flag_set "force-repartition"; then
     update_after_reboot
 fi
 
-if ( ( flag_set "factoryreset" || flag_set "force-repartition" ) && ! flag_set "no-repartition" ); then
+if ( ( flag_set "factoryreset" || flag_set "force-repartition" ) && ! flag_set "no-repartition" && ! disk_layout_is_extended); then
     maybe_repartition
 fi
 
