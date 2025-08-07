@@ -304,7 +304,7 @@ sfdisk_set_start() {
 }
 
 sfdisk_set_type() {
-    sed "s#^\\($1.*type=)[0-9]\\+#\\1$2#"
+    sed "s#^\\($1.*type=\\)[0-9]\\+#\\1$2#"
 }
 
 sfdisk_rm_partition() {
