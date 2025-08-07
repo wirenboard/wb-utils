@@ -185,7 +185,7 @@ while read EVENT_DIR EVENT_TYPE EVENT_FILE; do
             webupd_fit_file="webupd.fit"
             FIT="${EVENT_DIR}${webupd_fit_file}"
             EVENT_FILE="$webupd_fit_file"
-            was_immutable=$(lsattr -l $WB_FACTORY_FIT | grep "Immutable" || true)
+            local was_immutable=$(lsattr -l $WB_FACTORY_FIT | grep "Immutable" || true)
             chattr -i $WB_FACTORY_FIT
             ln "$WB_FACTORY_FIT" "$FIT"  # uboot has hardcoded webupd fit name
             sync

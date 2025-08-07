@@ -86,6 +86,7 @@ cp /usr/lib/wb-image-update/fit/install_update.sh $IMAGEUPDATE_DIR/install_updat
 cd "$BUILDDIR" && tar cvzf $IMAGEUPDATE_DIR/deps.tar.gz .
 
 {
+    echo -n "+extended-rootfs "
     echo -n "+single-rootfs "
     echo -n "+fit-factory-reset "
     echo -n "+force-repartition "
