@@ -17,6 +17,6 @@ fi
 ROOTFS="$1"
 DATA_PART="/dev/mmcblk0p6"
 
-if [[ ! -b "DATA_PART" ]]; then
+if [[ ! -b "$DATA_PART" ]]; then
     cp "$ROOTFS/etc/fstab.extended.wb" "$ROOTFS/etc/fstab"
 fi
