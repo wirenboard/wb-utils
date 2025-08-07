@@ -304,7 +304,7 @@ sfdisk_set_start() {
 }
 
 sfdisk_set_type() {
-    sed "s#^\\($1.*type=\\s\\+\\)[0-9]\\+\\(.*\\)#\\1 $2\\2#"
+    sed "s#^\\($1.*type=)[0-9]\\+#\\1$2#"
 }
 
 sfdisk_rm_partition() {
@@ -422,6 +422,7 @@ ensure_extended_rootfs_parttable() {
             ;;
     esac
 
+    info "Umount partitions"
     umount "$ROOTFS1_PART" >/dev/null 2>&1 || true
     umount "$ROOTFS2_PART" >/dev/null 2>&1 || true
     umount "$DATA_PART" >/dev/null 2>&1 || true
