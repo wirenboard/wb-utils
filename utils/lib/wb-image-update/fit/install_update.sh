@@ -347,6 +347,13 @@ run_e2fsck() {
     fi
 }
 
+restore_mbr() {
+    local mbr_backup=$1
+    dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
+    sync
+    reload_parttable
+}
+
 ensure_extended_rootfs_parttable() {
     if disk_layout_is_extended; then
         info "Partition table seems to be changed already, continue"
@@ -442,9 +449,7 @@ ensure_extended_rootfs_parttable() {
 
         info "New parttable creation failed, restoring saved MBR backup"
         cat "$TEMP_DUMP"
-        dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
-        sync
-        reload_parttable
+        restore_mbr "$mbr_backup"
         return 1
     }
 
@@ -453,9 +458,7 @@ ensure_extended_rootfs_parttable() {
 
     if [ "$(blockdev --getsz "$EXT_ROOTFS_PART")" != "$ROOTFS_SIZE_BLOCKS" ]; then
         info "New parttable is not applied, restoring saved MBR backup and exit"
-        dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
-        sync
-        reload_parttable
+        restore_mbr "$mbr_backup"
         fatal "Failed to apply a new partition table"
     fi
 
@@ -463,9 +466,7 @@ ensure_extended_rootfs_parttable() {
     mkfs_ext4 "$EXT_ROOTFS_PART" "rootfs" || {
         info "Creating new filesystem on rootfs partition failed!"
         info "Restoring saved MBR backup and exit"
-        dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
-        sync
-        reload_parttable
+        restore_mbr "$mbr_backup"
         fatal "Failed to create filesystem on new rootfs, exiting"
     }
 
@@ -473,9 +474,7 @@ ensure_extended_rootfs_parttable() {
     mkswap "$EXT_SWAP_PART" || {
         info "Creating new filesystem on swap partition failed!"
         info "Restoring saved MBR backup and exit"
-        dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
-        sync
-        reload_parttable
+        restore_mbr "$mbr_backup"
         fatal "Failed to create filesystem on new swap, exiting"
     }
 
@@ -483,9 +482,7 @@ ensure_extended_rootfs_parttable() {
     #mkfs_ext4 "$EXT_RESERVED_PART" "reserved" || {
     #    info "Creating new filesystem on reserved partition failed!"
     #    info "Restoring saved MBR backup and exit"
-    #    dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
-    #    sync
-    #    reload_parttable
+    #    restore_mbr "$mbr_backup"
     #    fatal "Failed to create filesystem on new reserved, exiting"
     #}
 
@@ -550,9 +547,7 @@ ensure_enlarged_rootfs_parttable() {
         sfdisk -f "$ROOTDEV" --no-reread >/dev/null || {
 
         info "New parttable creation failed, restoring saved MBR backup"
-        dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
-        sync
-        reload_parttable
+        restore_mbr "$mbr_backup"
         return 1
     }
 
@@ -561,9 +556,7 @@ ensure_enlarged_rootfs_parttable() {
 
     if [ "$(blockdev --getsz "$ROOTFS1_PART")" != "$ROOTFS_SIZE_BLOCKS" ]; then
         info "New parttable is not applied, restoring saved MBR backup and exit"
-        dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
-        sync
-        reload_parttable
+        restore_mbr "$mbr_backup"
         fatal "Failed to apply a new partition table"
     fi
 
@@ -574,9 +567,7 @@ ensure_enlarged_rootfs_parttable() {
     run_tool resize2fs -z "$e2fs_undofile" "$ROOTFS1_PART" || {
         info "Filesystem expantion failed, restoring everything"
         run_tool e2undo "$e2fs_undofile" "$ROOTFS1_PART" || true
-        dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
-        sync
-        reload_parttable
+        restore_mbr "$mbr_backup"
         return 1
     }
 
@@ -648,9 +639,7 @@ ensure_ab_rootfs_parttable() {
         sfdisk -f "$ROOTDEV" --no-reread >/dev/null || {
 
         info "New parttable creation failed, restoring saved MBR backup"
-        dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
-        sync
-        reload_parttable
+        restore_mbr "$mbr_backup"
         return 1
     }
 
@@ -659,9 +648,7 @@ ensure_ab_rootfs_parttable() {
 
     if [ "$(blockdev --getsz "$ROOTFS1_PART")" != "$ROOTFS_SIZE_BLOCKS" ]; then
         info "New parttable is not applied, restoring saved MBR backup and exit"
-        dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
-        sync
-        reload_parttable
+        restore_mbr "$mbr_backup"
         fatal "Failed to apply a new partition table"
     fi
 
@@ -669,9 +656,7 @@ ensure_ab_rootfs_parttable() {
     mkfs_ext4 "$ROOTFS2_PART" "rootfs" || {
         info "Creating new filesystem on second partition failed!"
         info "Restoring saved MBR backup and exit"
-        dd if="$mbr_backup" of="$ROOTDEV" oflag=direct conv=notrunc || true
-        sync
-        reload_parttable
+        restore_mbr "$mbr_backup"
         fatal "Failed to create filesystem on new rootfs, exiting"
     }
 
