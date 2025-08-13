@@ -453,6 +453,7 @@ ensure_extended_rootfs_parttable() {
         return 1
     }
 
+    cat "$TEMP_DUMP"
     sync
     reload_parttable
 
@@ -485,6 +486,7 @@ ensure_extended_rootfs_parttable() {
         restore_mbr "$mbr_backup"
         fatal "Failed to create filesystem on new reserved, exiting"
     }
+    mmc writeprotect user set temp $RESERVED_START_BLOCKS $RESERVED_SIZE_BLOCKS $ROOTDEV
 
     info "Repartition is done!"
 }
