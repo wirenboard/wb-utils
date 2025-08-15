@@ -407,20 +407,14 @@ ensure_extended_rootfs_parttable() {
     case "$((emmc_size / 1024 / 1024 / 1024))" in
         7)
             info "8G emmc"
-            ROOTFS_SIZE_BLOCKS=13137920
-            SWAP_START_BLOCKS=13172736
             RESERVED_START_BLOCKS=14221312
             ;;
         14)
             info "16G emmc"
-            ROOTFS_SIZE_BLOCKS=29915136
-            SWAP_START_BLOCKS=29949952
             RESERVED_START_BLOCKS=30998528
             ;;
         58)
             info "64G emmc"
-            ROOTFS_SIZE_BLOCKS=130578432
-            SWAP_START_BLOCKS=130613248
             RESERVED_START_BLOCKS=131661824
             ;;
         *)
@@ -428,6 +422,9 @@ ensure_extended_rootfs_parttable() {
             return 1
             ;;
     esac
+
+    SWAP_START_BLOCKS=$(( RESERVED_START_BLOCKS - SWAP_SIZE_BLOCKS ))
+    ROOTFS_SIZE_BLOCKS=$(( SWAP_START_BLOCKS - ROOTFS_START_BLOCKS ))
 
     info "Umount partitions"
     umount "$ROOTFS1_PART" >/dev/null 2>&1 || true
