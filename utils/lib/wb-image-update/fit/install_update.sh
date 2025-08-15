@@ -403,26 +403,11 @@ ensure_extended_rootfs_parttable() {
     SWAP_SIZE_BLOCKS=1048576
     RESERVED_SIZE_BLOCKS=1048576
 
+    local block_size=512
     local emmc_size=$(blockdev --getsize64 $ROOTDEV)
-    case "$((emmc_size / 1024 / 1024 / 1024))" in
-        7)
-            info "8G emmc"
-            RESERVED_START_BLOCKS=14221312
-            ;;
-        14)
-            info "16G emmc"
-            RESERVED_START_BLOCKS=30998528
-            ;;
-        58)
-            info "64G emmc"
-            RESERVED_START_BLOCKS=131661824
-            ;;
-        *)
-            info "Unknown emmc size: $emmc_size bytes"
-            return 1
-            ;;
-    esac
+    local write_protect_group_size=$(( 8*1024*1024 ))
 
+    RESERVED_START_BLOCKS=$(( ((emmc_size / write_protect_group_size) * write_protect_group_size)/block_size - RESERVED_SIZE_BLOCKS ))
     SWAP_START_BLOCKS=$(( RESERVED_START_BLOCKS - SWAP_SIZE_BLOCKS ))
     ROOTFS_SIZE_BLOCKS=$(( SWAP_START_BLOCKS - ROOTFS_START_BLOCKS ))
 
