@@ -476,14 +476,15 @@ ensure_extended_rootfs_parttable() {
         fatal "Failed to create filesystem on new swap, exiting"
     }
 
-    info "Creating filesystem on reserved partition"
-    mkfs_ext4 "$EXT_RESERVED_PART" "reserved" || {
-        info "Creating new filesystem on reserved partition failed!"
-        info "Restoring saved MBR backup and exit"
-        restore_mbr "$mbr_backup"
-        fatal "Failed to create filesystem on new reserved, exiting"
-    }
-    mmc writeprotect user set temp $RESERVED_START_BLOCKS $RESERVED_SIZE_BLOCKS $ROOTDEV
+    # FIXME: Buffer I/O error
+    #info "Creating filesystem on reserved partition"
+    #mkfs_ext4 "$EXT_RESERVED_PART" "reserved" || {
+    #    info "Creating new filesystem on reserved partition failed!"
+    #    info "Restoring saved MBR backup and exit"
+    #    restore_mbr "$mbr_backup"
+    #    fatal "Failed to create filesystem on new reserved, exiting"
+    #}
+    #mmc writeprotect user set temp $RESERVED_START_BLOCKS $RESERVED_SIZE_BLOCKS $ROOTDEV
 
     info "Repartition is done!"
 }
