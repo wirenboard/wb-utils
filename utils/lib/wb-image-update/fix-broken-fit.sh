@@ -38,7 +38,7 @@ if of_machine_match "wirenboard,wirenboard-7xx" || of_machine_match "wirenboard,
                     chattr -i $FACTORYRESET_FIT
                     mv "${FACTORYRESET_FIT}.new" "$FACTORYRESET_FIT"
                     sync
-                    [[ -n "$was_immutable" ]] && chattr +i $FACTORYRESET_FIT
+                    [[ -n "$was_immutable" ]] && chattr +i $FACTORYRESET_FIT || true
                     break
                 fi
             done

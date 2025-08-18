@@ -944,7 +944,7 @@ copy_this_fit_to_factory() {
         local was_immutable=$(lsattr -l $factory_fit | grep "Immutable" || true)
         chattr -i $factory_fit
         cp "$FIT" "$factory_fit"
-        [[ -n "$was_immutable" ]] && chattr +i $factory_fit
+        [[ -n "$was_immutable" ]] && chattr +i $factory_fit || true
     else  # no chattr / lsattr in factory fit
         cp "$FIT" "$factory_fit"
     fi
