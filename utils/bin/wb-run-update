@@ -162,6 +162,10 @@ disk_layout_is_ab() {
     [ "$(blockdev --getsz "$ROOTFS1_PART")" -eq "$(blockdev --getsz "$ROOTFS2_PART")" ]
 }
 
+disk_layout_is_extended() {
+    [ ! -e "$DATA_PART" ]
+}
+
 fw_compatible() {
     local feature="$1"
     local fw_compat
