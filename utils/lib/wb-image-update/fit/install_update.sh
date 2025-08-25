@@ -1172,6 +1172,10 @@ check_firmware_compatible() {
         fatal "Firmware is not compatible with this device, no proper DTB found"
     fi
 
+    if disk_layout_is_extended && ! fw_compatible "extended-rootfs"; then
+        die "Firmware is not compatible with extended-rootfs layout"
+    fi
+
     info "Firmware seems to be compatible with this controller"
 }
 
