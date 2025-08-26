@@ -7,7 +7,7 @@
 #   DO NOT ADD ANY NEW FEATURES HERE!
 #
 # A great place for the new update features is
-# utils/lib/wb-image-update/fit/install_image.sh file
+# utils/lib/wb-image-update/fit/install_update.sh file
 # in this repository.
 
 TMPDIR="/dev/shm"
