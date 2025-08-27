@@ -284,7 +284,7 @@ flag_set no-mqtt && {
 	# check factory reset condition here and add flag in this case
 	case $FIT in
 		*FACTORYRESET*|*factoryreset*)
-			if flag_set no-confirm; then
+			if flag_set no-confirm || ! flag_set no-mqtt; then
 				echo -e "\nFactory reset (confirm is not required)!\n"
 				FLAGS+="--factoryreset "
 			elif prompt_update_factoryreset; then
