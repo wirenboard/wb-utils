@@ -13,6 +13,7 @@
 TMPDIR="/dev/shm"
 FIT=""
 FLAGS=""
+ARGS=()
 
 EMMC="/dev/mmcblk0"
 # for factory reset
@@ -210,6 +211,18 @@ check_firmware_compatible() {
 
 #---------------------------------------- main ----------------------------------------
 
+while [[ -n "$1" ]]; do
+	case "$1" in
+		--*|-*)
+			FLAGS+="$1 "
+			;;
+		*)
+			ARGS+=("$1")
+			;;
+	esac
+	shift
+done
+
 flag_set no-mqtt && {
 	mqtt_status() { :; }
 
@@ -265,18 +278,11 @@ EOF
 
 [[ $EUID != 0 ]] && die "Need root privileges to install update"
 
-while [[ -n "$1" ]]; do
-	case "$1" in
-		--*|-*)
-			FLAGS+="$1 "
-			;;
-		*)
-			[[ -n "$FIT" ]] && die "Bad arguments"
-			FIT=`readlink -f $1`
-			;;
-	esac
-	shift
-done
+if [[ ${#ARGS[@]} -ne 1 ]]; then
+	die "Bad arguments"
+fi
+
+FIT=`readlink -f ${ARGS[0]}`
 
 [[ -f "$FIT" ]] || die "FIT $FIT not found"
 
