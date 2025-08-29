@@ -33,7 +33,7 @@ rm_fit() {
 	if [ "$FIT" -ef "$FACTORY_FIT" ]; then
 		info "$FIT is a hardlink to factory-fit; saving factory-fit immutability"
 		local was_immutable=$(lsattr -l $FACTORY_FIT | grep "Immutable" || true)
-		chattr -i $FIT
+		chattr -i "$FIT"
 		rm -f "$FIT"
 		sync
 		[[ -n "$was_immutable" ]] && chattr +i $FACTORY_FIT || true
@@ -43,7 +43,7 @@ rm_fit() {
 }
 
 led() {
-	echo $3 > /sys/class/leds/$1/$2 || true
+	echo "$3" > "/sys/class/leds/$1/$2" || true
 }
 
 led_process() {
@@ -112,12 +112,12 @@ fit_prop() {
 	local node=$1
 	local prop=$2
 
-	local tmp=`fit_info -f $FIT -n $node -p $prop`
-	local len=`sed -rn 's#LEN: (.*)#\1#p' <<< "$tmp"`
-	local off=`sed -rn 's#OFF: (.*)#\1#p' <<< "$tmp"`
+	local tmp=$(fit_info -f "$FIT" -n "$node" -p "$prop")
+	local len=$(sed -rn 's#LEN: (.*)#\1#p' <<< "$tmp")
+	local off=$(sed -rn 's#OFF: (.*)#\1#p' <<< "$tmp")
 	[[ -n "$len" && -n "$off" ]] || return 1
 	#dd if=$FIT skip=$off count=$len iflag=skip_bytes,count_bytes 2>/dev/null
-	tail -c +$((off + 1)) $FIT 2>/dev/null | head -c $len 2>/dev/null
+	tail -c +$((off + 1)) "$FIT" 2>/dev/null | head -c "$len" 2>/dev/null
 }
 
 fit_prop_string() {
@@ -125,7 +125,7 @@ fit_prop_string() {
 }
 
 fit_blob_size() {
-	local tmp=`fit_info -f $FIT -n /images/$1 -p data`
+	local tmp=$(fit_info -f "$FIT" -n "/images/$1" -p data)
 	sed -rn 's#LEN: (.*)#\1#p' <<< "$tmp"
 }
 
@@ -139,18 +139,18 @@ fit_blob_hash() {
 
 fit_blob_verify_hash() {
 	local name=$1
-	local sha1_expected=`fit_blob_hash $name`
+	local sha1_expected=$(fit_blob_hash "$name")
 
 	info "Checking SHA1 hash of $name"
 
-	local blob_size=`fit_blob_size rootfs`
-	local tmp=`mktemp -p $TMPDIR`
+	local blob_size=$(fit_blob_size rootfs)
+	local tmp=$(mktemp -p "$TMPDIR")
 	(
 		echo 0
-		fit_blob_data $name | pv -n -s "$blob_size" | sha1sum | cut -f1 -d' ' > $tmp
+		fit_blob_data "$name" | pv -n -s "$blob_size" | sha1sum | cut -f1 -d' ' > "$tmp"
 	) 2>&1 | mqtt_progress "$x"
-	local sha1_calculated=`cat $tmp`
-	rm $tmp
+	local sha1_calculated=$(cat "$tmp")
+	rm "$tmp"
 
 	[[ "$sha1_expected" == "$sha1_calculated" ]] &&
 		info "SHA1 hash of $name ok" ||
@@ -282,7 +282,7 @@ if [[ ${#ARGS[@]} -ne 1 ]]; then
 	die "Bad arguments"
 fi
 
-FIT=`readlink -f ${ARGS[0]}`
+FIT=$(readlink -f "${ARGS[0]}")
 
 [[ -f "$FIT" ]] || die "FIT $FIT not found"
 
@@ -308,7 +308,7 @@ led_process
 
 >&2 cat <<EOF
 ===============================================================================
-`date`: started update from $FIT
+$(date): started update from $FIT
 ===============================================================================
 Description:         $(fit_prop_string / description)
 Compatible device:   $(fit_prop_string / compatible)
@@ -359,10 +359,11 @@ fi
 check_firmware_compatible
 
 info "Extracting install script (install_update.sh) from FIT"
-INSTALL_SCRIPT=`mktemp -p $TMPDIR`
+INSTALL_SCRIPT=$(mktemp -p $TMPDIR)
 fit_blob_data install > "$INSTALL_SCRIPT" || die
 
 info "Running install script"
+# shellcheck source=utils/lib/wb-image-update/fit/install_update.sh
 source "$INSTALL_SCRIPT"
 
 rm -f "$INSTALL_SCRIPT"

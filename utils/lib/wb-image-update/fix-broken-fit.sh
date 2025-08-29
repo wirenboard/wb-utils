@@ -2,6 +2,7 @@
 
 set -e
 
+# shellcheck source=utils/lib/wb_env.sh
 . /usr/lib/wb-utils/wb_env.sh
 wb_source "of"
 
@@ -38,7 +39,9 @@ if of_machine_match "wirenboard,wirenboard-7xx" || of_machine_match "wirenboard,
                     chattr -i $FACTORYRESET_FIT
                     mv "${FACTORYRESET_FIT}.new" "$FACTORYRESET_FIT"
                     sync
-                    [[ -n "$was_immutable" ]] && chattr +i $FACTORYRESET_FIT || true
+                    if [[ -n "$was_immutable" ]]; then
+                        chattr +i "$FACTORYRESET_FIT" || true
+                    fi
                     break
                 fi
             done

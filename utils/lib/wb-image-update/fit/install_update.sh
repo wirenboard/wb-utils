@@ -157,6 +157,7 @@ prepare_env() {
 
             trap EXIT  # reset all traps, allow external script to set its own
             IS_IN_EXTERNAL_SCRIPT=1
+            # shellcheck source=utils/lib/wb-image-update/fit/install_update.sh
             source "$EXTERNAL_SCRIPT" || fatal "External script failed"
             IS_IN_EXTERNAL_SCRIPT=
 
@@ -338,7 +339,7 @@ run_e2fsck() {
     fi
 
     # force update last_check ts
-    run_tool tune2fs -T now $part
+    run_tool tune2fs -T now "$part"
 
     if flag_set print-dumpe2fs; then
         info "Filesystem info after e2fsck on $part"
@@ -404,7 +405,7 @@ ensure_extended_rootfs_parttable() {
     RESERVED_SIZE_BLOCKS=1048576
 
     local block_size=512
-    local emmc_size=$(blockdev --getsize64 $ROOTDEV)
+    local emmc_size=$(blockdev --getsize64 "$ROOTDEV")
     local write_protect_group_size=$(( 8*1024*1024 ))
 
     RESERVED_START_BLOCKS=$(( ((emmc_size / write_protect_group_size) * write_protect_group_size)/block_size - RESERVED_SIZE_BLOCKS ))
@@ -742,7 +743,7 @@ maybe_update_current_factory_tmpfs_size_fix() {
     if ((MEMSIZE_MB<1024)); then
 
         local mnt prefix factory_fit
-        set -- $(mount_data_dir) || fatal "Unable to mount data partition"
+        set -- "$(mount_data_dir)" || fatal "Unable to mount data partition"
         mnt=$1
         prefix=$2
         factory_fit="$mnt$prefix.wb-restore/factoryreset.fit"
@@ -799,6 +800,7 @@ get_installed_debian_version() {
             info "Temporarily mount actual rootfs $actual_rootfs to check previous OS release"
             if mount -t ext4 "$actual_rootfs" "$MNT" >/dev/null 2>&1 ; then
                 sync
+                # shellcheck source=/dev/null
                 source "$MNT/etc/os-release"
                 echo "$VERSION_CODENAME"
                 umount -f "$actual_rootfs" >/dev/null 2>&1 || true
@@ -808,6 +810,7 @@ get_installed_debian_version() {
             fi
         fi
     else
+        # shellcheck source=/dev/null
         source "/etc/os-release"
         echo "$VERSION_CODENAME"
     fi
@@ -934,17 +937,19 @@ copy_this_fit_to_factory() {
     info "Copying $FIT to factory default location as requested"
 
     local mnt prefix factory_fit
-    set -- $(mount_data_dir) || fatal "Unable to mount data partition"
+    set -- "$(mount_data_dir)" || fatal "Unable to mount data partition"
     mnt=$1
     prefix=$2
     factory_fit="$mnt$prefix.wb-restore/factoryreset.fit"
 
     if FIT="$factory_fit" fw_compatible "fit-immutable-support"; then
         info "Saving immutability state of $factory_fit"
-        local was_immutable=$(lsattr -l $factory_fit | grep "Immutable" || true)
-        chattr -i $factory_fit
+        local was_immutable=$(lsattr -l "$factory_fit" | grep "Immutable" || true)
+        chattr -i "$factory_fit"
         cp "$FIT" "$factory_fit"
-        [[ -n "$was_immutable" ]] && chattr +i $factory_fit || true
+        if [[ -n "$was_immutable" ]]; then
+            chattr +i "$factory_fit" || true
+        fi
     else  # no chattr / lsattr in factory fit
         cp "$FIT" "$factory_fit"
     fi
@@ -955,7 +960,7 @@ copy_this_fit_to_factory() {
 update_current_factory_fit_if_not_compatible() {
     local fit_compat_features=$1
     local mnt prefix factory_fit
-    set -- $(mount_data_dir) || fatal "Unable to mount data partition"
+    set -- "$(mount_data_dir)" || fatal "Unable to mount data partition"
     mnt=$1
     prefix=$2
 
@@ -978,8 +983,8 @@ update_current_factory_fit_if_not_compatible() {
     local features_unsupported
     IFS=' ' read -ra features_required <<< "$fit_compat_features"
     for feature in "${features_required[@]}"; do
-        FIT="$factory_fit" fw_compatible $feature || features_unsupported="$features_unsupported $feature"
-        fw_compatible $feature || die "$feature is required, but not supported in $FIT! Choose another FIT"
+        FIT="$factory_fit" fw_compatible "$feature" || features_unsupported="$features_unsupported $feature"
+        fw_compatible "$feature" || die "$feature is required, but not supported in $FIT! Choose another FIT"
     done
     if [[ -n "$features_unsupported" ]]; then
         info "Storing this update as factory FIT to use as bootlet (supports $fit_compat_features)"
@@ -998,7 +1003,7 @@ update_current_factory_fit_if_not_compatible() {
 
 maybe_trigger_original_factory_fit_to_restore_ab() {
     local mnt prefix original_factory_fit
-    set -- $(mount_data_dir) || fatal "Unable to mount data partition"
+    set -- "$(mount_data_dir)" || fatal "Unable to mount data partition"
     mnt=$1
     prefix=$2
 
@@ -1095,26 +1100,27 @@ play_note() {
     local SILENCE_LENGTH=$3
     local VOLUME=100
 
-    local PERIOD=$(( 1000000000 / $FREQ ))
-    local DUTY_CYCLE=$(( (VOLUME / 100) * $PERIOD / 2 ))
+    local PERIOD=$(( 1000000000 / FREQ ))
+    local DUTY_CYCLE=$(( (VOLUME / 100) * PERIOD / 2 ))
 
-    echo $PWM_BUZZER > /sys/class/pwm/pwmchip0/export 2>/dev/null || true
+    echo "$PWM_BUZZER" > /sys/class/pwm/pwmchip0/export 2>/dev/null || true
 
     local r1=1
     local r2=1
     while [ $r1 -ne 0 ] || [ $r2 -ne 0 ]; do
-        echo $DUTY_CYCLE > /sys/class/pwm/pwmchip0/pwm${PWM_BUZZER}/duty_cycle 2>/dev/null || true
+        echo $DUTY_CYCLE > "/sys/class/pwm/pwmchip0/pwm${PWM_BUZZER}/duty_cycle" 2>/dev/null || true
         r1=$?
-        echo $PERIOD > /sys/class/pwm/pwmchip0/pwm${PWM_BUZZER}/period 2>/dev/null || true
+        echo $PERIOD > "/sys/class/pwm/pwmchip0/pwm${PWM_BUZZER}/period" 2>/dev/null || true
         r2=$?
     done
     buzzer_on
-    sleep $NOTE_LENGTH
+    sleep "$NOTE_LENGTH"
     buzzer_off
-    sleep $SILENCE_LENGTH
+    sleep "$SILENCE_LENGTH"
 }
 
 beep_success() {
+    # shellcheck source=/dev/null
     source /lib/libupdate.sh || true
 
     play_note 2793 0.1 0.02 # F7
@@ -1156,7 +1162,7 @@ fw_has_proper_dtb() {
     # creating empty DTB to apply overlay to
     echo "/dts-v1/; / { wirenboard {}; };" | dtc -I dts -O dtb -o "$TMPFILE"
     dtb_name=$(dd "if=$EMMC" bs=512 skip=2016 count=32 | fdtoverlay -i "$TMPFILE" -o - - | fdtget -t s - /wirenboard factory-fdt)
-    rm -f $TMPFILE
+    rm -f "$TMPFILE"
 
     fit_blob_data rootfs | tar tz | grep -q -m1 -F "$dtb_name"
 }
@@ -1182,10 +1188,10 @@ maybe_factory_reset() {
         mkdir -p /mnt
         mkdir -p /mnt/data
         if [[ -b "$DATA_PART" ]]; then
-            mount -t auto $DATA_PART /mnt/data 2>/dev/null || true
+            mount -t auto "$DATA_PART" /mnt/data 2>/dev/null || true
         else
             mkdir -p /mnt/rootfs
-            mount -t auto "${ROOT_PART}" /mnt/rootfs || true
+            mount -t auto "$ROOT_PART" /mnt/rootfs || true
             mount --bind /mnt/rootfs/mnt/data /mnt/data || true
         fi
 
@@ -1196,8 +1202,8 @@ maybe_factory_reset() {
         FACTORY_FIT="${FACTORY_FIT_DIR}/factoryreset.fit"
         if [[ ! -e "$FACTORY_FIT" ]]; then
             echo "Saving current update file as factory default image"
-            mkdir -p "${FACTORY_FIT_DIR}"
-            cp "$FIT" "${FACTORY_FIT}"
+            mkdir -p "$FACTORY_FIT_DIR"
+            cp "$FIT" "$FACTORY_FIT"
         fi
     else
         fatal "Factory reset is now supported only from initramfs environment"
