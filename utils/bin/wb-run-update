@@ -36,7 +36,9 @@ rm_fit() {
 		chattr -i "$FIT"
 		rm -f "$FIT"
 		sync
-		[[ -n "$was_immutable" ]] && chattr +i $FACTORY_FIT || true
+		if [[ -n "$was_immutable" ]]; then
+			chattr +i $FACTORY_FIT || true
+		fi
 	else
 		rm -f "$FIT"
 	fi
