@@ -743,6 +743,7 @@ maybe_update_current_factory_tmpfs_size_fix() {
     if ((MEMSIZE_MB<1024)); then
 
         local mnt prefix factory_fit
+        # shellcheck disable=SC2046
         set -- $(mount_data_dir) || fatal "Unable to mount data partition"
         mnt=$1
         prefix=$2
@@ -937,6 +938,7 @@ copy_this_fit_to_factory() {
     info "Copying $FIT to factory default location as requested"
 
     local mnt prefix factory_fit
+    # shellcheck disable=SC2046
     set -- $(mount_data_dir) || fatal "Unable to mount data partition"
     mnt=$1
     prefix=$2
@@ -960,6 +962,7 @@ copy_this_fit_to_factory() {
 update_current_factory_fit_if_not_compatible() {
     local fit_compat_features=$1
     local mnt prefix factory_fit
+    # shellcheck disable=SC2046
     set -- $(mount_data_dir) || fatal "Unable to mount data partition"
     mnt=$1
     prefix=$2
@@ -1003,6 +1006,7 @@ update_current_factory_fit_if_not_compatible() {
 
 maybe_trigger_original_factory_fit_to_restore_ab() {
     local mnt prefix original_factory_fit
+    # shellcheck disable=SC2046
     set -- $(mount_data_dir) || fatal "Unable to mount data partition"
     mnt=$1
     prefix=$2
