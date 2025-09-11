@@ -941,6 +941,7 @@ copy_this_fit_to_factory() {
     mnt=$1
     prefix=$2
     factory_fit="$mnt$prefix.wb-restore/factoryreset.fit"
+    info "mnt=$mnt,prefix=$prefix,factory_fit=$factory_fit"
 
     if FIT="$factory_fit" fw_compatible "fit-immutable-support"; then
         info "Saving immutability state of $factory_fit"
