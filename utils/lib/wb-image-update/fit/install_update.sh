@@ -743,7 +743,7 @@ maybe_update_current_factory_tmpfs_size_fix() {
     if ((MEMSIZE_MB<1024)); then
 
         local mnt prefix factory_fit
-        set -- "$(mount_data_dir)" || fatal "Unable to mount data partition"
+        set -- $(mount_data_dir) || fatal "Unable to mount data partition"
         mnt=$1
         prefix=$2
         factory_fit="$mnt$prefix.wb-restore/factoryreset.fit"
@@ -937,11 +937,10 @@ copy_this_fit_to_factory() {
     info "Copying $FIT to factory default location as requested"
 
     local mnt prefix factory_fit
-    set -- "$(mount_data_dir)" || fatal "Unable to mount data partition"
+    set -- $(mount_data_dir) || fatal "Unable to mount data partition"
     mnt=$1
     prefix=$2
     factory_fit="$mnt$prefix.wb-restore/factoryreset.fit"
-    info "mnt=$mnt,prefix=$prefix,factory_fit=$factory_fit"
 
     if FIT="$factory_fit" fw_compatible "fit-immutable-support"; then
         info "Saving immutability state of $factory_fit"
@@ -961,7 +960,7 @@ copy_this_fit_to_factory() {
 update_current_factory_fit_if_not_compatible() {
     local fit_compat_features=$1
     local mnt prefix factory_fit
-    set -- "$(mount_data_dir)" || fatal "Unable to mount data partition"
+    set -- $(mount_data_dir) || fatal "Unable to mount data partition"
     mnt=$1
     prefix=$2
 
@@ -1004,7 +1003,7 @@ update_current_factory_fit_if_not_compatible() {
 
 maybe_trigger_original_factory_fit_to_restore_ab() {
     local mnt prefix original_factory_fit
-    set -- "$(mount_data_dir)" || fatal "Unable to mount data partition"
+    set -- $(mount_data_dir) || fatal "Unable to mount data partition"
     mnt=$1
     prefix=$2
 
