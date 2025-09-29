@@ -950,7 +950,7 @@ copy_this_fit_to_factory() {
         chattr -i "$factory_fit"
         cp "$FIT" "$factory_fit"
         if [[ -n "$was_immutable" ]]; then
-            chattr +i "$factory_fit" || true
+            chattr +i "$factory_fit" || info "WARNING: failed to set immutable attribute on $factory_fit"
         fi
     else  # no chattr / lsattr in factory fit
         cp "$FIT" "$factory_fit"

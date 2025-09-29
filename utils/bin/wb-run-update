@@ -37,7 +37,7 @@ rm_fit() {
 		rm -f "$FIT"
 		sync
 		if [[ -n "$was_immutable" ]]; then
-			chattr +i $FACTORY_FIT || true
+			chattr +i $FACTORY_FIT || info "WARNING: failed to set immutable attribute on $FACTORY_FIT"
 		fi
 	else
 		rm -f "$FIT"
