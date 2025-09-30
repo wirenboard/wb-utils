@@ -977,6 +977,9 @@ update_current_factory_fit_if_not_compatible() {
         info "No factory FIT found, storing this update as factory FIT to use as bootlet"
         mkdir -p "$wb_restore_dir"
         cp "$FIT" "$factory_fit"
+        if FIT="$factory_fit" fw_compatible "fit-immutable-support"; then
+            chattr +i "$factory_fit" || info "WARNING: failed to set immutable attribute on $factory_fit"
+        fi
         umount "$mnt" || true
         sync
         return
