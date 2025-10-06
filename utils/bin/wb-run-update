@@ -7,15 +7,18 @@
 #   DO NOT ADD ANY NEW FEATURES HERE!
 #
 # A great place for the new update features is
-# utils/lib/wb-image-update/fit/install_image.sh file
+# utils/lib/wb-image-update/fit/install_update.sh file
 # in this repository.
 
 TMPDIR="/dev/shm"
 FIT=""
 FLAGS=""
+ARGS=()
 
+EMMC="/dev/mmcblk0"
 # for factory reset
-DATA_PART="/dev/mmcblk0p6"
+ROOT_PART="${EMMC}p2"
+DATA_PART="${EMMC}p6"
 FACTORY_FIT_DIR="/mnt/data/.wb-restore"
 FACTORY_FIT="${FACTORY_FIT_DIR}/factoryreset.fit"
 
@@ -29,18 +32,20 @@ rm_fit() {
 	info "Removing FIT $FIT"
 	if [ "$FIT" -ef "$FACTORY_FIT" ]; then
 		info "$FIT is a hardlink to factory-fit; saving factory-fit immutability"
-		was_immutable=$(lsattr -l $FACTORY_FIT | grep "Immutable" || true)
-		chattr -i $FIT
+		local was_immutable=$(lsattr -l $FACTORY_FIT | grep "Immutable" || true)
+		chattr -i "$FIT"
 		rm -f "$FIT"
 		sync
-		[[ -n "$was_immutable" ]] && chattr +i $FACTORY_FIT
+		if [[ -n "$was_immutable" ]]; then
+			chattr +i $FACTORY_FIT || info "WARNING: failed to set immutable attribute on $FACTORY_FIT"
+		fi
 	else
 		rm -f "$FIT"
 	fi
 }
 
 led() {
-	echo $3 > /sys/class/leds/$1/$2 || true
+	echo "$3" > "/sys/class/leds/$1/$2" || true
 }
 
 led_process() {
@@ -77,7 +82,6 @@ led_prompt() {
 	led red delay_off 100
 }
 
-
 mkfs_ext4() {
 	local part=$1
 	local label=$2
@@ -110,12 +114,12 @@ fit_prop() {
 	local node=$1
 	local prop=$2
 
-	local tmp=`fit_info -f $FIT -n $node -p $prop`
-	local len=`sed -rn 's#LEN: (.*)#\1#p' <<< "$tmp"`
-	local off=`sed -rn 's#OFF: (.*)#\1#p' <<< "$tmp"`
+	local tmp=$(fit_info -f "$FIT" -n "$node" -p "$prop")
+	local len=$(sed -rn 's#LEN: (.*)#\1#p' <<< "$tmp")
+	local off=$(sed -rn 's#OFF: (.*)#\1#p' <<< "$tmp")
 	[[ -n "$len" && -n "$off" ]] || return 1
 	#dd if=$FIT skip=$off count=$len iflag=skip_bytes,count_bytes 2>/dev/null
-	tail -c +$((off + 1)) $FIT 2>/dev/null | head -c $len 2>/dev/null
+	tail -c +$((off + 1)) "$FIT" 2>/dev/null | head -c "$len" 2>/dev/null
 }
 
 fit_prop_string() {
@@ -123,7 +127,7 @@ fit_prop_string() {
 }
 
 fit_blob_size() {
-	local tmp=`fit_info -f $FIT -n /images/$1 -p data`
+	local tmp=$(fit_info -f "$FIT" -n "/images/$1" -p data)
 	sed -rn 's#LEN: (.*)#\1#p' <<< "$tmp"
 }
 
@@ -137,18 +141,18 @@ fit_blob_hash() {
 
 fit_blob_verify_hash() {
 	local name=$1
-	local sha1_expected=`fit_blob_hash $name`
+	local sha1_expected=$(fit_blob_hash "$name")
 
 	info "Checking SHA1 hash of $name"
 
-	local blob_size=`fit_blob_size rootfs`
-	local tmp=`mktemp -p $TMPDIR`
+	local blob_size=$(fit_blob_size rootfs)
+	local tmp=$(mktemp -p "$TMPDIR")
 	(
 		echo 0
-		fit_blob_data $name | pv -n -s "$blob_size" | sha1sum | cut -f1 -d' ' > $tmp
+		fit_blob_data "$name" | pv -n -s "$blob_size" | sha1sum | cut -f1 -d' ' > "$tmp"
 	) 2>&1 | mqtt_progress "$x"
-	local sha1_calculated=`cat $tmp`
-	rm $tmp
+	local sha1_calculated=$(cat "$tmp")
+	rm "$tmp"
 
 	[[ "$sha1_expected" == "$sha1_calculated" ]] &&
 		info "SHA1 hash of $name ok" ||
@@ -156,9 +160,13 @@ fit_blob_verify_hash() {
 }
 
 disk_layout_is_ab() {
-    local ROOTFS1_PART=/dev/mmcblk0p2
-    local ROOTFS2_PART=/dev/mmcblk0p3
+    local ROOTFS1_PART="${EMMC}p2"
+    local ROOTFS2_PART="${EMMC}p3"
     [ "$(blockdev --getsz "$ROOTFS1_PART")" -eq "$(blockdev --getsz "$ROOTFS2_PART")" ]
+}
+
+disk_layout_is_extended() {
+    [ ! -e "$DATA_PART" ]
 }
 
 fw_compatible() {
@@ -196,10 +204,14 @@ check_firmware_compatible() {
         die "Firmware is not compatible with single-rootfs layout"
     fi
 
+    if disk_layout_is_extended && ! fw_compatible "extended-rootfs"; then
+        die "Firmware is not compatible with extended-rootfs layout"
+    fi
+
     info "Firmware seems to be compatible with this controller"
 }
 
-[[ $EUID != 0 ]] && die "Need root privileges to install update"
+#---------------------------------------- main ----------------------------------------
 
 while [[ -n "$1" ]]; do
 	case "$1" in
@@ -207,14 +219,11 @@ while [[ -n "$1" ]]; do
 			FLAGS+="$1 "
 			;;
 		*)
-			[[ -n "$FIT" ]] && die "Bad arguments"
-			FIT=`readlink -f $1`
+			ARGS+=("$1")
 			;;
 	esac
 	shift
 done
-
-[[ -f "$FIT" ]] || die "FIT $FIT not found"
 
 flag_set no-mqtt && {
 	mqtt_status() { :; }
@@ -244,7 +253,7 @@ flag_set no-mqtt && {
 
 
            If you want to perform a regular firmware update, rename
-         FIT file to "wbX_update.fit" without "factory-reset" suffix.
+         FIT file to "wbX_update.fit" without "_FACTORYRESET" suffix.
 
 ##############################################################################
 EOF
@@ -269,11 +278,24 @@ EOF
 	}
 }
 
+[[ $EUID != 0 ]] && die "Need root privileges to install update"
+
+if [[ ${#ARGS[@]} -ne 1 ]]; then
+	die "Bad arguments"
+fi
+
+FIT=$(readlink -f "${ARGS[0]}")
+
+[[ -f "$FIT" ]] || die "FIT $FIT not found"
+
 flag_set no-mqtt && {
 	# check factory reset condition here and add flag in this case
 	case $FIT in
 		*FACTORYRESET*|*factoryreset*)
-			if flag_set no-confirm || prompt_update_factoryreset; then
+			if flag_set no-confirm || ! flag_set no-mqtt; then
+				echo -e "\nFactory reset (confirm is not required)!\n"
+				FLAGS+="--factoryreset "
+			elif prompt_update_factoryreset; then
 				echo -e "\nFactory reset is confirmed!\n"
 				FLAGS+="--factoryreset "
 			else
@@ -288,7 +310,7 @@ led_process
 
 >&2 cat <<EOF
 ===============================================================================
-`date`: started update from $FIT
+$(date): started update from $FIT
 ===============================================================================
 Description:         $(fit_prop_string / description)
 Compatible device:   $(fit_prop_string / compatible)
@@ -314,7 +336,13 @@ if flag_set factoryreset; then
 
             mkdir -p /mnt
             mkdir -p /mnt/data
-            mount -t auto $DATA_PART /mnt/data || true
+            if [[ -b "$DATA_PART" ]]; then
+                mount -t auto $DATA_PART /mnt/data || true
+            else
+                mkdir -p /mnt/rootfs
+                mount -t auto "${ROOT_PART}" /mnt/rootfs || true
+                mount --bind /mnt/rootfs/mnt/data /mnt/data || true
+            fi
 
             rm -rf /tmp/empty && mkdir /tmp/empty
             rsync -a --delete --exclude="/.wb-restore/" /tmp/empty/ /mnt/data/
@@ -332,11 +360,12 @@ fi
 
 check_firmware_compatible
 
-info "Extracting install script"
-INSTALL_SCRIPT=`mktemp -p $TMPDIR`
+info "Extracting install script (install_update.sh) from FIT"
+INSTALL_SCRIPT=$(mktemp -p $TMPDIR)
 fit_blob_data install > "$INSTALL_SCRIPT" || die
 
 info "Running install script"
+# shellcheck source=utils/lib/wb-image-update/fit/install_update.sh
 source "$INSTALL_SCRIPT"
 
 rm -f "$INSTALL_SCRIPT"
