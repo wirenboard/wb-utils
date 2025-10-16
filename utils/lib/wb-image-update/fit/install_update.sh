@@ -651,8 +651,7 @@ ensure_ab_rootfs_parttable() {
 
 cleanup_rootfs() {
     local ROOT_PART="$1"
-    local mountpoint
-    mountpoint="$(mktemp -d)"
+    local mountpoint="$(mktemp -d)"
 
     mount -t ext4 "$ROOT_PART" "$mountpoint" >/dev/null 2>&1 || fatal "Unable to mount root filesystem"
 
@@ -1188,11 +1187,26 @@ check_firmware_compatible() {
     info "Firmware seems to be compatible with this controller"
 }
 
+wipe_data_partiton() {
+    if [[ "$1" == "reset_immutable" ]]; then
+        local list="/mnt/data/.wb-restore /mnt/data/.wb-update /mtn/sdcard /mtn/rootfs/dev"
+        local exclude=""
+        local or=""
+        for path in $list; do
+            exclude+="$or-path $path"
+            or=" -o "
+        done
+        info "Trying to reset immutable attributes for files..."
+        find /mnt/ \( $exclude \) -prune -o -type f -print0 | xargs -0 charrt -i
+    fi
+
+    rsync -a --delete --exclude="/.wb-restore/" --exclude="/.wb-update/" /tmp/empty/ /mnt/data/
+}
+
 maybe_factory_reset() {
     if flag_set from-initramfs; then
         info "Wiping data partition (factory reset)"
 
-        mkdir -p /mnt
         mkdir -p /mnt/data
         if [[ -b "$DATA_PART" ]]; then
             mount -t auto "$DATA_PART" /mnt/data 2>/dev/null || true
@@ -1203,7 +1217,7 @@ maybe_factory_reset() {
         fi
 
         rm -rf /tmp/empty && mkdir /tmp/empty
-        rsync -a --delete --exclude="/.wb-restore/" --exclude="/.wb-update/" /tmp/empty/ /mnt/data/
+        wipe_data_partiton || wipe_data_partiton "reset_immutable"
 
         FACTORY_FIT_DIR="/mnt/data/.wb-restore"
         FACTORY_FIT="${FACTORY_FIT_DIR}/factoryreset.fit"
