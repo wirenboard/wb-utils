@@ -649,23 +649,40 @@ ensure_ab_rootfs_parttable() {
     info "Repartition is done!"
 }
 
+reset_immutable()
+{
+    local list="/mnt/data/.wb-restore /mnt/data/.wb-update /mnt/sdcard /mnt/rootfs/dev"
+    local exclude
+    local or
+
+    for path in $list; do
+        exclude+="$or-path $path"
+        or=" -o "
+    done
+
+    info "Trying to reset immutable attributes for files..."
+    find /mnt/ \( $exclude \) -prune -o -type f -print0 | xargs -0 chattr -i
+}
+
 cleanup_rootfs() {
     local ROOT_PART="$1"
-    local mountpoint
-    mountpoint="$(mktemp -d)"
+    local mountpoint="$(mktemp -d)"
+    local cmd
 
     mount -t ext4 "$ROOT_PART" "$mountpoint" >/dev/null 2>&1 || fatal "Unable to mount root filesystem"
 
     info "Cleaning up $ROOT_PART"
     rm -rf /tmp/empty && mkdir /tmp/empty
+
     if which rsync >/dev/null; then
         info "Cleaning up using rsync"
-        rsync -a --delete --exclude="/mnt/data/.wb-restore/" --exclude="/mnt/data/.wb-update/" /tmp/empty/ "$mountpoint" || fatal "Failed to cleanup rootfs"
+        cmd=(rsync -a --delete --exclude="/mnt/data/.wb-restore/" --exclude="/mnt/data/.wb-update/" /tmp/empty/ "$mountpoint")
     else
         info "Can't find rsync, cleaning up using rm -rf (may be slower)"
-        rm -rf "$mountpoint"/..?* "$mountpoint"/.[!.]* "${mountpoint:?}"/* || fatal "Failed to cleanup rootfs"
+        cmd=(rm -rf "$mountpoint"/..?* "$mountpoint"/.[!.]* "${mountpoint:?}"/*)
     fi
 
+    "${cmd[@]}" || (reset_immutable && "${cmd[@]}") || fatal "Failed to cleanup rootfs"
     umount "$mountpoint" || true
 }
 
@@ -1192,7 +1209,6 @@ maybe_factory_reset() {
     if flag_set from-initramfs; then
         info "Wiping data partition (factory reset)"
 
-        mkdir -p /mnt
         mkdir -p /mnt/data
         if [[ -b "$DATA_PART" ]]; then
             mount -t auto "$DATA_PART" /mnt/data 2>/dev/null || true
@@ -1203,10 +1219,12 @@ maybe_factory_reset() {
         fi
 
         rm -rf /tmp/empty && mkdir /tmp/empty
-        rsync -a --delete --exclude="/.wb-restore/" --exclude="/.wb-update/" /tmp/empty/ /mnt/data/
 
-        FACTORY_FIT_DIR="/mnt/data/.wb-restore"
-        FACTORY_FIT="${FACTORY_FIT_DIR}/factoryreset.fit"
+        local cmd=(rsync -a --delete --exclude="/.wb-restore/" --exclude="/.wb-update/" /tmp/empty/ /mnt/data/)
+        "${cmd[@]}" || (reset_immutable && "${cmd[@]}")
+
+        local FACTORY_FIT_DIR="/mnt/data/.wb-restore"
+        local FACTORY_FIT="${FACTORY_FIT_DIR}/factoryreset.fit"
         if [[ ! -e "$FACTORY_FIT" ]]; then
             echo "Saving current update file as factory default image"
             mkdir -p "$FACTORY_FIT_DIR"
