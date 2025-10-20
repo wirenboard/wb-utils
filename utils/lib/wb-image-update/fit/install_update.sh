@@ -658,9 +658,10 @@ reset_immutable()
 
 cleanup_rootfs() {
     local ROOT_PART="$1"
-    local mountpoint="$(mktemp -d)"
+    local mountpoint
     local cmd
 
+    mountpoint="$(mktemp -d)"
     mount -t ext4 "$ROOT_PART" "$mountpoint" >/dev/null 2>&1 || fatal "Unable to mount root filesystem"
 
     info "Cleaning up $ROOT_PART"
@@ -1215,12 +1216,12 @@ maybe_factory_reset() {
         local cmd=(rsync -a --delete --exclude="/.wb-restore/" --exclude="/.wb-update/" /tmp/empty/ /mnt/data/)
         "${cmd[@]}" || (reset_immutable && "${cmd[@]}")
 
-        local FACTORY_FIT_DIR="/mnt/data/.wb-restore"
-        local FACTORY_FIT="${FACTORY_FIT_DIR}/factoryreset.fit"
-        if [[ ! -e "$FACTORY_FIT" ]]; then
+        local factory_fit_dir="/mnt/data/.wb-restore"
+        local factory_fit="${factory_fit_dir}/factoryreset.fit"
+        if [[ ! -e "$factory_fit" ]]; then
             echo "Saving current update file as factory default image"
-            mkdir -p "$FACTORY_FIT_DIR"
-            cp "$FIT" "$FACTORY_FIT"
+            mkdir -p "$factory_fit_dir"
+            cp "$FIT" "$factory_fit"
         fi
     else
         fatal "Factory reset is now supported only from initramfs environment"
