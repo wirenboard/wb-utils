@@ -651,15 +651,7 @@ ensure_ab_rootfs_parttable() {
 
 reset_immutable()
 {
-    local list="/mnt/data/.wb-restore /mnt/data/.wb-update /mnt/sdcard /mnt/rootfs/dev"
-    local exclude
-    local or
-
-    for path in $list; do
-        exclude+="$or-path $path"
-        or=" -o "
-    done
-
+    local exclude="-path /mnt/data/.wb-restore -o -path /mnt/data/.wb-update -o -path /mnt/sdcard /mnt/rootfs/dev"
     info "Trying to reset immutable attributes for files..."
     find /mnt/ \( $exclude \) -prune -o -type f -print0 | xargs -0 chattr -i
 }
