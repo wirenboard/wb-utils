@@ -1,13 +1,11 @@
-DESTDIR=
 prefix=/usr
-sysconfdir=/etc
 
 all:
 	@echo Nothing to do
 
 BINDIR = $(DESTDIR)$(prefix)/bin
 LIBDIR = $(DESTDIR)$(prefix)/lib/wb-utils
-SYSCONFDIR = $(DESTDIR)$(sysconfdir)
+SYSCONFDIR = $(DESTDIR)/etc
 USBOTGDIR = $(LIBDIR)/wb-usb-otg
 MASS_STORAGE_FNAME = build_scripts/mass_storage.img
 MASS_STORAGE_CONTENT_DIR = utils/lib/wb-usb-otg/mass_storage_contents
@@ -30,7 +28,6 @@ install: build_mass_storage
 	install -Dm0644 -t $(LIBDIR) \
 		utils/lib/common.sh \
 		utils/lib/hardware.sh \
-		utils/lib/json.sh \
 		utils/lib/of.sh \
 		utils/lib/wb_env_legacy.sh \
 		utils/lib/wb_env.sh \
@@ -41,10 +38,6 @@ install: build_mass_storage
 		utils/lib/wb-init.sh \
 		utils/lib/ensure-env-cache.sh \
 		utils/lib/device-factory-fdt.sh
-
-	install -Dm0655 -t $(PREPARE_LIBDIR) \
-		utils/lib/prepare/partitions.sh \
-		utils/lib/prepare/vars.sh
 
 	install -Dm0755 -t $(PREPARE_LIBDIR) \
 		utils/lib/prepare/wb-prepare.sh
@@ -63,7 +56,8 @@ install: build_mass_storage
 
 	install -Dm0755 -t $(IMAGEUPDATE_POSTINST_DIR) \
 		utils/lib/wb-image-update/postinst/10update-u-boot \
-		utils/lib/wb-image-update/postinst/10update-wbec-firmware
+		utils/lib/wb-image-update/postinst/10update-wbec-firmware \
+		utils/lib/wb-image-update/postinst/20fstab-extended
 
 	install -Dm0755 -t $(FIT_FILES_DIR) \
 		utils/lib/wb-image-update/fit/build.sh \

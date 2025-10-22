@@ -1,3 +1,28 @@
+wb-utils (4.27.0) stable; urgency=medium
+
+  * add extended rootfs support
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Wed, 23 Jul 2025 15:10:00 +0400
+
+wb-utils (4.26.3) stable; urgency=medium
+
+  * Remove obsolete code, refactoring
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Wed, 16 Jul 2025 15:10:00 +0400
+
+wb-utils (4.26.2) stable; urgency=medium
+
+  * Auto detect swap partition
+  * Remove obsolete repartition code
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Fri, 11 Jul 2025 17:30:00 +0400
+
+wb-utils (4.26.1) stable; urgency=medium
+
+  * Fix lintian, no functional changes
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Wed, 25 Jun 2025 17:30:00 +0400
+
 wb-utils (4.26.0) stable; urgency=medium
 
   * Fill /etc/fw_env.config with uboot-env-offset/size from device tree if any

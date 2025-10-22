@@ -10,7 +10,7 @@ USB_SYMLINK_MASK="/dev/ttyGSM"
 
 OF_GSM_NODE="wirenboard/gsm"  # deprecated since default modem's connection is usb
 
-GPIOD_GET_CMD="gpioget"
+GPIOD_GET_CMD="gpioget --numeric"
 
 function guess_of_node() {
     # default modem's connection is usb (with modem node on specific port)
@@ -369,7 +369,7 @@ function gsm_init() {
     if [[ -n $gpio_gsm_status ]]; then
         gpio_unexport $gpio_gsm_status || true  # release for gpiod
         if of_gpio_is_inverted $(of_prop_required of_get_prop_gpio $OF_GSM_NODE "status-gpios"); then
-            GPIOD_GET_CMD="gpioget -l"
+            GPIOD_GET_CMD="gpioget -l --numeric"
         fi
     fi
 
@@ -387,7 +387,7 @@ function gsm_init() {
     handle_mm
 
     if has_usb; then
-        if [[ `$GPIOD_GET_CMD $(gpiofind "GSM STATUS")` -eq "1" ]]; then
+        if [[ `$GPIOD_GET_CMD "GSM STATUS"` -eq "1" ]]; then
             debug "USB modem is turned on already; probing ($PORT, ${USB_SYMLINK_MASK}*) ports"
             for port in $PORT ${USB_SYMLINK_MASK}[0-9]*; do
                 [[ -c $port ]] && [[ $(test_connection $port 2) == 0 ]] && {
@@ -529,7 +529,7 @@ function switch_off() {
 
     handle_mm
 
-    [[ -n $gpio_gsm_status ]] && [[ `$GPIOD_GET_CMD $(gpiofind "GSM STATUS")` = "0" ]] && {
+    [[ -n $gpio_gsm_status ]] && [[ `$GPIOD_GET_CMD "GSM STATUS"` = "0" ]] && {
         debug "Modem is already OFF"
         return 0
     } || debug "Modem is ON. Will try to switch off GSM modem "
@@ -550,7 +550,7 @@ function switch_off() {
         max_tries=25
 
         for ((i=0; i<=upperlim; i++)); do
-            if [[ `$GPIOD_GET_CMD $(gpiofind "GSM STATUS")` = "0" ]]; then
+            if [[ `$GPIOD_GET_CMD "GSM STATUS"` = "0" ]]; then
                 break
             fi
             sleep 0.2
@@ -573,7 +573,7 @@ function ensure_on() {
     local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
 
     if [[ -n "$gpio_gsm_status" ]]; then
-        if [[ `$GPIOD_GET_CMD $(gpiofind "GSM STATUS")` = "1" ]]; then
+        if [[ `$GPIOD_GET_CMD "GSM STATUS"` = "1" ]]; then
             debug "Modem is already switched on"
             return
         fi
@@ -593,7 +593,7 @@ function ensure_on() {
         max_tries=30
 
         for ((i=0; i<=max_tries; i++)); do
-            if [[ `$GPIOD_GET_CMD $(gpiofind "GSM STATUS")` = "1" ]]; then
+            if [[ `$GPIOD_GET_CMD "GSM STATUS"` = "1" ]]; then
                 break
             fi
             sleep 0.1
@@ -626,7 +626,7 @@ function restart_if_broken() {
     #~ set_speed
     local RC=0
     if [[ -n "$gpio_gsm_status" ]]; then
-        if [[ `$GPIOD_GET_CMD $(gpiofind "GSM STATUS")` = "0" ]]; then
+        if [[ `$GPIOD_GET_CMD "GSM STATUS"` = "0" ]]; then
             debug "Modem switched off, switch it on instead of testing the connection"
             local RC=1
         fi
@@ -728,7 +728,7 @@ function mm_gsm_init() {
     gpio_unexport $gpio_gsm_status || true  # release for gpiod
 
     if of_gpio_is_inverted $(of_prop_required of_get_prop_gpio $OF_GSM_NODE "status-gpios"); then
-        GPIOD_GET_CMD="gpioget -l"
+        GPIOD_GET_CMD="gpioget -l --numeric"
     fi
 }
 
@@ -741,7 +741,7 @@ function mm_on() {
     local gpio_gsm_pwrkey=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "pwrkey-gpios")
     local gpio_gsm_simselect=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "simselect-gpios")
 
-    if [[ `$GPIOD_GET_CMD $(gpiofind "GSM STATUS")` = "1" ]]; then
+    if [[ `$GPIOD_GET_CMD "GSM STATUS"` = "1" ]]; then
         debug "Modem is already switched on"
         return 0
     fi
@@ -763,7 +763,7 @@ function mm_on() {
     debug "Waiting for modem to start"
     max_tries=40
     for ((i=0; i<=max_tries; i++)); do
-        if [[ `$GPIOD_GET_CMD $(gpiofind "GSM STATUS")` = "1" ]]; then
+        if [[ `$GPIOD_GET_CMD "GSM STATUS"` = "1" ]]; then
             break
         fi
         sleep 0.5
@@ -778,7 +778,7 @@ function mm_off() {
     local gpio_gsm_power=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "power-gpios")
     local gpio_gsm_pwrkey=$(of_prop_required of_get_prop_gpionum $OF_GSM_NODE "pwrkey-gpios")
 
-    if [[ `$GPIOD_GET_CMD $(gpiofind "GSM STATUS")` = "0" ]]; then
+    if [[ `$GPIOD_GET_CMD "GSM STATUS"` = "0" ]]; then
         debug "Modem is already OFF"
         return 0
     else
@@ -795,7 +795,7 @@ function mm_off() {
     debug "Waiting for modem to stop"
     max_tries=25
     for ((i=0; i<=max_tries; i++)); do
-        if [[ `$GPIOD_GET_CMD $(gpiofind "GSM STATUS")` = "0" ]]; then
+        if [[ `$GPIOD_GET_CMD "GSM STATUS"` = "0" ]]; then
             debug "Modem is OFF"
             break
         fi
