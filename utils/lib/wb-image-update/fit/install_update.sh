@@ -649,23 +649,33 @@ ensure_ab_rootfs_parttable() {
     info "Repartition is done!"
 }
 
+reset_immutable()
+{
+    local exclude="-path /mnt/data/.wb-restore -o -path /mnt/data/.wb-update -o -path /mnt/sdcard -o -path /mnt/rootfs/dev"
+    info "Trying to reset immutable attributes for files..."
+    find /mnt/ \( $exclude \) -prune -o -type f -print0 | xargs -0 chattr -i
+}
+
 cleanup_rootfs() {
     local ROOT_PART="$1"
     local mountpoint
-    mountpoint="$(mktemp -d)"
+    local cmd
 
+    mountpoint="$(mktemp -d)"
     mount -t ext4 "$ROOT_PART" "$mountpoint" >/dev/null 2>&1 || fatal "Unable to mount root filesystem"
 
     info "Cleaning up $ROOT_PART"
     rm -rf /tmp/empty && mkdir /tmp/empty
+
     if which rsync >/dev/null; then
         info "Cleaning up using rsync"
-        rsync -a --delete --exclude="/mnt/data/.wb-restore/" --exclude="/mnt/data/.wb-update/" /tmp/empty/ "$mountpoint" || fatal "Failed to cleanup rootfs"
+        cmd=(rsync -a --delete --exclude="/mnt/data/.wb-restore/" --exclude="/mnt/data/.wb-update/" /tmp/empty/ "$mountpoint")
     else
         info "Can't find rsync, cleaning up using rm -rf (may be slower)"
-        rm -rf "$mountpoint"/..?* "$mountpoint"/.[!.]* "${mountpoint:?}"/* || fatal "Failed to cleanup rootfs"
+        cmd=(rm -rf "$mountpoint"/..?* "$mountpoint"/.[!.]* "${mountpoint:?}"/*)
     fi
 
+    "${cmd[@]}" || (reset_immutable && "${cmd[@]}") || fatal "Failed to cleanup rootfs"
     umount "$mountpoint" || true
 }
 
@@ -1192,7 +1202,6 @@ maybe_factory_reset() {
     if flag_set from-initramfs; then
         info "Wiping data partition (factory reset)"
 
-        mkdir -p /mnt
         mkdir -p /mnt/data
         if [[ -b "$DATA_PART" ]]; then
             mount -t auto "$DATA_PART" /mnt/data 2>/dev/null || true
@@ -1203,14 +1212,16 @@ maybe_factory_reset() {
         fi
 
         rm -rf /tmp/empty && mkdir /tmp/empty
-        rsync -a --delete --exclude="/.wb-restore/" --exclude="/.wb-update/" /tmp/empty/ /mnt/data/
 
-        FACTORY_FIT_DIR="/mnt/data/.wb-restore"
-        FACTORY_FIT="${FACTORY_FIT_DIR}/factoryreset.fit"
-        if [[ ! -e "$FACTORY_FIT" ]]; then
+        local cmd=(rsync -a --delete --exclude="/.wb-restore/" --exclude="/.wb-update/" /tmp/empty/ /mnt/data/)
+        "${cmd[@]}" || (reset_immutable && "${cmd[@]}")
+
+        local factory_fit_dir="/mnt/data/.wb-restore"
+        local factory_fit="${factory_fit_dir}/factoryreset.fit"
+        if [[ ! -e "$factory_fit" ]]; then
             echo "Saving current update file as factory default image"
-            mkdir -p "$FACTORY_FIT_DIR"
-            cp "$FIT" "$FACTORY_FIT"
+            mkdir -p "$factory_fit_dir"
+            cp "$FIT" "$factory_fit"
         fi
     else
         fatal "Factory reset is now supported only from initramfs environment"
