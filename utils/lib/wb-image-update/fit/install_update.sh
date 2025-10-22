@@ -1082,6 +1082,7 @@ update_after_reboot() {
             fatal "Flag --no-remove is ignored for $FIT, it is after-reboot FIT location"
         fi
     else
+        chattr -i "$TARGET_UPDATE_FILE" 2&>/dev/null || true
         if flag_set no-remove; then
             info "Flag --no-remove is set, keeping $FIT"
             cp "$FIT" "$TARGET_UPDATE_FILE"
