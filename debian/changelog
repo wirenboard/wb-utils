@@ -1,3 +1,9 @@
+wb-utils (4.27.2) stable; urgency=medium
+
+  * Update U-Boot ENV routines
+
+ -- Ilya Titov <ilya.titov@wirenboard.com>  Fri, 14 Nov 2025 17:53:11 +0300
+
 wb-utils (4.27.1) stable; urgency=medium
 
   * Add attempt to reset immutable attributes for roots files if wipe data routine failed
