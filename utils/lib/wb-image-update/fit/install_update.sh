@@ -1205,13 +1205,19 @@ maybe_factory_reset() {
         mkdir -p /mnt/data
         if [[ -b "$DATA_PART" ]]; then
             mount -t auto "$DATA_PART" /mnt/data 2>/dev/null || true
+            info "bla"
         else
             mkdir -p /mnt/rootfs
             mount -t auto "$ROOT_PART" /mnt/rootfs || true
             mount --bind /mnt/rootfs/mnt/data /mnt/data || true
+            info "foo"
         fi
 
+        ls -la /mnt/
+
         cp /mnt/rootfs/etc/fw_env.config /etc/fw_env.config || true
+        cat /etc/fw_env.config
+
         rm -rf /tmp/empty && mkdir /tmp/empty
 
         local cmd=(rsync -a --delete --exclude="/.wb-restore/" --exclude="/.wb-update/" /tmp/empty/ /mnt/data/)
