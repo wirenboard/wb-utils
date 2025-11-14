@@ -700,7 +700,7 @@ check_compatible() {
 
 select_new_partition() {
     info "Getting mmcpart from U-Boot environment"
-    PART=$(fw_printenv -c /mnt/rootfs/etc/fw_env.config mmcpart | sed 's/.*=//') || PART=""
+    PART=$(fw_printenv mmcpart | sed 's/.*=//') || PART=""
 
     case "$PART" in
         2)
@@ -1211,6 +1211,7 @@ maybe_factory_reset() {
             mount --bind /mnt/rootfs/mnt/data /mnt/data || true
         fi
 
+        cp /mnt/rootfs/etc/fw_env.config /etc/fw_env.config || true
         rm -rf /tmp/empty && mkdir /tmp/empty
 
         local cmd=(rsync -a --delete --exclude="/.wb-restore/" --exclude="/.wb-update/" /tmp/empty/ /mnt/data/)
@@ -1335,8 +1336,8 @@ elif flag_set factoryreset; then
 fi
 
 info "Switching to new rootfs"
-fw_setenv -c /mnt/rootfs/etc/fw_env.config mmcpart "$PART"
-fw_setenv -c /mnt/rootfs/etc/fw_env.config upgrade_available 1
+fw_setenv mmcpart "$PART"
+fw_setenv upgrade_available 1
 
 info "Done!"
 rm_fit

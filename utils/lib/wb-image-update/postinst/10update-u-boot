@@ -30,6 +30,7 @@ fi
 if [ -e "$ROOTFS/usr/bin/u-boot-install-wb" ] ; then
     echo "Trying to install u-boot using u-boot-install-wb from new rootfs"
     chroot "$ROOTFS" /usr/bin/u-boot-install-wb --force
+    cp $ROOTFS/etc/fw_env.config /etc/fw_env.config || true
 else
     echo "No u-boot installer found in new rootfs, skipping step"
 fi
