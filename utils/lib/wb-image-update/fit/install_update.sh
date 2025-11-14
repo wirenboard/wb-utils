@@ -700,7 +700,7 @@ check_compatible() {
 
 select_new_partition() {
     info "Getting mmcpart from U-Boot environment"
-    PART=$(fw_printenv mmcpart | sed 's/.*=//') || PART=""
+    PART=$(fw_printenv -c /mnt/rootfs/etc/fw_env.config mmcpart | sed 's/.*=//') || PART=""
 
     case "$PART" in
         2)
@@ -1335,8 +1335,8 @@ elif flag_set factoryreset; then
 fi
 
 info "Switching to new rootfs"
-fw_setenv mmcpart "$PART"
-fw_setenv upgrade_available 1
+fw_setenv -c /mnt/rootfs/etc/fw_env.config mmcpart "$PART"
+fw_setenv -c /mnt/rootfs/etc/fw_env.config upgrade_available 1
 
 info "Done!"
 rm_fit
