@@ -16,6 +16,9 @@ EXT_ROOTFS_PART=${ROOTDEV}p2
 EXT_SWAP_PART=${ROOTDEV}p3
 EXT_RESERVED_PART=${ROOTDEV}p4
 
+# U-Boot ENV tools config in mounted rootfs
+ROOTFS_ENV_CONF="/mnt/rootfs/etc/fw_env.config"
+
 # appends a command to a trap
 #
 # - 1st arg:  code to add
@@ -700,7 +703,7 @@ check_compatible() {
 
 select_new_partition() {
     info "Getting mmcpart from U-Boot environment"
-    PART=$(fw_printenv -c /mnt/rootfs/etc/fw_env.config mmcpart | sed 's/.*=//') || PART=""
+    PART=$(fw_printenv -c "$ROOTFS_ENV_CFG" mmcpart | sed 's/.*=//') || PART=""
 
     case "$PART" in
         2)
@@ -1335,8 +1338,8 @@ elif flag_set factoryreset; then
 fi
 
 info "Switching to new rootfs"
-fw_setenv -c /mnt/rootfs/etc/fw_env.config mmcpart "$PART"
-fw_setenv -c /mnt/rootfs/etc/fw_env.config upgrade_available 1
+fw_setenv -c "$ROOTFS_ENV_CFG" mmcpart "$PART"
+fw_setenv -c "$ROOTFS_ENV_CFG" upgrade_available 1
 
 info "Done!"
 rm_fit
