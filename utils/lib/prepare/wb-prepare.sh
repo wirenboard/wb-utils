@@ -274,7 +274,6 @@ wb_firstboot()
     wb_fix_serial
     wb_fix_macs
     wb_fix_short_sn
-    wb_fix_machine_id
 
     log_action_msg "Generating SSH host keys if necessary"
     for keytype in ecdsa dsa rsa; do
@@ -299,6 +298,8 @@ wb_firstboot()
     sync
 
     wb_run_scripts /etc/wb-prepare.d
+
+    wb_fix_machine_id  # should be at the very end of firstboot to retry on failure
 
     if $FIRSTBOOT_NEED_REBOOT; then
         reboot
