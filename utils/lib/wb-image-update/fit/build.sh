@@ -28,7 +28,7 @@ cleanup() {
     rm -rf "$BUILDDIR"
 }
 
-trap cleanup EXIT 
+trap cleanup EXIT
 
 install_dir() {
     echo "dir $1"
