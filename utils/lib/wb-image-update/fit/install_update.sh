@@ -1282,7 +1282,7 @@ else
 fi
 
 if ! flag_set from-initramfs && flag_set "force-repartition"; then
-    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix wrong-ab-layout-fix"
+    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix wrong-ab-layout-fix uboot-dynamic-env"
     update_after_reboot
 fi
 
@@ -1332,7 +1332,7 @@ fi
 if flag_set copy-to-factory; then
     copy_this_fit_to_factory
 elif flag_set factoryreset; then
-    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix wrong-ab-layout-fix"
+    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix wrong-ab-layout-fix uboot-dynamic-env"
 fi
 
 info "Switching to new rootfs"
