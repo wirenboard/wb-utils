@@ -1336,6 +1336,7 @@ elif flag_set factoryreset; then
 fi
 
 info "Switching to new rootfs"
+info "$(cat /etc/fw_env.config)"
 cp $MNT/etc/fw_env.config /etc/fw_env.config
 fw_setenv mmcpart "$PART"
 fw_setenv upgrade_available 1
