@@ -1,3 +1,9 @@
+wb-utils (4.27.3) stable; urgency=medium
+
+  * Add "uboot-dymanic-env" compatibility flag
+
+ -- Ilya Titov <ilya.titov@wirenboard.com>  Fri, 28 Nov 2025 09:43:13 +0300
+
 wb-utils (4.27.2) stable; urgency=medium
 
   * wb-prepare: generate machine-id at the very end of firstboot

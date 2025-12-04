@@ -217,42 +217,6 @@ wb_run_scripts()
     fi
 }
 
-wb_update_fw_env_config()
-{
-    local config_file="/etc/fw_env.config"
-    local device_name="/dev/mmcblk0"
-    local offset size
-
-    log_action_msg "Reading uboot env offset/size from device tree..."
-
-    if of_has_prop "wirenboard" "uboot-env-offset"; then
-        offset=$(of_get_prop_str "wirenboard" "uboot-env-offset")
-    else
-        log_warning_msg "Could not read uboot-env-offset from device tree. Keeping old fw_env.config from rootfs"
-        return 0
-    fi
-
-    if of_has_prop "wirenboard" "uboot-env-size"; then
-        size=$(of_get_prop_str "wirenboard" "uboot-env-size")
-    else
-        log_warning_msg "Could not read uboot-env-size from device tree. Keeping old fw_env.config from rootfs"
-        return 0
-    fi
-
-    cat > "$config_file" << EOF
-# Configuration file for fw_(printenv/saveenv) utility.
-# Up to two entries are valid, in this case the redundant
-# environment sector is assumed present.
-#
-# XXX this configuration might miss a fifth parameter for the "Number of
-# sectors"
-
-# MTD device name   Device offset   Env. size   Flash sector size
-$device_name        $offset             $size
-EOF
-    log_action_msg "Successfully updated $config_file"
-}
-
 # This function should be called only on first boot of the rootfs
 wb_firstboot()
 {
@@ -310,7 +274,6 @@ wb_firstboot()
 
 case "$1" in
     firstboot)
-        wb_update_fw_env_config
         wb_prepare_filesystems
         wb_firstboot
         exit $?

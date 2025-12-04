@@ -1211,6 +1211,7 @@ maybe_factory_reset() {
             mount --bind /mnt/rootfs/mnt/data /mnt/data || true
         fi
 
+        cp /mnt/rootfs/etc/fw_env.config /etc/fw_env.config || true
         rm -rf /tmp/empty && mkdir /tmp/empty
 
         local cmd=(rsync -a --delete --exclude="/.wb-restore/" --exclude="/.wb-update/" /tmp/empty/ /mnt/data/)
@@ -1228,43 +1229,6 @@ maybe_factory_reset() {
     fi
 }
 
-wb_update_fw_env_config()
-{
-    local config_file="/etc/fw_env.config"
-    local device_name="/dev/mmcblk0"
-    local offset size
-
-    info "Reading uboot env offset/size from device tree..."
-
-    local node=$(readlink -f "/proc/device-tree/wirenboard")
-    if [[ -e "$node/uboot-env-offset" ]]; then
-        offset=$(< "$node/uboot-env-offset" sed 's/\x0$//g' | tr '\000' ' ')
-    else
-        info "Could not read uboot-env-offset from device tree. Keeping old fw_env.config from rootfs"
-        return 0
-    fi
-
-    if [[ -e "$node/uboot-env-size" ]]; then
-        size=$(< "$node/uboot-env-size" sed 's/\x0$//g' | tr '\000' ' ')
-    else
-        info "Could not read uboot-env-size from device tree. Keeping old fw_env.config from rootfs"
-        return 0
-    fi
-
-    cat > "$config_file" << EOF
-# Configuration file for fw_(printenv/saveenv) utility.
-# Up to two entries are valid, in this case the redundant
-# environment sector is assumed present.
-#
-# XXX this configuration might miss a fifth parameter for the "Number of
-# sectors"
-
-# MTD device name   Device offset   Env. size   Flash sector size
-$device_name        $offset             $size
-EOF
-    info "Successfully updated $config_file"
-}
-
 #---------------------------------------- main ----------------------------------------
 
 prepare_env
@@ -1273,8 +1237,6 @@ prepare_env
 if flag_set fail; then
     fatal "Update failed by request"
 fi
-
-wb_update_fw_env_config
 
 if flag_set from-initramfs; then
     extend_tmpfs_size
@@ -1320,7 +1282,7 @@ else
 fi
 
 if ! flag_set from-initramfs && flag_set "force-repartition"; then
-    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix wrong-ab-layout-fix"
+    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix wrong-ab-layout-fix uboot-dynamic-env"
     update_after_reboot
 fi
 
@@ -1370,7 +1332,7 @@ fi
 if flag_set copy-to-factory; then
     copy_this_fit_to_factory
 elif flag_set factoryreset; then
-    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix wrong-ab-layout-fix"
+    update_current_factory_fit_if_not_compatible "single-rootfs wb8-debug-network-update-fix wrong-ab-layout-fix uboot-dynamic-env"
 fi
 
 info "Switching to new rootfs"
