@@ -1,3 +1,9 @@
+wb-utils (4.27.3) stable; urgency=medium
+
+  * Bump version, no functional changes
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Wed, 10 Dec 2025 11:50:00 +0400
+
 wb-utils (4.27.2) stable; urgency=medium
 
   * wb-prepare: generate machine-id at the very end of firstboot
