@@ -20,7 +20,9 @@ WB_DIR="/var/lib/wirenboard"
 SERIAL="$WB_DIR/serial.conf"
 SHORT_SN_FNAME="$WB_DIR/short_sn.conf"
 
-WB_HOSTNAME_PREFIX="${WB_HOSTNAME_PREFIX:-wirenboard}"
+# Because /usr/lib/wb-utils/wb_env.sh clears all variables with the WB_ prefix, we need to
+# set a default value for WB_HOSTNAME_PREFIX here:
+WB_HOSTNAME_PREFIX="${WB_HOSTNAME_PREFIX:-oni}"
 
 FIRSTBOOT_NEED_REBOOT=false
 
