@@ -10,6 +10,24 @@ reattach_modem_if_needed() {
     fi
 }
 
+check_restart_modem_needed() {
+    modem_info=$(mmcli -m wbc -K)
+    
+    # Getting supported IP families fails, but modem is in registered state and GPRS is attached
+    # It is an invalid state, so we need to restart the modem 
+    if echo "$modem_info" | grep -qE "modem\.generic\.state.*registered" && \
+       echo "$modem_info" | grep -q "modem\.3gpp\.packet-service-state.*attached";
+    then
+        if ! echo "$modem_info" | grep -q "modem\.generic\.supported-ip-families"; then
+            return 0
+        fi
+        if echo "$modem_info" | grep -q "modem\.generic\.supported-ip-families\.length.*: 0"; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
 watchdog() {
     sleep $(($WATCHDOG_USEC / 6000000))
     while true; do
@@ -19,6 +37,9 @@ watchdog() {
                 if [ $? -ne 0 ] && [ "$output" = "error: couldn't find modem" ]; then
                     echo "ModemManager is running, but modem is not found"
                 else
+                    if check_restart_modem_needed; then
+                        exit 1
+                    fi
                     systemd-notify WATCHDOG=1
                     reattach_modem_if_needed
                 fi
