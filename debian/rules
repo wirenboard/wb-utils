@@ -17,7 +17,7 @@ override_dh_systemd_enable:
 	dh_systemd_enable --name=wb-usb-otg wb-usb-otg.service
 
 override_dh_systemd_start:
-	dh_systemd_start --name=wb-prepare --no-start wb-prepare.service
+	dh_systemd_start --name=wb-prepare --no-start --no-restart-after-upgrade --no-restart-on-upgrade wb-prepare.service
 	dh_systemd_start --name=wb-init --no-start wb-init.service
 	dh_systemd_start --name=wb-watch-update --restart-after-upgrade wb-watch-update.service
 	dh_systemd_start --name=wb-gsm wb-gsm.service
