@@ -1202,16 +1202,19 @@ maybe_factory_reset() {
     if flag_set from-initramfs; then
         info "Wiping data partition (factory reset)"
 
+        mkdir -p /mnt/rootfs
+        mount -t auto "$ROOTFS1_PART" /mnt/rootfs || true
+
         mkdir -p /mnt/data
         if [[ -b "$DATA_PART" ]]; then
             mount -t auto "$DATA_PART" /mnt/data 2>/dev/null || true
         else
-            mkdir -p /mnt/rootfs
-            mount -t auto "$ROOT_PART" /mnt/rootfs || true
             mount --bind /mnt/rootfs/mnt/data /mnt/data || true
         fi
 
+        # use current rootfs fw_env.config for u-boot update routines (move env data)
         cp /mnt/rootfs/etc/fw_env.config /etc/fw_env.config || true
+
         rm -rf /tmp/empty && mkdir /tmp/empty
 
         local cmd=(rsync -a --delete --exclude="/.wb-restore/" --exclude="/.wb-update/" /tmp/empty/ /mnt/data/)
