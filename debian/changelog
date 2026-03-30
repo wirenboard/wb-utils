@@ -1,3 +1,9 @@
+wb-utils (4.27.6) stable; urgency=medium
+
+  * Add "uboot-dymanic-env" compatibility flag
+
+ -- Ilya Titov <ilya.titov@wirenboard.com>  Tue, 24 Mar 2026 14:01:02 +0300
+
 wb-utils (4.27.5) stable; urgency=medium
 
   * Fix warning on package upgrade

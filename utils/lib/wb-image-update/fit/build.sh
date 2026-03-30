@@ -28,7 +28,7 @@ cleanup() {
     rm -rf "$BUILDDIR"
 }
 
-trap cleanup EXIT 
+trap cleanup EXIT
 
 install_dir() {
     echo "dir $1"
@@ -94,6 +94,7 @@ cd "$BUILDDIR" && tar cvzf $IMAGEUPDATE_DIR/deps.tar.gz .
     echo -n "+fit-immutable-support "
     echo -n "+wb8-debug-network-update-fix "
     echo -n "+wrong-ab-layout-fix "
+    echo -n "+uboot-dynamic-env "
 } >> $IMAGEUPDATE_DIR/firmware-compatible
 
 if of_machine_match "wirenboard,wirenboard-8xx"; then

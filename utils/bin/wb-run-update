@@ -208,6 +208,10 @@ check_firmware_compatible() {
         die "Firmware is not compatible with extended-rootfs layout"
     fi
 
+    if ! fw_compatible "uboot-dynamic-env"; then
+        die "Firmware is not compatible with dynamic U-Boot ENV data location, please use newer one from https://fw-releases.wirenboard.com/"
+    fi
+
     info "Firmware seems to be compatible with this controller"
 }
 
