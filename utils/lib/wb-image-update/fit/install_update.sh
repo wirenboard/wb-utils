@@ -1212,7 +1212,9 @@ maybe_factory_reset() {
             mount --bind /mnt/rootfs/mnt/data /mnt/data || true
         fi
 
-        # use current rootfs fw_env.config for u-boot update routines (move env data)
+        # We need uenv config in bootlet (we booted up from) to be consistent with actual running uboot binary to perform getenv/setenv operations. Typical routines:
+        # 1) *updating* => booted up with uboot binary as in-rootfs one => uboot-install-wb placed actual uenv config => copying uenv config from rootfs
+        # 2) *updating* => booted up with uboot binary different from in-rootfs one (no u-boot-install-wb performed in rootfs) => old uenv config is still in rootfs => copying
         cp /mnt/rootfs/etc/fw_env.config /etc/fw_env.config || true
 
         rm -rf /tmp/empty && mkdir /tmp/empty
