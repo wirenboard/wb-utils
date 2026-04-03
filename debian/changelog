@@ -1,3 +1,9 @@
+wb-utils (4.27.7) stable; urgency=medium
+
+  * install_update.sh: fill fw_env.config with actual env offset & size
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Thu, 02 Apr 2026 16:51:02 +0300
+
 wb-utils (4.27.6) stable; urgency=medium
 
   * Add "uboot-dymanic-env" compatibility flag

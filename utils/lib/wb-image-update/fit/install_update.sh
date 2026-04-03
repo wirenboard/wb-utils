@@ -88,6 +88,30 @@ print_centered_box() {
     printf "%*s\n" "$width" "" | tr ' ' "$fill"
 }
 
+maybe_fix_uboot_dynamic_env() {
+    local actual_env_offset=$(cat /proc/device-tree/wirenboard/uboot-env-offset 2>/dev/null) || true
+    local actual_env_size=$(cat /proc/device-tree/wirenboard/uboot-env-size 2>/dev/null) || true
+    local uboot_config="/etc/fw_env.config"
+    local target_device=$1
+
+    if [[ ! -z $actual_env_offset ]] && [[ ! -z $actual_env_size ]]; then
+        info "Found actual uboot env offset: $actual_env_offset & size: $actual_env_size; Filling $uboot_config"
+        cat > $uboot_config << EOF
+# Configuration file for fw_(printenv/setenv) utility.
+# Up to two entries are valid, in this case the redundant
+# environment sector is assumed present.
+#
+# XXX this configuration might miss a fifth parameter for the "Number of
+# sectors"
+
+# MTD device name   Device offset   Env. size   Flash sector size
+$target_device        0x$actual_env_offset         0x$actual_env_size
+EOF
+    else
+        info "Using $uboot_config from rootfs"
+    fi
+}
+
 prepare_env() {
     # shellcheck disable=SC2016  # we want to keep $'...' here
     trap_add 'fatal "Error at line $LINENO ($BASH_COMMAND)"' ERR
@@ -1236,6 +1260,7 @@ maybe_factory_reset() {
 
 #---------------------------------------- main ----------------------------------------
 
+maybe_fix_uboot_dynamic_env $ROOTDEV
 prepare_env
 
 # --fail flag allows to simulate failed update for testing purposes
