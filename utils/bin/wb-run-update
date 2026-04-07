@@ -136,7 +136,16 @@ fit_blob_data() {
 }
 
 fit_blob_hash() {
-	fit_prop "/images/$1/hash@1" value | to_hex
+	local name=$1
+	local hash_node="/images/$name/hash-1"
+
+	# Keep compatibility with older update.its,
+	# see https://github.com/wirenboard/wirenboard/blob/fbb162a255fa4482b58b7879e9aef38884aceabf/image/create_update.sh#L55
+	if ! fit_prop "$hash_node" value >/dev/null 2>&1; then
+		hash_node="/images/$name/hash@1"
+	fi
+
+	fit_prop "$hash_node" value | to_hex
 }
 
 fit_blob_verify_hash() {

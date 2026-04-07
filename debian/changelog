@@ -1,3 +1,9 @@
+wb-utils (4.27.8) stable; urgency=medium
+
+  * wb-run-update: fix hash node name
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Tue, 07 Apr 2026 20:20:00 +0400
+
 wb-utils (4.27.7) stable; urgency=medium
 
   * install_update.sh: fill fw_env.config with actual env offset & size
