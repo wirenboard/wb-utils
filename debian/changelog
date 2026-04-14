@@ -1,3 +1,9 @@
+wb-utils (4.27.8) stable; urgency=medium
+
+  * Fix postinst script hanging
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Tue, 14 Apr 2026 17:20:00 +0400
+
 wb-utils (4.27.7) stable; urgency=medium
 
   * install_update.sh: fill fw_env.config with actual env offset & size
