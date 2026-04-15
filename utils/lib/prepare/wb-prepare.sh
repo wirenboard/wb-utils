@@ -3,9 +3,6 @@
 . /usr/lib/wb-utils/wb_env.sh
 wb_source "of"
 
-ROOT_PARTITION=$(mount -l | awk '$3 == "/" { print $1 }')
-SWAP_PARTITION=$(awk '$3 == "swap" { print $1 }' /etc/fstab)
-
 # legacy: load log_*_msg functions
 # once upon a time this script was an init.d script
 . /lib/lsb/init-functions
@@ -98,11 +95,14 @@ wb_prepare_filesystems()
 {
     log_action_msg "Preparing filesystems"
 
+    local root_partition=$(mount -l | awk '$3 == "/" { print $1 }')
+    local swap_partition=$(awk '$3 == "swap" { print $1 }' /etc/fstab)
+
     log_action_begin_msg "Resizing root filesystem"
-    resize2fs $ROOT_PARTITION >/dev/null
+    resize2fs $root_partition >/dev/null
     log_end_msg $?
 
-    wb_check_swap $SWAP_PARTITION
+    wb_check_swap $swap_partition
 
     wb_check_alt_rootfs
 }
