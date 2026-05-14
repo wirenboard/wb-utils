@@ -37,6 +37,9 @@ wb_init()
     fw_setenv bootcount 0
     fw_setenv upgrade_available 0
 
+    apt update
+    apt install -y wb-demo-kit-configs --reinstall
+
     return 0
 }
 

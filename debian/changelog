@@ -1,3 +1,9 @@
+wb-utils (4.27.9) stable; urgency=medium
+
+  * Add wb-demo-kit-configs installing
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Thu, 14 May 2026 16:51:02 +0300
+
 wb-utils (4.27.8) stable; urgency=medium
 
   * Fix postinst script hanging
