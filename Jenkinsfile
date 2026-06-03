@@ -1,2 +1,1 @@
-buildDebArchAll defaultRunLintian: true,
-                defaultDebianRelease: 'trixie'
+buildDebArchAll defaultRunLintian: true
