@@ -851,12 +851,24 @@ get_installed_debian_version() {
     fi
 }
 
+get_release_version() {
+    case "$1" in
+        stretch)  echo 9 ;;
+        bullseye) echo 11 ;;
+        trixie)   echo 13 ;;
+        *)
+            echo "Unknown Debian release: $1" >&2
+            return 1
+            ;;
+    esac
+}
+
 ensure_no_downgrade() {
     actual=$(get_installed_debian_version)
     upcoming=$(get_update_debian_version)
 
     info "Debian: $actual -> $upcoming"
-    if [ "$actual" = "bullseye" ] && [ "$upcoming" = "stretch" ]; then
+    if [ "$(get_release_version "$upcoming")" -lt "$(get_release_version "$actual")" ]; then
         if ! flag_set factoryreset; then
             message=(
                 ""
