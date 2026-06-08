@@ -851,12 +851,39 @@ get_installed_debian_version() {
     fi
 }
 
+get_release_version() {
+    case "$1" in
+        stretch)  echo 9 ;;
+        bullseye) echo 11 ;;
+        trixie)   echo 13 ;;
+        *)
+            echo "Unknown Debian release: $1" >&2
+            return 1
+            ;;
+    esac
+}
+
 ensure_no_downgrade() {
+    local actual
+    local upcoming
+    local actual_version
+    local upcoming_version
+
     actual=$(get_installed_debian_version)
     upcoming=$(get_update_debian_version)
 
-    info "Debian: $actual -> $upcoming"
-    if [ "$actual" = "bullseye" ] && [ "$upcoming" = "stretch" ]; then
+    if ! actual_version=$(get_release_version "$actual"); then
+        info "WARNING: Unable to resolve installed Debian release '$actual', skipping downgrade check"
+        return
+    fi
+
+    if ! upcoming_version=$(get_release_version "$upcoming"); then
+        info "WARNING: Unable to resolve update Debian release '$upcoming', skipping downgrade check"
+        return
+    fi
+
+    info "Debian: $actual ($actual_version) -> $upcoming ($upcoming_version)"
+    if [ "$upcoming_version" -lt "$actual_version" ]; then
         if ! flag_set factoryreset; then
             message=(
                 ""
