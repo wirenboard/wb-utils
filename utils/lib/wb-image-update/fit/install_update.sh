@@ -693,7 +693,7 @@ cleanup_rootfs() {
 
     if which rsync >/dev/null; then
         info "Cleaning up using rsync"
-        cmd=(rsync -a --delete --exclude="/mnt/data/.wb-restore/" --exclude="/mnt/data/.wb-update/" /tmp/empty/ "$mountpoint")
+        cmd=(rsync -a --delete --exclude="/mnt/data/" /tmp/empty/ "$mountpoint")
     else
         info "Can't find rsync, cleaning up using rm -rf (may be slower)"
         cmd=(rm -rf "$mountpoint"/..?* "$mountpoint"/.[!.]* "${mountpoint:?}"/*)
