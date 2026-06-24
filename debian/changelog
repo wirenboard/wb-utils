@@ -1,3 +1,9 @@
+wb-utils (4.27.8-wb100) stable; urgency=medium
+
+  * Don't wipe /mnt/data during upgrade with fit-image
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Wed, 24 Jun 2026 12:20:00 +0400
+
 wb-utils (4.27.8) stable; urgency=medium
 
   * Fix postinst script hanging
