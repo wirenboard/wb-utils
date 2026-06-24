@@ -1,3 +1,9 @@
+wb-utils (4.28.2) stable; urgency=medium
+
+  * Don't wipe /mnt/data during upgrade with fit-image
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Fri, 05 Jun 2026 16:20:00 +0400
+
 wb-utils (4.28.1) stable; urgency=medium
 
   * Don't allow rollback from trixie to bullseye without factoryreset
