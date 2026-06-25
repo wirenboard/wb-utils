@@ -1,6 +1,6 @@
 wb-utils (4.28.3) stable; urgency=medium
 
-  * Remove old ssh_host_dsa_key
+  * Move ssh host keys generation to wb-configs
 
  -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Wed, 24 Jun 2026 17:20:00 +0400
 
