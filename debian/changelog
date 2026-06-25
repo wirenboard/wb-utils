@@ -1,8 +1,14 @@
+wb-utils (4.28.3) stable; urgency=medium
+
+  * Move ssh host keys generation to wb-configs
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Wed, 24 Jun 2026 17:20:00 +0400
+
 wb-utils (4.28.2) stable; urgency=medium
 
   * Don't wipe /mnt/data during upgrade with fit-image
 
- -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Fri, 05 Jun 2026 16:20:00 +0400
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Tue, 23 Jun 2026 16:20:00 +0400
 
 wb-utils (4.28.1) stable; urgency=medium
 

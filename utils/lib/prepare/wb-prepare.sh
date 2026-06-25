@@ -239,28 +239,6 @@ wb_firstboot()
     wb_fix_macs
     wb_fix_short_sn
 
-    log_action_msg "Generating SSH host keys if necessary"
-    for keytype in ecdsa ed25519 rsa; do
-        log_action_begin_msg "  $keytype"
-        local keyfile=/etc/ssh_host_${keytype}_key
-        [[ -n "$data_mounted" && -e "/mnt/data/$keyfile" ]] &&
-        cp "/mnt/data/${keyfile}" "$keyfile" 2>/dev/null &&
-        log_action_cont_msg "from shared partition" &&
-        log_action_end_msg $? \
-        || {
-            [[ -f /etc/ssh/ssh_host_${keytype}_key ]] && {
-                log_action_cont_msg " already present, keep it"
-                log_action_end_msg $? || return $?
-            } || {
-                yes | ssh-keygen -f /etc/ssh/ssh_host_${keytype}_key -N '' -t ${keytype} >/dev/null
-                log_end_msg $? || return $?
-            }
-        }
-
-    done
-
-    sync
-
     wb_run_scripts /etc/wb-prepare.d
 
     wb_fix_machine_id  # should be at the very end of firstboot to retry on failure
