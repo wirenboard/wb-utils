@@ -1234,7 +1234,7 @@ fw_has_proper_dtb() {
 
     # grep exits on the first match (-q -m1), breaking the pipe; silence the
     # resulting "tar: stdout: write error" (EPIPE) since the check still succeeds
-    fit_blob_data rootfs | tar tz 2> >(grep -v -F 'tar: stdout: write error' >&2) | grep -q -m1 -F "$dtb_name"
+fit_blob_data rootfs | LC_ALL=C tar tz 2> >(grep -v -F 'tar: stdout: write error' >&2) | grep -q -m1 -F "$dtb_name"
 }
 
 check_firmware_compatible() {
