@@ -1232,7 +1232,9 @@ fw_has_proper_dtb() {
     dtb_name=$(dd "if=$EMMC" bs=512 skip=2016 count=32 | fdtoverlay -i "$TMPFILE" -o - - | fdtget -t s - /wirenboard factory-fdt)
     rm -f "$TMPFILE"
 
-    fit_blob_data rootfs | tar tz | grep -q -m1 -F "$dtb_name"
+    # grep exits on the first match (-q -m1), breaking the pipe; silence the
+    # resulting "tar: stdout: write error" (EPIPE) since the check still succeeds
+fit_blob_data rootfs | LC_ALL=C tar tz 2> >(grep -v -F 'tar: stdout: write error' >&2) | grep -q -m1 -F "$dtb_name"
 }
 
 check_firmware_compatible() {
