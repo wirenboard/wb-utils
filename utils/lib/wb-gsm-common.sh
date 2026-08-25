@@ -549,7 +549,7 @@ function switch_off() {
         debug "Waiting for modem to stop"
         max_tries=25
 
-        for ((i=0; i<=upperlim; i++)); do
+        for ((i=0; i<=max_tries; i++)); do
             if [[ `$GPIOD_GET_CMD "GSM STATUS"` = "0" ]]; then
                 break
             fi

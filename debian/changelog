@@ -1,3 +1,10 @@
+wb-utils (4.28.6) stable; urgency=medium
+
+  * wb-gsm: wait for modem to report OFF before switching off power FET
+  * wb-run-update: fix progress bar size when checking hash of non-rootfs blob
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Fri, 21 Aug 2026 16:20:00 +0400
+
 wb-utils (4.28.5) stable; urgency=medium
 
   * Grant permissions to install_update.web.flags to www-user user
