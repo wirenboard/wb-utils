@@ -145,7 +145,7 @@ fit_blob_verify_hash() {
 
 	info "Checking SHA1 hash of $name"
 
-	local blob_size=$(fit_blob_size rootfs)
+	local blob_size=$(fit_blob_size "$name")
 	local tmp=$(mktemp -p "$TMPDIR")
 	(
 		echo 0
