@@ -1,0 +1,19 @@
+[Unit]
+Description=WinUSB stub interface for the USB Debug Network gadget
+# Deliberately NO ordering relation to wb-usb-otg.service: its start script restarts
+# this unit itself right before linking the function. The unit is Type=notify, so that
+# restart returns only once the descriptors have been written to ep0.
+ConditionPathExists=/sys/kernel/config
+
+[Service]
+# Type=notify because "ready" means the descriptors have been written to ep0, not that
+# the script has started. NotifyAccess=all: --ready is sent from a separate systemd-notify.
+Type=notify
+NotifyAccess=all
+ExecStart=/usr/lib/wb-utils/wb-usb-otg/wb-usb-otg-winusb.sh
+# The process keeps ep0 open; its death tears the function down, so bring it back up
+Restart=no
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

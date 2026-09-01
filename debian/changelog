@@ -1,3 +1,13 @@
+wb-utils (4.28.7) stable; urgency=medium
+
+  * wb-usb-otg: announce a WebUSB landing page pointing at the controller web
+    interface when wb-mqtt-homeui has configured HTTPS
+  * wb-usb-otg: add an endpoint-less vendor interface bound to WinUSB and the
+    matching MS OS 2.0 descriptor set, without which Windows gives the function
+    no device path and a browser cannot read the landing page
+
+ -- Evgeny Boger <boger@wirenboard.com>  Tue, 01 Sep 2026 20:20:03 +0300
+
 wb-utils (4.28.6) stable; urgency=medium
 
   * wb-gsm: wait for modem to report OFF before switching off power FET

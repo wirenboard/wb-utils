@@ -24,3 +24,19 @@
 5. Поломать настройку debug-network (например, добавив "return 1" в /usr/lib/wb-utils/wb-usb-otg/wb-usb-otg-start.sh). Убедиться, что ```systemctl restart wb-usb-otg``` выдал ошибку. Починить обратно; убедиться, что ```systemctl restart wb-usb-otg``` выполняется без ошибок.
 
 6. Подключившись к WB любым из способов (1-2), потыкать что-нибудь в сетевых настройках через webui (например, включить/отключить wb-ap). Убедиться, что при сохранении настроек, соединение с WB по usb-network не отвалилось и webui всё также доступен.
+
+7. **WebUSB landing page (только Windows, требует ядра с поддержкой msos20).**
+Настроить HTTPS в веб-интерфейсе контроллера (должен появиться
+`/var/lib/wb-homeui/nginx/https.conf`), перезапустить `wb-usb-otg`, подключить
+контроллер к компьютеру с Windows 10/11 и Chrome. В `chrome://usb-internals`
+найти "WB7 Debug Network", нажать Inspect и убедиться, что заполнено поле
+`WebUSB Landing Page: https://10-200-200-1.<серийник>.ip.wirenboard.com/`.
+Убедиться, что сетевой адаптер RNDIS и съемный диск при этом работают как раньше —
+набор MS OS 2.0 описывает обе функции, и ошибка в нём ломает именно сеть.
+Известное ограничение: само уведомление Chrome при этом может не появиться,
+см. tmp/usburl/winusb/TESTPLAN.md (гонка на стороне Chromium).
+
+8. **Без HTTPS.** Убрать `/var/lib/wb-homeui/nginx/https.conf`, перезапустить
+`wb-usb-otg`. В журнале должно быть "HTTPS not configured, WebUSB landing page
+disabled", а диск и сеть — работать как обычно.
+
