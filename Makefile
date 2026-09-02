@@ -67,6 +67,8 @@ install: build_mass_storage
 		utils/lib/wb-usb-otg/wb-usb-otg-common.sh \
 		utils/lib/wb-usb-otg/wb-usb-otg-start.sh \
 		utils/lib/wb-usb-otg/wb-usb-otg-stop.sh \
+		utils/lib/wb-usb-otg/wb-usb-otg-winusb.sh \
+		utils/lib/wb-usb-otg/gen-msos20.py \
 		utils/lib/wb-usb-otg/check-if-supports-usb-network.sh
 
 	install -Dm0644 -t $(USBOTGDIR) \

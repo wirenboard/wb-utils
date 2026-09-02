@@ -8,3 +8,4 @@ override_dh_installsystemd:
 	dh_installsystemd --name=wb-watch-update
 	dh_installsystemd --name=wb-gsm
 	dh_installsystemd --name=wb-usb-otg
+	dh_installsystemd --name=wb-usb-otg-winusb --no-start --no-enable
