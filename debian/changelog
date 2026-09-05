@@ -1,3 +1,16 @@
+wb-utils (4.28.8) stable; urgency=medium
+
+  * wb-usb-otg: make the Debug Network usable from macOS: a new
+    wb-usb-otg-netfunc daemon enumerates as RNDIS first, keeps it for hosts
+    that complete the RNDIS handshake or send traffic (Windows, Linux) and
+    re-enumerates as CDC ECM otherwise; both gadget interfaces are ports of the
+    dbgbr bridge from wb-configs 3.54.0
+  * wb-usb-otg: advertise the WebUSB landing page and insert the mass-storage
+    medium only in the final layout (one Chromium notification, no phantom
+    disk on macOS)
+
+ -- Evgeny Boger <boger@wirenboard.com>  Sat, 05 Sep 2026 21:55:21 +0300
+
 wb-utils (4.28.7) stable; urgency=medium
 
   * wb-usb-otg: announce a WebUSB landing page pointing at the controller web

@@ -40,3 +40,21 @@
 `wb-usb-otg`. В журнале должно быть "HTTPS not configured, WebUSB landing page
 disabled", а диск и сеть — работать как обычно.
 
+9. **macOS.** Подключить контроллер к Mac (macOS 11+). В течение ~5 с устройство
+переподключится: в Системных настройках → Сеть появится «WB7 Debug Network»
+(CDC ECM), Mac получит 10.200.200.2, веб-интерфейс доступен по 10.200.200.1,
+съёмный диск WIRENBOARD смонтирован один раз (без «Диск извлечён неправильно»).
+В журнале: `journalctl -u wb-usb-otg-netfunc` → `configured but no RNDIS evidence
+for 4.0s awake, trying CDC ECM`, затем `enumerating as ecm, landing page present`.
+Переподключить кабель — цикл повторяется. Sleep/wake Mac с подключённым кабелем —
+сеть восстанавливается.
+
+10. **Windows/Linux после п. 9.** Подключить тот же контроллер обратно к Windows
+и Linux: в журнале `host talks RNDIS, keeping it`; сеть, диск и (на Windows с
+HTTPS) landing page работают как в п. 1–8. При настроенном HTTPS Windows/Linux
+видят одно дополнительное переподключение устройства сразу после определения
+драйвера (публикация landing page), сеть после него поднимается штатно.
+
+11. **Одно уведомление Chrome.** На Mac и на Windows с настроенным HTTPS при
+подключении Chrome показывает уведомление со ссылкой один раз, а не на каждое
+перечисление.

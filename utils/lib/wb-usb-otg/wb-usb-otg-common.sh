@@ -4,6 +4,10 @@ IMAGE_FILE=/usr/lib/wb-utils/wb-usb-otg/mass_storage.img
 USBDEV="usb0"
 USBGADGET_CONFIG=/sys/kernel/config/usb_gadget/g1
 RNDIS_IFNAME="dbg%d"
+ECM_IFNAME="dbge%d"
+# The WebUSB landing page is published by wb-usb-otg-netfunc.py in the final layout only;
+# setup_webusb() leaves the configfs attribute empty and stores the URL here.
+LANDING_PAGE_FILE=/run/wb-usb-otg/landing-page
 NETWORK_CONNAME="wb-debug"
 NETWORK_TIMEOUT=5
 FFS_WINUSB_NAME="wbwinusb"
@@ -78,6 +82,18 @@ setup_rndis() {
     echo $RNDIS_IFNAME > ${USBGADGET_CONFIG}/functions/rndis.$USBDEV/ifname
 }
 
+setup_ecm() {
+    # CDC ECM for hosts without an RNDIS driver (macOS). Created here, linked into the
+    # configuration by wb-usb-otg-netfunc.py only when the probe finds no RNDIS host:
+    # RNDIS + mass storage + ECM do not fit the 4+4 endpoints of the H616 musb together.
+    mkdir -p ${USBGADGET_CONFIG}/functions/ecm.$USBDEV
+    echo "1a:55:89:a2:69:45" > ${USBGADGET_CONFIG}/functions/ecm.$USBDEV/dev_addr
+    # Same host MAC as RNDIS: both layouts serve one host on a /30 with a single DHCP
+    # lease, and a different MAC would leave dnsmasq with "no address available".
+    cat ${USBGADGET_CONFIG}/functions/rndis.$USBDEV/host_addr > ${USBGADGET_CONFIG}/functions/ecm.$USBDEV/host_addr
+    echo $ECM_IFNAME > ${USBGADGET_CONFIG}/functions/ecm.$USBDEV/ifname
+}
+
 setup_mass_storage() {
     mkdir -p ${USBGADGET_CONFIG}/functions/mass_storage.$USBDEV
     echo 1 > ${USBGADGET_CONFIG}/functions/mass_storage.$USBDEV/stall
@@ -95,6 +111,8 @@ setup_webusb() {
     # to the debug-network IP and is covered by the wb-mqtt-homeui wildcard certificate.
     local sn ip url
 
+    mkdir -p "$(dirname ${LANDING_PAGE_FILE})"
+    : > ${LANDING_PAGE_FILE}
     [ -d ${USBGADGET_CONFIG}/webusb ] || return 0
 
     if [ ! -f "${HOMEUI_HTTPS_CONF}" ]; then
@@ -111,7 +129,9 @@ setup_webusb() {
     url="https://${ip//./-}.${sn,,}.ip.wirenboard.com/"
 
     echo 0x01 > ${USBGADGET_CONFIG}/webusb/bVendorCode  # must differ from os_desc/b_vendor_code (0xcd)
-    echo "${url}" > ${USBGADGET_CONFIG}/webusb/landingPage
+    # iLandingPage stays 0 during the host probe (one Chromium notification per plug, not
+    # per enumeration); wb-usb-otg-netfunc.py writes the URL once the layout is final.
+    echo "${url}" > ${LANDING_PAGE_FILE}
     echo 1 > ${USBGADGET_CONFIG}/webusb/use
     log "WebUSB landing page: ${url}"
 }
@@ -121,12 +141,14 @@ setup_device() {
 
     modprobe usb_f_mass_storage
     modprobe usb_f_rndis
+    modprobe usb_f_ecm
 
     setup_usb
     setup_webusb
     setup_msos20
     setup_mass_storage
     setup_rndis
+    setup_ecm
 }
 
 setup_msos20() {
@@ -176,6 +198,7 @@ config_reset() {
         rm ${USBGADGET_CONFIG}/configs/c.1/ffs.${FFS_WINUSB_NAME}
     fi
     if [ -L ${USBGADGET_CONFIG}/configs/c.1/rndis.$USBDEV ]; then rm ${USBGADGET_CONFIG}/configs/c.1/rndis.$USBDEV; fi
+    if [ -L ${USBGADGET_CONFIG}/configs/c.1/ecm.$USBDEV ]; then rm ${USBGADGET_CONFIG}/configs/c.1/ecm.$USBDEV; fi
 }
 
 remove_usb_gadget() {
@@ -219,10 +242,6 @@ config_rndis() {
     ln -s ${USBGADGET_CONFIG}/configs/c.1 ${USBGADGET_CONFIG}/os_desc
 }
 
-mount_ms() {
-    echo $IMAGE_FILE > ${USBGADGET_CONFIG}/functions/mass_storage.$USBDEV/lun.0/file
-}
-
 enable_profile() {
     log "enabling profile rndis"
     config_rndis
@@ -236,5 +255,6 @@ enable_profile() {
     else
         log "wb-usb-otg-winusb.service failed, WebUSB landing page will not work on Windows"
     fi
-    bind_device
+    # No bind_device here: wb-usb-otg-netfunc.service binds the UDC, keeps RNDIS or
+    # switches to CDC ECM for the connected host, and inserts the mass-storage medium.
 }

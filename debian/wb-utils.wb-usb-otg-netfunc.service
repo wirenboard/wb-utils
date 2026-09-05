@@ -1,0 +1,20 @@
+[Unit]
+Description=USB Debug Network host-adaptive network function (RNDIS / CDC ECM)
+# wb-usb-otg.service creates the gadget, its functions and the c.1 layout; this daemon
+# binds the UDC, keeps RNDIS for hosts that speak it and switches to CDC ECM for the
+# rest (macOS), publishes the WebUSB landing page and inserts the mass-storage medium.
+Requires=wb-usb-otg.service
+After=wb-usb-otg.service
+PartOf=wb-usb-otg.service
+
+[Service]
+Type=simple
+ExecCondition=/usr/lib/wb-utils/wb-usb-otg/check-if-supports-usb-network.sh
+ExecStart=/usr/lib/wb-utils/wb-usb-otg/wb-usb-otg-netfunc.py
+Restart=on-failure
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
