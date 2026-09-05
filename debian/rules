@@ -2,6 +2,11 @@
 %:
 	dh $@
 
+override_dh_auto_test:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	python3 -m unittest discover -s tests
+endif
+
 override_dh_installsystemd:
 	dh_installsystemd --name=wb-prepare --no-start --no-restart-after-upgrade --no-restart-on-upgrade
 	dh_installsystemd --name=wb-init --no-start --no-restart-after-upgrade --no-restart-on-upgrade

@@ -9,7 +9,6 @@ SYSCONFDIR = $(DESTDIR)/etc
 USBOTGDIR = $(LIBDIR)/wb-usb-otg
 MASS_STORAGE_FNAME = build_scripts/mass_storage.img
 MASS_STORAGE_CONTENT_DIR = utils/lib/wb-usb-otg/mass_storage_contents
-NM_DISPATCHER_DIR = $(DESTDIR)$(prefix)/lib/NetworkManager/dispatcher.d
 PREPARE_LIBDIR = $(LIBDIR)/prepare
 
 IMAGEUPDATE_DIR=$(DESTDIR)$(prefix)/lib/wb-image-update
@@ -74,9 +73,6 @@ install: build_mass_storage
 
 	install -Dm0644 -t $(USBOTGDIR) \
 		$(MASS_STORAGE_FNAME)
-
-	install -Dm0755 -t $(NM_DISPATCHER_DIR) \
-		utils/lib/wb-usb-otg/15-debug-network
 
 clean:
 	rm -f $(MASS_STORAGE_FNAME)

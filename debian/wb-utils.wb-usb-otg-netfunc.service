@@ -10,9 +10,13 @@ PartOf=wb-usb-otg.service
 [Service]
 Type=simple
 ExecCondition=/usr/lib/wb-utils/wb-usb-otg/check-if-supports-usb-network.sh
+# Written by wb-usb-otg-start.sh: gadget paths, available functions, landing page
+EnvironmentFile=-/run/wb-usb-otg/env
 ExecStart=/usr/lib/wb-utils/wb-usb-otg/wb-usb-otg-netfunc.py
+# A failure leaves the gadget unbound (no network, no drive), so keep trying; 5 s keeps the
+# host from seeing a flapping device and stays under the default start rate limit.
 Restart=on-failure
-RestartSec=2
+RestartSec=5
 StandardOutput=journal
 StandardError=journal
 

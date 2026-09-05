@@ -25,7 +25,7 @@
 
 6. Подключившись к WB любым из способов (1-2), потыкать что-нибудь в сетевых настройках через webui (например, включить/отключить wb-ap). Убедиться, что при сохранении настроек, соединение с WB по usb-network не отвалилось и webui всё также доступен.
 
-7. **WebUSB landing page (только Windows, требует ядра с поддержкой msos20).**
+7. **WebUSB landing page (Windows и macOS; на Windows требует ядра с поддержкой msos20).**
 Настроить HTTPS в веб-интерфейсе контроллера (должен появиться
 `/var/lib/wb-homeui/nginx/https.conf`), перезапустить `wb-usb-otg`, подключить
 контроллер к компьютеру с Windows 10/11 и Chrome. В `chrome://usb-internals`
@@ -33,28 +33,44 @@
 `WebUSB Landing Page: https://10-200-200-1.<серийник>.ip.wirenboard.com/`.
 Убедиться, что сетевой адаптер RNDIS и съемный диск при этом работают как раньше —
 набор MS OS 2.0 описывает обе функции, и ошибка в нём ломает именно сеть.
-Известное ограничение: само уведомление Chrome при этом может не появиться,
-см. tmp/usburl/winusb/TESTPLAN.md (гонка на стороне Chromium).
+Уведомление Chrome со ссылкой должно появиться один раз (см. п. 11); если его нет
+совсем, на живом Windows это отклонение, при пробросе USB в виртуалку — известный
+артефакт QEMU-хаба (tmp/usburl/winusb/TESTPLAN.md).
 
 8. **Без HTTPS.** Убрать `/var/lib/wb-homeui/nginx/https.conf`, перезапустить
 `wb-usb-otg`. В журнале должно быть "HTTPS not configured, WebUSB landing page
 disabled", а диск и сеть — работать как обычно.
 
-9. **macOS.** Подключить контроллер к Mac (macOS 11+). В течение ~5 с устройство
+9. **macOS (при настроенном HTTPS, см. п. 7; без HTTPS в журнале будет `landing page
+hidden`).** Подключить контроллер к Mac (macOS 11+). В течение ~5 с устройство
 переподключится: в Системных настройках → Сеть появится «WB7 Debug Network»
 (CDC ECM), Mac получит 10.200.200.2, веб-интерфейс доступен по 10.200.200.1,
 съёмный диск WIRENBOARD смонтирован один раз (без «Диск извлечён неправильно»).
-В журнале: `journalctl -u wb-usb-otg-netfunc` → `configured but no RNDIS evidence
-for 4.0s awake, trying CDC ECM`, затем `enumerating as ecm, landing page present`.
-Переподключить кабель — цикл повторяется. Sleep/wake Mac с подключённым кабелем —
-сеть восстанавливается.
+В журнале `journalctl -u wb-usb-otg-netfunc`: `no RNDIS evidence for 4s awake,
+trying CDC ECM`, затем `enumerating as ecm, landing page visible` и `host talks
+CDC ECM`. Переподключить кабель — цикл повторяется. Sleep/wake Mac с подключённым
+кабелем — сеть восстанавливается, диск не перемонтируется.
 
 10. **Windows/Linux после п. 9.** Подключить тот же контроллер обратно к Windows
-и Linux: в журнале `host talks RNDIS, keeping it`; сеть, диск и (на Windows с
-HTTPS) landing page работают как в п. 1–8. При настроенном HTTPS Windows/Linux
-видят одно дополнительное переподключение устройства сразу после определения
-драйвера (публикация landing page), сеть после него поднимается штатно.
+и Linux: в журнале `host talks RNDIS`; сеть, диск и (на Windows с HTTPS) landing
+page работают как в п. 1–8. При настроенном HTTPS Windows/Linux видят одно
+дополнительное переподключение устройства сразу после определения драйвера
+(публикация landing page). Sleep/wake ноутбука с подключённым контроллером:
+сеть восстанавливается без переподключения диска.
 
 11. **Одно уведомление Chrome.** На Mac и на Windows с настроенным HTTPS при
 подключении Chrome показывает уведомление со ссылкой один раз, а не на каждое
 перечисление.
+
+12. **Медленный или молчащий хост.** На Windows отключить RNDIS-устройство в
+Диспетчере устройств (или подключить Linux-хост без NetworkManager и с
+выключенным IPv6). Через 4 с контроллер уйдёт в CDC ECM (`trying CDC ECM`),
+ещё через 10 с без трафика вернётся в RNDIS (`back to RNDIS for good`) и
+останется там до переподключения кабеля. Включить RNDIS обратно — сеть
+поднимется без переподключения кабеля (`host talks RNDIS`).
+
+13. **Без демона.** `systemctl stop wb-usb-otg-netfunc`: устройство пропадает с
+хоста (гаджет не привязан, `systemctl status wb-usb-otg` при этом остаётся
+active). `systemctl restart wb-usb-otg` возвращает всё вместе с диском. На ядре
+без `/proc/driver/rndis-*` (в журнале `rndis_state=packets only`) Linux-хост с
+NetworkManager всё равно остаётся на RNDIS.

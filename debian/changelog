@@ -8,6 +8,8 @@ wb-utils (4.28.8) stable; urgency=medium
   * wb-usb-otg: advertise the WebUSB landing page and insert the mass-storage
     medium only in the final layout (one Chromium notification, no phantom
     disk on macOS)
+  * wb-usb-otg: drop the 15-debug-network dispatcher; the shared connection now
+    lives on the bridge and leases are keyed by the fixed host MAC in wb-configs
 
  -- Evgeny Boger <boger@wirenboard.com>  Sat, 05 Sep 2026 21:55:21 +0300
 

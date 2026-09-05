@@ -5,9 +5,12 @@ USBDEV="usb0"
 USBGADGET_CONFIG=/sys/kernel/config/usb_gadget/g1
 RNDIS_IFNAME="dbg%d"
 ECM_IFNAME="dbge%d"
-# The WebUSB landing page is published by wb-usb-otg-netfunc.py in the final layout only;
-# setup_webusb() leaves the configfs attribute empty and stores the URL here.
-LANDING_PAGE_FILE=/run/wb-usb-otg/landing-page
+# Handed to wb-usb-otg-netfunc.service (EnvironmentFile=): the daemon links the functions
+# into the configuration, binds the UDC and publishes the WebUSB landing page.
+NETFUNC_ENV_FILE=/run/wb-usb-otg/env
+WEBUSB_LANDING_PAGE=
+ECM_FUNCTION=
+WINUSB_FUNCTION=
 NETWORK_CONNAME="wb-debug"
 NETWORK_TIMEOUT=5
 FFS_WINUSB_NAME="wbwinusb"
@@ -16,7 +19,8 @@ FFS_WINUSB_NAME="wbwinusb"
 WINUSB_DEVICE_INTERFACE_GUID="{9E3C1B4A-7D52-4F86-A1C9-2B7E5D8F3A61}"
 MSOS20_VENDOR_CODE=0x02   # must differ from webusb (0x01) and os_desc (0xcd)
 MSOS20_GEN=/usr/lib/wb-utils/wb-usb-otg/gen-msos20.py
-# Stub interface number: rndis takes 0-1, mass_storage takes 2 (order set in enable_profile)
+# Stub interface number: the network function takes 0-1, mass_storage 2 (link order set in
+# wb-usb-otg-netfunc.py bind()); the MS OS 2.0 set names the WinUSB interface by this number
 FFS_WINUSB_INTERFACE=3
 # WebUSB landing page is advertised only when wb-mqtt-homeui has set up HTTPS with a
 # trusted certificate (*.<SN>.ip.wirenboard.com); Chromium ignores non-https landing pages.
@@ -86,7 +90,12 @@ setup_ecm() {
     # CDC ECM for hosts without an RNDIS driver (macOS). Created here, linked into the
     # configuration by wb-usb-otg-netfunc.py only when the probe finds no RNDIS host:
     # RNDIS + mass storage + ECM do not fit the 4+4 endpoints of the H616 musb together.
-    mkdir -p ${USBGADGET_CONFIG}/functions/ecm.$USBDEV
+    # Optional: without the module the Debug Network keeps working as before (RNDIS only).
+    if ! modprobe usb_f_ecm || ! mkdir -p ${USBGADGET_CONFIG}/functions/ecm.$USBDEV; then
+        log "usb_f_ecm not available, CDC ECM (macOS) disabled"
+        return 0
+    fi
+    ECM_FUNCTION="ecm.$USBDEV"
     echo "1a:55:89:a2:69:45" > ${USBGADGET_CONFIG}/functions/ecm.$USBDEV/dev_addr
     # Same host MAC as RNDIS: both layouts serve one host on a /30 with a single DHCP
     # lease, and a different MAC would leave dnsmasq with "no address available".
@@ -111,8 +120,6 @@ setup_webusb() {
     # to the debug-network IP and is covered by the wb-mqtt-homeui wildcard certificate.
     local sn ip url
 
-    mkdir -p "$(dirname ${LANDING_PAGE_FILE})"
-    : > ${LANDING_PAGE_FILE}
     [ -d ${USBGADGET_CONFIG}/webusb ] || return 0
 
     if [ ! -f "${HOMEUI_HTTPS_CONF}" ]; then
@@ -131,7 +138,7 @@ setup_webusb() {
     echo 0x01 > ${USBGADGET_CONFIG}/webusb/bVendorCode  # must differ from os_desc/b_vendor_code (0xcd)
     # iLandingPage stays 0 during the host probe (one Chromium notification per plug, not
     # per enumeration); wb-usb-otg-netfunc.py writes the URL once the layout is final.
-    echo "${url}" > ${LANDING_PAGE_FILE}
+    WEBUSB_LANDING_PAGE="${url}"
     echo 1 > ${USBGADGET_CONFIG}/webusb/use
     log "WebUSB landing page: ${url}"
 }
@@ -141,7 +148,6 @@ setup_device() {
 
     modprobe usb_f_mass_storage
     modprobe usb_f_rndis
-    modprobe usb_f_ecm
 
     setup_usb
     setup_webusb
@@ -192,13 +198,12 @@ unbind_device() {
 }
 
 config_reset() {
+    # The function links in c.1 are created by wb-usb-otg-netfunc.py; remove whatever is there
     if [ -L ${USBGADGET_CONFIG}/os_desc/c.1 ]; then rm ${USBGADGET_CONFIG}/os_desc/c.1; fi
-    rm ${USBGADGET_CONFIG}/configs/c.1/mass_storage.$USBDEV
-    if [ -L ${USBGADGET_CONFIG}/configs/c.1/ffs.${FFS_WINUSB_NAME} ]; then
-        rm ${USBGADGET_CONFIG}/configs/c.1/ffs.${FFS_WINUSB_NAME}
-    fi
-    if [ -L ${USBGADGET_CONFIG}/configs/c.1/rndis.$USBDEV ]; then rm ${USBGADGET_CONFIG}/configs/c.1/rndis.$USBDEV; fi
-    if [ -L ${USBGADGET_CONFIG}/configs/c.1/ecm.$USBDEV ]; then rm ${USBGADGET_CONFIG}/configs/c.1/ecm.$USBDEV; fi
+    for link in ${USBGADGET_CONFIG}/configs/c.1/*.*; do
+        [ -L "$link" ] && rm "$link"
+    done
+    rm -f ${NETFUNC_ENV_FILE}
 }
 
 remove_usb_gadget() {
@@ -231,30 +236,39 @@ remove_usb_gadget() {
     rmdir "${USBGADGET_CONFIG}"
 }
 
-config_rndis() {
-    ln -s ${USBGADGET_CONFIG}/functions/rndis.$USBDEV/ ${USBGADGET_CONFIG}/configs/c.1/
-
-    # OS descriptors
-    echo 1       > ${USBGADGET_CONFIG}/os_desc/use
+setup_os_desc() {
+    # MS OS 1.0 descriptors (RNDIS compat ID). os_desc/use is toggled per layout by the daemon.
     echo 0xcd    > ${USBGADGET_CONFIG}/os_desc/b_vendor_code
     echo MSFT100 > ${USBGADGET_CONFIG}/os_desc/qw_sign
 
     ln -s ${USBGADGET_CONFIG}/configs/c.1 ${USBGADGET_CONFIG}/os_desc
 }
 
+write_netfunc_env() {
+    mkdir -p "$(dirname ${NETFUNC_ENV_FILE})"
+    cat > ${NETFUNC_ENV_FILE} <<EOF
+USBGADGET_CONFIG=${USBGADGET_CONFIG}
+USBDEV=${USBDEV}
+IMAGE_FILE=${IMAGE_FILE}
+LANDING_PAGE=${WEBUSB_LANDING_PAGE}
+ECM_FUNCTION=${ECM_FUNCTION}
+WINUSB_FUNCTION=${WINUSB_FUNCTION}
+EOF
+}
+
 enable_profile() {
-    log "enabling profile rndis"
-    config_rndis
-    ln -s ${USBGADGET_CONFIG}/functions/mass_storage.$USBDEV ${USBGADGET_CONFIG}/configs/c.1/
+    log "enabling profile"
+    setup_os_desc
     # WinUSB stub: without it Chromium on Windows cannot read the WebUSB landing page.
     # The unit is restarted here because stopping wb-usb-otg removes the gadget directory
     # together with functions/ffs.*; Type=notify => restart returns once the descriptors
     # have been written. The network and the drive do not depend on this function.
     if systemctl restart wb-usb-otg-winusb.service; then
-        ln -s ${USBGADGET_CONFIG}/functions/ffs.${FFS_WINUSB_NAME} ${USBGADGET_CONFIG}/configs/c.1/
+        WINUSB_FUNCTION="ffs.${FFS_WINUSB_NAME}"
     else
         log "wb-usb-otg-winusb.service failed, WebUSB landing page will not work on Windows"
     fi
-    # No bind_device here: wb-usb-otg-netfunc.service binds the UDC, keeps RNDIS or
-    # switches to CDC ECM for the connected host, and inserts the mass-storage medium.
+    # The functions are linked into c.1 and the UDC is bound by wb-usb-otg-netfunc.service,
+    # which picks RNDIS or CDC ECM for the connected host and inserts the mass-storage medium.
+    write_netfunc_env
 }
