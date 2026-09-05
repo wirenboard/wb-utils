@@ -42,6 +42,7 @@ import glob
 import os
 import select
 import signal
+import subprocess
 import sys
 import time
 
@@ -101,8 +102,17 @@ def netdev(net):
 
 
 def carrier(net):
+    """Link level of a function's netdev; sysfs reports it only while the netdev is admin UP."""
     dev = netdev(net)
     return dev is not None and read(f"/sys/class/net/{dev}/carrier") == "1"
+
+
+def link_up(net):
+    """Admin-UP the function's netdev so that its carrier is readable before NetworkManager
+    (which manages it as a bridge port) gets to it; idempotent, NM does not mind."""
+    dev = netdev(net)
+    if dev:
+        subprocess.run(["ip", "link", "set", dev, "up"], check=False)
 
 
 def rx_packets(net):
@@ -228,13 +238,16 @@ class NetFunc:  # pylint: disable=too-many-instance-attributes  # the layout sta
         try:
             write(f"{G}/UDC", self.udc)
         except OSError as e:
-            if e.errno == errno.ENODEV and WINUSB_FUNCTION and with_winusb:
+            if e.errno in (errno.ENODEV, errno.EBUSY) and WINUSB_FUNCTION and with_winusb:
                 # FunctionFS without descriptors (wb-usb-otg-winusb.service died after
-                # creating the function): the network and the drive matter more.
+                # creating the function): the network and the drive matter more. The
+                # kernel reports the bind failure as ENODEV (5.10) or, through
+                # driver_register(), as EBUSY (6.8); dmesg has the real errno.
                 log(f"bind with {WINUSB_FUNCTION} failed ({e}), retrying without it")
                 return self.bind(net, url_visible, with_winusb=False)
             raise
         self.net, self.url_visible = net, url_visible
+        link_up(net)
         self.rx0 = rx_packets(net)
         log(f"enumerating as {net}, landing page {'visible' if url_visible else 'hidden'}")
         return True
@@ -346,6 +359,7 @@ class NetFunc:  # pylint: disable=too-many-instance-attributes  # the layout sta
     def host_gone(self):
         log("host gone, back to the RNDIS probe layout")
         self.rndis_final = False
+        self.set_medium(False)  # the next host must not see the drive before its verdict
         if self.net != "rndis" or self.url_visible:
             self.bind("rndis", False)
 

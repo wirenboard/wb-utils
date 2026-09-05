@@ -74,6 +74,7 @@ class Fixture(contextlib.ExitStack):
         self.enter_context(patch.object(dyn.time, "monotonic", lambda: self.st.now))
         self.enter_context(patch.object(self.nf, "bind", self.bind))
         self.enter_context(patch.object(self.nf, "set_medium", self.set_medium))
+        self.enter_context(patch.object(dyn, "link_up", lambda net: None))
         # serve() blocks in wait_detached() after the medium is in; the tests drive plug cycles
         self.enter_context(patch.object(self.nf, "wait_detached", lambda: None))
         return self
@@ -206,6 +207,19 @@ class DetachTests(unittest.TestCase):
             fx.nf.bind("rndis", False)
             self.assertEqual(fx.events[-1], ("bind", "rndis", False))
 
+    def test_host_gone_ejects_the_medium_even_when_the_layout_stays(self):
+        """No landing page: the final RNDIS layout is the probe layout, but the drive must go."""
+        host = Host(talks=["rndis"])
+        with Fixture(host) as fx:
+            fx.nf.bind("rndis", False)
+            fx.nf.wait_configured()
+            self.assertEqual(fx.nf.serve(), "detached")
+            self.assertEqual(fx.events[-1], ("medium", True))
+            host.plugged = False
+            fx.nf.host_gone()
+            self.assertEqual(fx.events[-1], ("medium", False))
+            self.assertEqual(len([e for e in fx.events if e[0] == "bind"]), 1)
+
     def test_switch_reports_missing_host(self):
         host = Host(configures=())
         with Fixture(host) as fx:
@@ -259,7 +273,9 @@ class ConfigfsTests(unittest.TestCase):
 
         with patch.object(dyn, "G", str(g)), patch.object(dyn, "LANDING_PAGE", URL), patch.object(
             dyn, "WINUSB_FUNCTION", winusb
-        ), patch.object(dyn, "write", write), patch.object(dyn, "rx_packets", lambda net: 0):
+        ), patch.object(dyn, "write", write), patch.object(dyn, "rx_packets", lambda net: 0), patch.object(
+            dyn, "link_up", lambda net: None
+        ):
             nf.bind(net, url_visible)
         return nf, writes
 
@@ -309,12 +325,27 @@ class ConfigfsTests(unittest.TestCase):
             self.assertEqual(len(attempts), 2)
             self.assertEqual(self.links(g), ["mass_storage.usb0", "rndis.usb0"])
 
+    def test_bind_retries_without_winusb_on_ebusy_too(self):
+        """6.8 reports a failed composite bind through driver_register() as EBUSY."""
+        with tempfile.TemporaryDirectory() as tmp:
+            g = self.make_tree(tmp)
+            attempts = []
+
+            def udc(value):
+                attempts.append(value)
+                if len(attempts) == 1:
+                    raise OSError(dyn.errno.EBUSY, "device or resource busy")
+
+            self.bind(g, "rndis", False, udc_writes=udc)
+            self.assertEqual(len(attempts), 2)
+            self.assertEqual(self.links(g), ["mass_storage.usb0", "rndis.usb0"])
+
     def test_other_bind_errors_propagate(self):
         with tempfile.TemporaryDirectory() as tmp:
             g = self.make_tree(tmp)
 
             def udc(_value):
-                raise OSError(dyn.errno.EBUSY, "busy")
+                raise OSError(dyn.errno.EINVAL, "invalid")
 
             with self.assertRaises(OSError):
                 self.bind(g, "rndis", False, udc_writes=udc)
