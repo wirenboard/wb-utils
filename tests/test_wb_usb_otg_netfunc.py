@@ -82,6 +82,9 @@ class Fixture(contextlib.ExitStack):
         self.events.append(("bind", net, url_visible))
         self.nf.net, self.nf.url_visible = net, url_visible
         self.nf.rx0 = self.host.rx_packets(net)
+        # the host re-enumerates the new layout: the UDC state passes through "default"
+        self.nf.saw_reset = False
+        self.st.events = iter(["default", "configured"])
         return True
 
     def set_medium(self, inserted):
@@ -94,9 +97,9 @@ class SessionTests(unittest.TestCase):
     def session(self, fx):
         fx.nf.bind("rndis", False)
         fx.nf.wait_configured()
-        fx.nf.serve()
-        while fx.nf.attached() and fx.events[-1] != ("medium", True):
-            fx.nf.serve()
+        status = fx.nf.serve()
+        while status == "switched" and fx.events[-1] != ("medium", True):
+            status = fx.nf.serve()
         return fx.events
 
     def test_rndis_host_with_landing_page_gets_final_rndis_then_medium(self):
@@ -130,6 +133,17 @@ class SessionTests(unittest.TestCase):
             self.assertTrue(fx.nf.rndis_final)
             self.assertGreaterEqual(fx.st.now, dyn.PROBE_SECONDS + dyn.ECM_SECONDS)
 
+    def test_windows_without_ecm_driver_configures_ecm_but_never_activates_it(self):
+        """f_ecm raises the carrier only on SET_INTERFACE alt 1, which Windows never sends."""
+        host = Host(talks=[], configures=("rndis",))
+        with Fixture(host, landing_page=URL) as fx:
+            self.assertEqual(
+                self.session(fx),
+                [("bind", "rndis", False), ("bind", "ecm", True), ("bind", "rndis", True), ("medium", True)],
+            )
+            self.assertTrue(fx.nf.rndis_final)
+            self.assertLessEqual(fx.st.now, dyn.PROBE_SECONDS + dyn.ENUM_SECONDS + 5)
+
     def test_no_ecm_function_keeps_rndis(self):
         with Fixture(Host(), ecm="") as fx:
             self.assertEqual(self.session(fx), [("bind", "rndis", False), ("medium", True)])
@@ -146,8 +160,9 @@ class SessionTests(unittest.TestCase):
             self.assertEqual(fx.nf.net, "rndis")
 
     def test_suspend_does_not_consume_probe_budget(self):
-        with Fixture(Host(), events=["suspended"] * 40 + ["configured"], ecm="") as fx:
+        with Fixture(Host(), ecm="") as fx:
             fx.nf.bind("rndis", False)
+            fx.st.events = iter(["suspended"] * 40 + ["configured"])
             self.assertEqual(fx.nf.wait_evidence(dyn.PROBE_SECONDS, fx.nf.rndis_evidence), "silent")
             self.assertGreater(fx.st.now, 14)
 
@@ -193,9 +208,19 @@ class DetachTests(unittest.TestCase):
 
     def test_switch_reports_missing_host(self):
         host = Host(configures=())
-        with Fixture(host, events=["default"] * 100) as fx:
-            self.assertFalse(fx.nf.switch("ecm", False))
+        with Fixture(host) as fx:
+            fx.nf.bind("rndis", False)
+            fx.st.events = iter(["default"] * 100)  # unplugged: never configured again
+            self.assertEqual(fx.nf.switch("ecm", False), "gone")
             self.assertGreaterEqual(fx.st.now, dyn.ENUM_SECONDS)
+
+    def test_stale_configured_attribute_is_not_a_host(self):
+        """The state attribute is not updated on unbind: without a seen reset it proves nothing."""
+        host = Host(configures=())
+        with Fixture(host) as fx:
+            fx.nf.bind("ecm", False)
+            fx.st.events = iter([])  # stays "configured" from before the unbind
+            self.assertEqual(fx.nf.switch("ecm", False), "gone")
 
 
 class ConfigfsTests(unittest.TestCase):
@@ -294,10 +319,21 @@ class ConfigfsTests(unittest.TestCase):
             with self.assertRaises(OSError):
                 self.bind(g, "rndis", False, udc_writes=udc)
 
+    def test_medium_state_is_read_from_configfs_on_start(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            g = self.make_tree(tmp)
+            (g / "functions/mass_storage.usb0/lun.0/file").write_text("/img\n")
+            with patch.object(dyn, "G", str(g)):
+                nf = dyn.NetFunc("udc0", None)
+                self.assertTrue(nf.medium)
+                nf.shutdown()
+                self.assertEqual((g / "functions/mass_storage.usb0/lun.0/file").read_text(), "")
+
     def test_medium_writes_only_on_change(self):
         with tempfile.TemporaryDirectory() as tmp:
             g = self.make_tree(tmp)
-            nf = dyn.NetFunc("udc0", None)
+            with patch.object(dyn, "G", str(g)):
+                nf = dyn.NetFunc("udc0", None)
             with patch.object(dyn, "G", str(g)), patch.object(dyn, "IMAGE_FILE", "/img"):
                 nf.set_medium(True)
                 nf.set_medium(True)

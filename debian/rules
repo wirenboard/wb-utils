@@ -4,7 +4,7 @@
 
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
-	python3 -m unittest discover -s tests
+	python3 -B -m unittest discover -s tests
 endif
 
 override_dh_installsystemd:

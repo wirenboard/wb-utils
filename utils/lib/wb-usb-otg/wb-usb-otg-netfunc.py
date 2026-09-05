@@ -26,20 +26,22 @@ about to disappear. Both gadget netdevs (dbg0 for RNDIS, dbge0 for ECM) are port
 dbgbr bridge that carries the NetworkManager shared connection, so switching functions
 does not re-activate the connection.
 
-Signals: /sys/class/udc/<udc>/state via poll(POLLPRI) (sysfs_notify; notifications may
-coalesce and the attribute is not updated on unbind, so it is only used to account for
-suspend and to wake up), and the carrier of the active function's netdev, which
-u_ether raises at SET_CONFIGURATION and drops on reset, disconnect and unbind. The
-carrier is the level that says "the host runs this layout". A host that neither
-reconfigures the gadget within DETACH_SECONDS after a reset is treated as unplugged and
-the probe layout is restored. On this hardware the state attribute shows "default" for
-both a reset and a cable pull.
+Signals: the carrier of the active function's netdev is the level that says "the host
+runs this layout": f_rndis raises it at SET_CONFIGURATION, f_ecm only when the host
+selects the data interface's alternate setting 1 (a host without an ECM driver, i.e.
+Windows, configures the device and never does), and u_ether drops it on reset,
+disconnect and unbind. /sys/class/udc/<udc>/state (poll(POLLPRI) on sysfs_notify) tells
+suspend from awake time and, having shown a non-configured value after our own bind,
+that a host configured a layout without activating it. It is not updated on unbind and
+on this hardware shows "default" for both a reset and a cable pull, so a layout that is
+not reconfigured within DETACH_SECONDS after the host left it counts as unplugged.
 """
 
 import errno
 import glob
 import os
 import select
+import signal
 import sys
 import time
 
@@ -159,7 +161,7 @@ class UdcState:
         return self.value == "configured"
 
 
-class NetFunc:
+class NetFunc:  # pylint: disable=too-many-instance-attributes  # the layout state is the point
     """One gadget, one host at a time."""
 
     def __init__(self, udc, st):
@@ -167,9 +169,11 @@ class NetFunc:
         self.st = st
         self.net = None  # active network function: "rndis" | "ecm"
         self.url_visible = False
-        self.medium = False
+        # A previous instance may have left the medium in: read the truth from configfs.
+        self.medium = bool(read(f"{G}/functions/{MSC_FUNCTION}/lun.0/file"))
         self.rndis_final = False  # ECM was tried and failed: stay on RNDIS until unplugged
         self.rx0 = 0  # rx_packets of the active netdev before the host configured us
+        self.saw_reset = False  # a non-configured UDC state was seen since the last bind
 
     # --- configfs -----------------------------------------------------------------
 
@@ -189,6 +193,11 @@ class NetFunc:
             if e.errno != errno.ENODEV:  # ENODEV: was not bound
                 raise
 
+    def shutdown(self):
+        """Take the gadget off the bus so that stopping the daemon is visible to the host."""
+        self.set_medium(False)
+        self.unbind()
+
     def bind(self, net, url_visible, with_winusb=True):
         """Relink c.1 as <net>(0-1) + mass_storage(2) [+ ffs(3)], set the landing page, bind.
 
@@ -197,6 +206,7 @@ class NetFunc:
         """
         self.set_medium(False)
         self.unbind()
+        self.saw_reset = False
         if os.path.exists(f"{G}/webusb/landingPage"):
             # The trailing newline makes configfs store an empty URL too; an empty URL
             # means iLandingPage=0 while the WebUSB capability and bcdUSB stay.
@@ -244,7 +254,18 @@ class NetFunc:
             # Snapshot before SET_CONFIGURATION: the first packet may arrive before we wake up.
             self.rx0 = rx_packets(self.net)
             self.st.wait(POLL)
+            if not self.st.awake():
+                self.saw_reset = True
         return True
+
+    def configured_without_carrier(self):
+        """The host enumerated the layout but did not activate the network interface.
+
+        Only CDC ECM behaves like this (Windows has no ECM driver); the state attribute is
+        trusted here only after it has shown a non-configured value since our own bind,
+        because it is not updated on unbind.
+        """
+        return self.saw_reset and self.st.awake()
 
     def wait_evidence(self, seconds, evidence):
         """Wait up to `seconds` of awake time for evidence(); "evidence" | "silent" | "link event"."""
@@ -274,24 +295,31 @@ class NetFunc:
     def ecm_evidence(self):
         return rx_packets("ecm") > self.rx0
 
+    def ecm_failed(self):
+        log("back to RNDIS for good")
+        self.rndis_final = True
+        return self.switch("rndis", bool(LANDING_PAGE))
+
     def switch(self, net, url_visible):
-        """Re-enumerate; False when no host picked the new layout up (unplugged meanwhile)."""
+        """Re-enumerate; "switched" when a host runs the new layout, else "gone"."""
         self.bind(net, url_visible)
         if self.wait_configured(ENUM_SECONDS):
-            return True
+            return "switched"
+        if net == "ecm" and self.configured_without_carrier():
+            log("host configured CDC ECM but did not activate it (no driver)")
+            return self.ecm_failed()
         log(f"no host configured the {net} layout within {ENUM_SECONDS:.0f}s")
-        return False
+        return "gone"
 
     def serve(self):
-        """Handle one configured layout; returns when the host left it or after a switch."""
+        """Handle one configured layout: "switched" | "gone" | "detached" (host left it)."""
         if self.net == "rndis":
             verdict = self.wait_evidence(PROBE_SECONDS, self.rndis_evidence)
             if verdict == "evidence":
                 log("host talks RNDIS")
             elif verdict == "silent" and ECM_FUNCTION and not self.rndis_final:
                 log(f"no RNDIS evidence for {PROBE_SECONDS:.0f}s awake, trying CDC ECM")
-                self.switch("ecm", bool(LANDING_PAGE))
-                return
+                return self.switch("ecm", bool(LANDING_PAGE))
             elif verdict == "silent":
                 log(
                     "no RNDIS evidence, keeping RNDIS (no ECM to try)"
@@ -299,35 +327,38 @@ class NetFunc:
                     else "no RNDIS evidence, keeping RNDIS (ECM already failed)"
                 )
             else:
-                return
+                return "detached"
             if LANDING_PAGE and not self.url_visible:
-                self.switch("rndis", True)
-                return
+                return self.switch("rndis", True)
         else:
             verdict = self.wait_evidence(ECM_SECONDS, self.ecm_evidence)
             if verdict == "evidence":
                 log("host talks CDC ECM")
             elif verdict == "silent":
-                log(f"no traffic on CDC ECM for {ECM_SECONDS:.0f}s awake, back to RNDIS for good")
-                self.rndis_final = True
-                self.switch("rndis", bool(LANDING_PAGE))
-                return
+                log(f"no traffic on CDC ECM for {ECM_SECONDS:.0f}s awake")
+                return self.ecm_failed()
             else:
-                return
+                return "detached"
         self.set_medium(True)
         self.wait_detached()
+        return "detached"
+
+    def host_gone(self):
+        log("host gone, back to the RNDIS probe layout")
+        self.rndis_final = False
+        if self.net != "rndis" or self.url_visible:
+            self.bind("rndis", False)
 
     def run(self):
         self.bind("rndis", False)
         while True:
             self.wait_configured()
-            self.serve()
-            if self.attached() or self.wait_configured(DETACH_SECONDS):
-                continue  # bus reset or a layout switch: the same host is still there
-            log("host gone, back to the RNDIS probe layout")
-            self.rndis_final = False
-            if self.net != "rndis" or self.url_visible:
-                self.bind("rndis", False)
+            status = self.serve()
+            if status == "switched":
+                continue
+            if status == "detached" and self.wait_configured(DETACH_SECONDS):
+                continue  # bus reset (resume, driver restart): the same host is still there
+            self.host_gone()
 
 
 def main():
@@ -343,11 +374,15 @@ def main():
         f"rndis_state={rndis_state_file() or 'packets only'} "
         f"landing_page={'set' if LANDING_PAGE else 'none'}"
     )
+    nf = NetFunc(udc, st)
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     try:
-        NetFunc(udc, st).run()
+        nf.run()
     except OSError as e:
         log(f"configfs error: {e} ({e.filename})")
         return 1
+    finally:
+        nf.shutdown()
     return 0
 
 
