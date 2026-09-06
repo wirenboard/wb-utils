@@ -1,6 +1,8 @@
 [Unit]
 Description=USB Debug Network
 After=NetworkManager.service nginx.service
+# Binds the UDC and picks RNDIS or CDC ECM for the connected host
+Wants=wb-usb-otg-netfunc.service
 
 [Service]
 Type=oneshot

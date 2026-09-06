@@ -3,7 +3,7 @@ Maintainer: Wiren Board team <info@wirenboard.com>
 Section: misc
 Priority: optional
 Standards-Version: 4.5.1
-Build-Depends: debhelper-compat (= 13), mtools, j2cli
+Build-Depends: debhelper-compat (= 13), mtools, j2cli, python3
 Homepage: https://github.com/wirenboard/wb-utils
 
 Package: wb-utils
@@ -17,7 +17,7 @@ Depends: ${shlibs:Depends},
          nginx-extras,
          python3,
          python3-wb-common (>= 2.0.0~~),
-         wb-configs (>= 3.51.3~~),
+         wb-configs (>= 3.54.0~~),
          ppp,
          e2fsprogs,
          linux-image-wb6 (>= 5.10.35-wb108~~) | linux-image-wb7 (>= 5.10.35-wb130~~) | linux-image-wb8,
