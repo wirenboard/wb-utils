@@ -52,3 +52,29 @@ Windows сконфигурирует устройство, но не актив�
 active). `systemctl restart wb-usb-otg` возвращает всё вместе с диском. На ядре
 без `/proc/driver/rndis-*` (в журнале `rndis_state=packets only`) Linux-хост с
 NetworkManager всё равно остаётся на RNDIS.
+
+11. **WebUSB landing page (Windows и macOS; на Windows требует ядра с поддержкой msos20).**
+Настроить HTTPS в веб-интерфейсе контроллера (должен появиться
+`/var/lib/wb-homeui/nginx/https.conf`), перезапустить `wb-usb-otg`, подключить
+контроллер к компьютеру с Windows 10/11 и Chrome. В `chrome://usb-internals`
+найти "WB7 Debug Network", нажать Inspect и убедиться, что заполнено поле
+`WebUSB Landing Page: https://10-200-200-1.<серийник>.ip.wirenboard.com/`.
+Сетевой адаптер RNDIS и съёмный диск при этом работают как раньше — набор
+MS OS 2.0 описывает обе функции, и ошибка в нём ломает именно сеть. Windows и
+Linux видят одно дополнительное переподключение устройства сразу после
+определения драйвера: landing page публикуется только в финальной раскладке
+(в журнале `enumerating as rndis, landing page visible`). На Mac после п. 7 ссылка
+из уведомления открывает веб-интерфейс (`enumerating as ecm, landing page visible`).
+
+12. **Без HTTPS.** Убрать `/var/lib/wb-homeui/nginx/https.conf`, перезапустить
+`wb-usb-otg`. В журнале должно быть "HTTPS not configured, WebUSB landing page
+disabled", в журнале демона `landing page hidden`, лишнего переподключения нет,
+а диск и сеть работают как обычно.
+
+13. **Одно уведомление Chrome.** На Mac и на Windows с настроенным HTTPS при
+подключении Chrome показывает уведомление со ссылкой один раз, а не на каждое
+перечисление. Если уведомления нет совсем: на живом Windows это отклонение, при
+пробросе USB в виртуалку — известный артефакт QEMU-хаба
+(tmp/usburl/winusb/TESTPLAN.md). `systemctl stop wb-usb-otg-winusb` при
+подключённом контроллере: после следующего переподключения сеть и диск на месте,
+landing page на Windows нет (`bind with ffs.wbwinusb failed`, `retrying without it`).

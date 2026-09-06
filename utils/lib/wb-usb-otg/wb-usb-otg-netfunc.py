@@ -7,21 +7,24 @@ cannot be offered together. The H616 musb UDC has 4 IN + 4 OUT endpoints, so RND
 while a second USB configuration stops Windows from loading usbccgp for the composite
 device (no USB\\COMPOSITE id, the first interface class wins and binds usbser).
 
-How: the gadget enumerates as RNDIS + mass storage. A host with an RNDIS driver
-(Windows, Linux) completes the RNDIS handshake (RNDIS_MSG_INIT, visible in
-/proc/driver/rndis-NNN when the kernel has USB_GADGET_DEBUG_FILES) or sends packets
-(DHCP, ICMPv6) within about a second of SET_CONFIGURATION; a fresh Windows 11 install
-needs ~1.3 s. Without evidence for PROBE_SECONDS of awake time the gadget re-enumerates
-as CDC ECM; if the host stays silent there too for ECM_SECONDS (Linux without DHCP and
-IPv6), or configures the ECM layout without ever activating it (Windows, which has no
-ECM driver), it goes back to RNDIS and stays there, so the pre-existing behaviour is the
-worst case. The evidence check runs again after every re-configuration (bus reset,
-resume), so a host that stopped talking is not left on a dead function.
+How: the gadget enumerates as RNDIS + mass storage (+ WinUSB stub) with the WebUSB
+landing page hidden. A host with an RNDIS driver (Windows, Linux) completes the RNDIS
+handshake (RNDIS_MSG_INIT, visible in /proc/driver/rndis-NNN when the kernel has
+USB_GADGET_DEBUG_FILES) or sends packets (DHCP, ICMPv6) within about a second of
+SET_CONFIGURATION; a fresh Windows 11 install needs ~1.3 s. With evidence the layout is
+re-enumerated once more with the landing page visible (only when one is configured).
+Without evidence for PROBE_SECONDS of awake time the gadget re-enumerates as CDC ECM; if
+the host stays silent there too for ECM_SECONDS (Windows with a slow first driver install,
+Linux without DHCP and IPv6) it goes back to RNDIS and stays there, so the pre-existing
+behaviour is the worst case. The evidence check runs again after every re-configuration
+(bus reset, resume), so a host that stopped talking is not left on a dead function.
 
-The mass-storage medium is inserted only after the host has proven the layout works,
-so a macOS host never mounts a volume that is about to disappear. Both gadget netdevs
-(dbg0 for RNDIS, dbge0 for ECM) are ports of the dbgbr bridge that carries the
-NetworkManager shared connection, so switching functions does not re-activate it.
+The landing page is visible only in a final layout, so Chromium shows one notification
+per plug rather than one per enumeration; the mass-storage medium is inserted only after
+the host has proven the layout works, so a macOS host never mounts a volume that is
+about to disappear. Both gadget netdevs (dbg0 for RNDIS, dbge0 for ECM) are ports of the
+dbgbr bridge that carries the NetworkManager shared connection, so switching functions
+does not re-activate the connection.
 
 Signals: the carrier of the active function's netdev is the level that says "the host
 runs this layout": f_rndis raises it at SET_CONFIGURATION, f_ecm only when the host
@@ -48,8 +51,10 @@ import time
 G = os.environ.get("USBGADGET_CONFIG", "/sys/kernel/config/usb_gadget/g1")
 USBDEV = os.environ.get("USBDEV", "usb0")
 IMAGE_FILE = os.environ.get("IMAGE_FILE", "/usr/lib/wb-utils/wb-usb-otg/mass_storage.img")
+LANDING_PAGE = os.environ.get("LANDING_PAGE", "")
 # Functions the start script created; an empty value means "not available".
 ECM_FUNCTION = os.environ.get("ECM_FUNCTION", f"ecm.{USBDEV}")
+WINUSB_FUNCTION = os.environ.get("WINUSB_FUNCTION", "")
 RNDIS_FUNCTION = f"rndis.{USBDEV}"
 MSC_FUNCTION = f"mass_storage.{USBDEV}"
 NET_FUNCTIONS = {"rndis": RNDIS_FUNCTION, "ecm": ECM_FUNCTION}
@@ -166,13 +171,14 @@ class UdcState:
         return self.value == "configured"
 
 
-class NetFunc:
+class NetFunc:  # pylint: disable=too-many-instance-attributes  # the layout state is the point
     """One gadget, one host at a time."""
 
     def __init__(self, udc, st):
         self.udc = udc
         self.st = st
         self.net = None  # active network function: "rndis" | "ecm"
+        self.url_visible = False
         # A previous instance may have left the medium in: read the truth from configfs.
         self.medium = bool(read(f"{G}/functions/{MSC_FUNCTION}/lun.0/file"))
         self.rndis_final = False  # ECM was tried and failed: stay on RNDIS until unplugged
@@ -202,28 +208,49 @@ class NetFunc:
         self.set_medium(False)
         self.unbind()
 
-    def functions(self, net):
-        """Functions of a layout in interface order: <net>(0-1) + mass_storage(2)."""
-        return [NET_FUNCTIONS[net], MSC_FUNCTION]
+    def bind(self, net, url_visible, with_winusb=True):
+        """Relink c.1 as <net>(0-1) + mass_storage(2) [+ ffs(3)], set the landing page, bind.
 
-    def bind(self, net):
-        """Relink c.1 for the layout, set the MS OS descriptors accordingly, bind the UDC."""
+        The interface order must stay in sync with FFS_WINUSB_INTERFACE in
+        wb-usb-otg-common.sh: the MS OS 2.0 descriptor set names the WinUSB interface by number.
+        """
         self.set_medium(False)
         self.unbind()
         self.saw_reset = False
+        if os.path.exists(f"{G}/webusb/landingPage"):
+            # The trailing newline makes configfs store an empty URL too; an empty URL
+            # means iLandingPage=0 while the WebUSB capability and bcdUSB stay.
+            write(f"{G}/webusb/landingPage", (LANDING_PAGE if url_visible else "") + "\n")
         for fn in os.listdir(f"{G}/configs/c.1"):
             if os.path.islink(f"{G}/configs/c.1/{fn}"):
                 os.unlink(f"{G}/configs/c.1/{fn}")
-        for fn in self.functions(net):
+        functions = [NET_FUNCTIONS[net], MSC_FUNCTION]
+        if WINUSB_FUNCTION and with_winusb:
+            functions.append(WINUSB_FUNCTION)
+        for fn in functions:
             os.symlink(f"{G}/functions/{fn}", f"{G}/configs/c.1/{fn}")
-        # MS OS descriptors describe the RNDIS layout, and by them Windows would bind
-        # usbrndis6 to the ECM interface: do not offer them in ECM mode.
-        write(f"{G}/os_desc/use", "1" if net == "rndis" else "0")
-        write(f"{G}/UDC", self.udc)
-        self.net = net
+        # MS OS 1.0/2.0 descriptors describe the RNDIS layout, and by them Windows would
+        # bind usbrndis6 to the ECM interface: do not offer them in ECM mode.
+        ms = "1" if net == "rndis" else "0"
+        write(f"{G}/os_desc/use", ms)
+        if os.path.exists(f"{G}/msos20/use"):
+            write(f"{G}/msos20/use", ms)
+        try:
+            write(f"{G}/UDC", self.udc)
+        except OSError as e:
+            if e.errno in (errno.ENODEV, errno.EBUSY) and WINUSB_FUNCTION and with_winusb:
+                # FunctionFS without descriptors (wb-usb-otg-winusb.service died after
+                # creating the function): the network and the drive matter more. The
+                # kernel reports the bind failure as ENODEV (5.10) or, through
+                # driver_register(), as EBUSY (6.8); dmesg has the real errno.
+                log(f"bind with {WINUSB_FUNCTION} failed ({e}), retrying without it")
+                return self.bind(net, url_visible, with_winusb=False)
+            raise
+        self.net, self.url_visible = net, url_visible
         link_up(net)
         self.rx0 = rx_packets(net)
-        log(f"enumerating as {net}")
+        log(f"enumerating as {net}, landing page {'visible' if url_visible else 'hidden'}")
+        return True
 
     # --- waiting ------------------------------------------------------------------
 
@@ -284,11 +311,11 @@ class NetFunc:
     def ecm_failed(self):
         log("back to RNDIS for good")
         self.rndis_final = True
-        return self.switch("rndis")
+        return self.switch("rndis", bool(LANDING_PAGE))
 
-    def switch(self, net):
+    def switch(self, net, url_visible):
         """Re-enumerate; "switched" when a host runs the new layout, else "gone"."""
-        self.bind(net)
+        self.bind(net, url_visible)
         if self.wait_configured(ENUM_SECONDS):
             return "switched"
         if net == "ecm" and self.configured_without_carrier():
@@ -305,7 +332,7 @@ class NetFunc:
                 log("host talks RNDIS")
             elif verdict == "silent" and ECM_FUNCTION and not self.rndis_final:
                 log(f"no RNDIS evidence for {PROBE_SECONDS:.0f}s awake, trying CDC ECM")
-                return self.switch("ecm")
+                return self.switch("ecm", bool(LANDING_PAGE))
             elif verdict == "silent":
                 log(
                     "no RNDIS evidence, keeping RNDIS (no ECM to try)"
@@ -314,6 +341,8 @@ class NetFunc:
                 )
             else:
                 return "detached"
+            if LANDING_PAGE and not self.url_visible:
+                return self.switch("rndis", True)
         else:
             verdict = self.wait_evidence(ECM_SECONDS, self.ecm_evidence)
             if verdict == "evidence":
@@ -331,11 +360,11 @@ class NetFunc:
         log("host gone, back to the RNDIS probe layout")
         self.rndis_final = False
         self.set_medium(False)  # the next host must not see the drive before its verdict
-        if self.net != "rndis":
-            self.bind("rndis")
+        if self.net != "rndis" or self.url_visible:
+            self.bind("rndis", False)
 
     def run(self):
-        self.bind("rndis")
+        self.bind("rndis", False)
         while True:
             self.wait_configured()
             status = self.serve()
@@ -355,7 +384,9 @@ def main():
     st = UdcState(f"/sys/class/udc/{udc}/state")
     log(
         f"udc={udc} probe={PROBE_SECONDS:.0f}s ecm={'yes' if ECM_FUNCTION else 'no'} "
-        f"rndis_state={rndis_state_file() or 'packets only'}"
+        f"winusb={'yes' if WINUSB_FUNCTION else 'no'} "
+        f"rndis_state={rndis_state_file() or 'packets only'} "
+        f"landing_page={'set' if LANDING_PAGE else 'none'}"
     )
     nf = NetFunc(udc, st)
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))

@@ -17,6 +17,8 @@ spec = importlib.util.spec_from_file_location(
 dyn = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(dyn)
 
+URL = "https://10-200-200-1.abcdef.ip.wirenboard.com/"
+
 
 class FakeState:
     """UDC state attribute driven by a script; wait() advances a fake clock."""
@@ -39,7 +41,7 @@ class Host:
 
     def __init__(self, talks=(), configures=("rndis", "ecm")):
         self.talks = set(talks)  # net functions the host sends packets on
-        self.configures = set(configures)  # layouts the host activates (carrier up)
+        self.configures = set(configures)  # layouts the host completes SET_CONFIGURATION for
         self.rx = {"rndis": 0, "ecm": 0}
         self.plugged = True
 
@@ -55,34 +57,36 @@ class Host:
 class Fixture(contextlib.ExitStack):
     """NetFunc with configfs, netdev and clock replaced; records binds and medium changes."""
 
-    def __init__(self, host, ecm="ecm.usb0", handshake=False):
+    def __init__(self, host, events=(), landing_page="", ecm="ecm.usb0", handshake=False):
         super().__init__()
         self.host, self.events = host, []
-        self.st = FakeState()
+        self.st = FakeState(events)
         self.nf = dyn.NetFunc("udc0", self.st)
-        self.ecm, self.handshake = ecm, handshake
+        self.landing_page, self.ecm, self.handshake = landing_page, ecm, handshake
 
     def __enter__(self):
         super().__enter__()
+        self.enter_context(patch.object(dyn, "LANDING_PAGE", self.landing_page))
         self.enter_context(patch.object(dyn, "ECM_FUNCTION", self.ecm))
         self.enter_context(patch.object(dyn, "carrier", self.host.carrier))
         self.enter_context(patch.object(dyn, "rx_packets", self.host.rx_packets))
         self.enter_context(patch.object(dyn, "rndis_initialized", lambda: self.handshake))
-        self.enter_context(patch.object(dyn, "link_up", lambda net: None))
         self.enter_context(patch.object(dyn.time, "monotonic", lambda: self.st.now))
         self.enter_context(patch.object(self.nf, "bind", self.bind))
         self.enter_context(patch.object(self.nf, "set_medium", self.set_medium))
+        self.enter_context(patch.object(dyn, "link_up", lambda net: None))
         # serve() blocks in wait_detached() after the medium is in; the tests drive plug cycles
         self.enter_context(patch.object(self.nf, "wait_detached", lambda: None))
         return self
 
-    def bind(self, net):
-        self.events.append(("bind", net))
-        self.nf.net = net
+    def bind(self, net, url_visible, with_winusb=True):
+        self.events.append(("bind", net, url_visible))
+        self.nf.net, self.nf.url_visible = net, url_visible
         self.nf.rx0 = self.host.rx_packets(net)
         # the host re-enumerates the new layout: the UDC state passes through "default"
         self.nf.saw_reset = False
         self.st.events = iter(["default", "configured"])
+        return True
 
     def set_medium(self, inserted):
         self.events.append(("medium", inserted))
@@ -92,50 +96,63 @@ class SessionTests(unittest.TestCase):
     """One plug: probe layout -> verdict -> final layout -> medium."""
 
     def session(self, fx):
-        fx.nf.bind("rndis")
+        fx.nf.bind("rndis", False)
         fx.nf.wait_configured()
         status = fx.nf.serve()
         while status == "switched" and fx.events[-1] != ("medium", True):
             status = fx.nf.serve()
         return fx.events
 
-    def test_rndis_host_keeps_rndis_and_gets_the_medium(self):
+    def test_rndis_host_with_landing_page_gets_final_rndis_then_medium(self):
+        with Fixture(Host(talks=["rndis"]), landing_page=URL) as fx:
+            self.assertEqual(
+                self.session(fx),
+                [("bind", "rndis", False), ("bind", "rndis", True), ("medium", True)],
+            )
+
+    def test_rndis_host_without_landing_page_needs_no_second_enumeration(self):
         with Fixture(Host(talks=["rndis"])) as fx:
-            self.assertEqual(self.session(fx), [("bind", "rndis"), ("medium", True)])
+            self.assertEqual(self.session(fx), [("bind", "rndis", False), ("medium", True)])
 
     def test_handshake_alone_is_evidence(self):
         with Fixture(Host(), handshake=True) as fx:
-            self.assertEqual(self.session(fx), [("bind", "rndis"), ("medium", True)])
+            self.assertEqual(self.session(fx), [("bind", "rndis", False), ("medium", True)])
 
-    def test_silent_host_gets_ecm_and_the_medium_after_traffic(self):
-        with Fixture(Host(talks=["ecm"])) as fx:
-            self.assertEqual(self.session(fx), [("bind", "rndis"), ("bind", "ecm"), ("medium", True)])
+    def test_silent_host_gets_ecm_with_landing_page_and_medium_after_traffic(self):
+        with Fixture(Host(talks=["ecm"]), landing_page=URL) as fx:
+            self.assertEqual(
+                self.session(fx),
+                [("bind", "rndis", False), ("bind", "ecm", True), ("medium", True)],
+            )
 
     def test_host_silent_on_both_ends_on_rndis_for_good(self):
-        with Fixture(Host()) as fx:
+        with Fixture(Host(), landing_page=URL) as fx:
             self.assertEqual(
-                self.session(fx), [("bind", "rndis"), ("bind", "ecm"), ("bind", "rndis"), ("medium", True)]
+                self.session(fx),
+                [("bind", "rndis", False), ("bind", "ecm", True), ("bind", "rndis", True), ("medium", True)],
             )
             self.assertTrue(fx.nf.rndis_final)
             self.assertGreaterEqual(fx.st.now, dyn.PROBE_SECONDS + dyn.ECM_SECONDS)
 
     def test_windows_without_ecm_driver_configures_ecm_but_never_activates_it(self):
         """f_ecm raises the carrier only on SET_INTERFACE alt 1, which Windows never sends."""
-        with Fixture(Host(talks=[], configures=("rndis",))) as fx:
+        host = Host(talks=[], configures=("rndis",))
+        with Fixture(host, landing_page=URL) as fx:
             self.assertEqual(
-                self.session(fx), [("bind", "rndis"), ("bind", "ecm"), ("bind", "rndis"), ("medium", True)]
+                self.session(fx),
+                [("bind", "rndis", False), ("bind", "ecm", True), ("bind", "rndis", True), ("medium", True)],
             )
             self.assertTrue(fx.nf.rndis_final)
             self.assertLessEqual(fx.st.now, dyn.PROBE_SECONDS + dyn.ENUM_SECONDS + 5)
 
     def test_no_ecm_function_keeps_rndis(self):
         with Fixture(Host(), ecm="") as fx:
-            self.assertEqual(self.session(fx), [("bind", "rndis"), ("medium", True)])
+            self.assertEqual(self.session(fx), [("bind", "rndis", False), ("medium", True)])
 
     def test_slow_windows_recovers_after_ecm_detour(self):
         """RNDIS driver comes up only after the ECM detour: RNDIS stays and the medium follows."""
-        host = Host(talks=[], configures=("rndis",))
-        with Fixture(host) as fx:
+        host = Host(talks=[])
+        with Fixture(host, landing_page=URL) as fx:
             self.session(fx)  # ends on RNDIS for good, host still silent
             binds = len(fx.events)
             host.talks.add("rndis")
@@ -145,7 +162,7 @@ class SessionTests(unittest.TestCase):
 
     def test_suspend_does_not_consume_probe_budget(self):
         with Fixture(Host(), ecm="") as fx:
-            fx.nf.bind("rndis")
+            fx.nf.bind("rndis", False)
             fx.st.events = iter(["suspended"] * 40 + ["configured"])
             self.assertEqual(fx.nf.wait_evidence(dyn.PROBE_SECONDS, fx.nf.rndis_evidence), "silent")
             self.assertGreater(fx.st.now, 14)
@@ -153,7 +170,7 @@ class SessionTests(unittest.TestCase):
     def test_unplug_during_probe_is_a_link_event(self):
         host = Host()
         with Fixture(host) as fx:
-            fx.nf.bind("rndis")
+            fx.nf.bind("rndis", False)
 
             def unplug(_timeout):
                 host.plugged = False
@@ -163,30 +180,38 @@ class SessionTests(unittest.TestCase):
 
 
 class DetachTests(unittest.TestCase):
-    def test_reset_keeps_final_layout_and_unplug_is_detected_by_timeout(self):
+    def test_reset_keeps_final_layout_and_unplug_restores_probe_layout(self):
         host = Host(talks=["rndis"])
-        with Fixture(host) as fx:
-            fx.nf.bind("rndis")
+        with Fixture(host, landing_page=URL) as fx:
+            fx.nf.bind("rndis", True)
             fx.nf.rndis_final = True
             # bus reset: carrier drops and comes back before DETACH_SECONDS
             host.plugged = False
+            fx.st.events = iter(["default"])
+            calls = []
 
             def wait(timeout):
+                calls.append(timeout)
                 fx.st.now += timeout
                 host.plugged = True  # host reconfigured
 
             fx.st.wait = wait
             self.assertTrue(fx.nf.wait_configured(dyn.DETACH_SECONDS))
-            self.assertEqual(fx.events, [("bind", "rndis")])
+            self.assertEqual(fx.events, [("bind", "rndis", True)])
             # unplug: nothing reconfigures within DETACH_SECONDS
             host.plugged = False
             fx.st.wait = lambda timeout: setattr(fx.st, "now", fx.st.now + timeout)
             self.assertFalse(fx.nf.wait_configured(dyn.DETACH_SECONDS))
+            # run() then restores the probe layout and forgets the ECM failure
+            fx.nf.rndis_final = False
+            fx.nf.bind("rndis", False)
+            self.assertEqual(fx.events[-1], ("bind", "rndis", False))
 
     def test_host_gone_ejects_the_medium_even_when_the_layout_stays(self):
+        """No landing page: the final RNDIS layout is the probe layout, but the drive must go."""
         host = Host(talks=["rndis"])
         with Fixture(host) as fx:
-            fx.nf.bind("rndis")
+            fx.nf.bind("rndis", False)
             fx.nf.wait_configured()
             self.assertEqual(fx.nf.serve(), "detached")
             self.assertEqual(fx.events[-1], ("medium", True))
@@ -194,35 +219,30 @@ class DetachTests(unittest.TestCase):
             fx.nf.host_gone()
             self.assertEqual(fx.events[-1], ("medium", False))
             self.assertEqual(len([e for e in fx.events if e[0] == "bind"]), 1)
-            self.assertFalse(fx.nf.rndis_final)
-
-    def test_host_gone_from_ecm_restores_the_probe_layout(self):
-        with Fixture(Host(talks=["ecm"])) as fx:
-            fx.nf.bind("ecm")
-            fx.nf.host_gone()
-            self.assertEqual(fx.events[-1], ("bind", "rndis"))
 
     def test_switch_reports_missing_host(self):
-        with Fixture(Host(configures=())) as fx:
-            fx.nf.bind("rndis")
+        host = Host(configures=())
+        with Fixture(host) as fx:
+            fx.nf.bind("rndis", False)
             fx.st.events = iter(["default"] * 100)  # unplugged: never configured again
-            self.assertEqual(fx.nf.switch("ecm"), "gone")
+            self.assertEqual(fx.nf.switch("ecm", False), "gone")
             self.assertGreaterEqual(fx.st.now, dyn.ENUM_SECONDS)
 
     def test_stale_configured_attribute_is_not_a_host(self):
         """The state attribute is not updated on unbind: without a seen reset it proves nothing."""
-        with Fixture(Host(configures=())) as fx:
-            fx.nf.bind("ecm")
+        host = Host(configures=())
+        with Fixture(host) as fx:
+            fx.nf.bind("ecm", False)
             fx.st.events = iter([])  # stays "configured" from before the unbind
-            self.assertEqual(fx.nf.switch("ecm"), "gone")
+            self.assertEqual(fx.nf.switch("ecm", False), "gone")
 
 
 class ConfigfsTests(unittest.TestCase):
     """bind() against a temporary configfs-like tree."""
 
-    def make_tree(self, tmp):
+    def make_tree(self, tmp, winusb=True):
         g = Path(tmp) / "g1"
-        for fn in ("rndis.usb0", "ecm.usb0", "mass_storage.usb0"):
+        for fn in ("rndis.usb0", "ecm.usb0", "mass_storage.usb0", "ffs.wbwinusb"):
             (g / "functions" / fn).mkdir(parents=True)
         (g / "functions/mass_storage.usb0/lun.0").mkdir()
         (g / "functions/mass_storage.usb0/lun.0/file").write_text("")
@@ -232,12 +252,15 @@ class ConfigfsTests(unittest.TestCase):
         (g / "configs/c.1/rndis.usb0").symlink_to(g / "functions/rndis.usb0")  # stale link
         (g / "os_desc").mkdir()
         (g / "os_desc/use").write_text("1")
+        (g / "msos20").mkdir()
+        (g / "msos20/use").write_text("1")
+        (g / "webusb").mkdir()
+        (g / "webusb/landingPage").write_text("")
         (g / "UDC").write_text("")
         return g
 
-    def bind(self, g, net, udc_writes=None):
-        with patch.object(dyn, "G", str(g)):
-            nf = dyn.NetFunc("udc0", None)
+    def bind(self, g, net, url_visible, winusb="ffs.wbwinusb", udc_writes=None):
+        nf = dyn.NetFunc("udc0", None)
         nf.medium = True  # a previous layout had the medium in: bind() must eject it first
         real_write = dyn.write
         writes = []
@@ -248,10 +271,12 @@ class ConfigfsTests(unittest.TestCase):
                 udc_writes(value)
             real_write(path, value)
 
-        with patch.object(dyn, "G", str(g)), patch.object(dyn, "write", write), patch.object(
-            dyn, "rx_packets", lambda net: 0
-        ), patch.object(dyn, "link_up", lambda net: None):
-            nf.bind(net)
+        with patch.object(dyn, "G", str(g)), patch.object(dyn, "LANDING_PAGE", URL), patch.object(
+            dyn, "WINUSB_FUNCTION", winusb
+        ), patch.object(dyn, "write", write), patch.object(dyn, "rx_packets", lambda net: 0), patch.object(
+            dyn, "link_up", lambda net: None
+        ):
+            nf.bind(net, url_visible)
         return nf, writes
 
     def links(self, g):
@@ -260,32 +285,70 @@ class ConfigfsTests(unittest.TestCase):
     def test_ecm_layout_links_and_flags(self):
         with tempfile.TemporaryDirectory() as tmp:
             g = self.make_tree(tmp)
-            nf, writes = self.bind(g, "ecm")
-            self.assertEqual(self.links(g), ["ecm.usb0", "mass_storage.usb0"])
+            nf, writes = self.bind(g, "ecm", True)
+            self.assertEqual(self.links(g), ["ecm.usb0", "ffs.wbwinusb", "mass_storage.usb0"])
             self.assertEqual((g / "os_desc/use").read_text(), "0")
+            self.assertEqual((g / "msos20/use").read_text(), "0")
+            self.assertEqual((g / "webusb/landingPage").read_text(), URL + "\n")
             self.assertEqual((g / "UDC").read_text(), "udc0")
             # medium out and UDC unbound before relinking, UDC bound last
             self.assertEqual(writes[0], ("functions/mass_storage.usb0/lun.0/file", ""))
             self.assertEqual(writes[1], ("UDC", ""))
             self.assertEqual(writes[-1], ("UDC", "udc0"))
-            self.assertEqual(nf.net, "ecm")
+            self.assertEqual((nf.net, nf.url_visible), ("ecm", True))
 
-    def test_rndis_layout_keeps_ms_os_descriptors(self):
+    def test_rndis_probe_layout_hides_url_and_keeps_ms_os(self):
         with tempfile.TemporaryDirectory() as tmp:
             g = self.make_tree(tmp)
-            self.bind(g, "rndis")
-            self.assertEqual(self.links(g), ["mass_storage.usb0", "rndis.usb0"])
+            self.bind(g, "rndis", False)
+            self.assertEqual(self.links(g), ["ffs.wbwinusb", "mass_storage.usb0", "rndis.usb0"])
             self.assertEqual((g / "os_desc/use").read_text(), "1")
+            self.assertEqual((g / "webusb/landingPage").read_text(), "\n")
 
-    def test_bind_errors_propagate(self):
+    def test_layout_without_winusb_function(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            g = self.make_tree(tmp)
+            self.bind(g, "rndis", False, winusb="")
+            self.assertEqual(self.links(g), ["mass_storage.usb0", "rndis.usb0"])
+
+    def test_bind_retries_without_winusb_on_enodev(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            g = self.make_tree(tmp)
+            attempts = []
+
+            def udc(value):
+                attempts.append(value)
+                if len(attempts) == 1:
+                    raise OSError(dyn.errno.ENODEV, "functionfs not ready")
+
+            self.bind(g, "rndis", False, udc_writes=udc)
+            self.assertEqual(len(attempts), 2)
+            self.assertEqual(self.links(g), ["mass_storage.usb0", "rndis.usb0"])
+
+    def test_bind_retries_without_winusb_on_ebusy_too(self):
+        """6.8 reports a failed composite bind through driver_register() as EBUSY."""
+        with tempfile.TemporaryDirectory() as tmp:
+            g = self.make_tree(tmp)
+            attempts = []
+
+            def udc(value):
+                attempts.append(value)
+                if len(attempts) == 1:
+                    raise OSError(dyn.errno.EBUSY, "device or resource busy")
+
+            self.bind(g, "rndis", False, udc_writes=udc)
+            self.assertEqual(len(attempts), 2)
+            self.assertEqual(self.links(g), ["mass_storage.usb0", "rndis.usb0"])
+
+    def test_other_bind_errors_propagate(self):
         with tempfile.TemporaryDirectory() as tmp:
             g = self.make_tree(tmp)
 
             def udc(_value):
-                raise OSError(dyn.errno.EBUSY, "busy")
+                raise OSError(dyn.errno.EINVAL, "invalid")
 
             with self.assertRaises(OSError):
-                self.bind(g, "rndis", udc_writes=udc)
+                self.bind(g, "rndis", False, udc_writes=udc)
 
     def test_medium_state_is_read_from_configfs_on_start(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -300,8 +363,9 @@ class ConfigfsTests(unittest.TestCase):
     def test_medium_writes_only_on_change(self):
         with tempfile.TemporaryDirectory() as tmp:
             g = self.make_tree(tmp)
-            with patch.object(dyn, "G", str(g)), patch.object(dyn, "IMAGE_FILE", "/img"):
+            with patch.object(dyn, "G", str(g)):
                 nf = dyn.NetFunc("udc0", None)
+            with patch.object(dyn, "G", str(g)), patch.object(dyn, "IMAGE_FILE", "/img"):
                 nf.set_medium(True)
                 nf.set_medium(True)
                 self.assertEqual((g / "functions/mass_storage.usb0/lun.0/file").read_text(), "/img")
