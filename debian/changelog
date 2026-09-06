@@ -1,3 +1,16 @@
+wb-utils (4.28.8) stable; urgency=medium
+
+  * wb-usb-otg: announce a WebUSB landing page pointing at the controller web
+    interface when wb-mqtt-homeui has configured HTTPS; the page is advertised
+    only once the host has proven the network function (one Chromium
+    notification per plug, and the link works on macOS too)
+  * wb-usb-otg: add an endpoint-less vendor interface bound to WinUSB and the
+    matching MS OS 2.0 descriptor set, without which Windows gives the function
+    no device path and a browser cannot read the landing page; a stub whose
+    service died is dropped from the layout instead of blocking the bind
+
+ -- Evgeny Boger <boger@wirenboard.com>  Sun, 06 Sep 2026 12:38:17 +0300
+
 wb-utils (4.28.7) stable; urgency=medium
 
   * wb-usb-otg: make the Debug Network usable from macOS: a new
