@@ -1,3 +1,9 @@
+wb-utils (4.28.7) stable; urgency=medium
+
+  * Avoid /dev/fd dependency when checking FIT compatibility
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Fri, 25 Sep 2026 16:20:00 +0400
+
 wb-utils (4.28.6) stable; urgency=medium
 
   * wb-gsm: wait for modem to report OFF before switching off power FET
