@@ -1227,14 +1227,24 @@ log_mass_update() {
 fw_has_proper_dtb() {
     local EMMC=${EMMC:-/dev/mmcblk0}
     local TMPFILE=$(mktemp)
+    local tar_stderr
+    local grep_status
     # creating empty DTB to apply overlay to
     echo "/dts-v1/; / { wirenboard {}; };" | dtc -I dts -O dtb -o "$TMPFILE"
     dtb_name=$(dd "if=$EMMC" bs=512 skip=2016 count=32 | fdtoverlay -i "$TMPFILE" -o - - | fdtget -t s - /wirenboard factory-fdt)
     rm -f "$TMPFILE"
 
+    tar_stderr=$(mktemp) || return 1
+
     # grep exits on the first match (-q -m1), breaking the pipe; silence the
     # resulting "tar: stdout: write error" (EPIPE) since the check still succeeds
-fit_blob_data rootfs | LC_ALL=C tar tz 2> >(grep -v -F 'tar: stdout: write error' >&2) | grep -q -m1 -F "$dtb_name"
+    fit_blob_data rootfs | LC_ALL=C tar tz 2>"$tar_stderr" | grep -q -m1 -F "$dtb_name"
+    grep_status=$?
+
+    grep -v -F 'tar: stdout: write error' "$tar_stderr" >&2 || true
+    rm -f "$tar_stderr"
+
+    return "$grep_status"
 }
 
 check_firmware_compatible() {
