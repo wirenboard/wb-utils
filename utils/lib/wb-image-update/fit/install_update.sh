@@ -829,7 +829,7 @@ get_installed_debian_version() {
     if disk_layout_is_ab; then
         actual_rootfs=${ROOTDEV}p${PREVIOUS_PART}
     else
-        actual_rootfs=$ROOTFS1_PART
+        actual_rootfs=$EXT_ROOTFS_PART
     fi
     local MNT
     MNT=$(mktemp -d)
