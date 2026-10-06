@@ -1303,6 +1303,9 @@ maybe_factory_reset() {
 
 #---------------------------------------- main ----------------------------------------
 
+# unit tests source this file for its functions only
+[ -z "$INSTALL_UPDATE_FUNCTIONS_ONLY" ] || return 0
+
 maybe_fix_uboot_dynamic_env $ROOTDEV
 prepare_env
 

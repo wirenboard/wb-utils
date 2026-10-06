@@ -1,3 +1,9 @@
+wb-utils (4.29.2) stable; urgency=medium
+
+  * Add unit tests for install_update.sh (bats), run on package build
+
+ -- Ekaterina Volkova <ekaterina.volkova@wirenboard.com>  Thu, 29 Oct 2026 14:00:00 +0300
+
 wb-utils (4.29.1) stable; urgency=medium
 
   * wb-image-update: save U-Boot ENV backup made by u-boot-install-wb on

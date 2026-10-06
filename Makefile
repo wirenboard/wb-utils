@@ -78,6 +78,9 @@ install: build_mass_storage
 clean:
 	rm -f $(MASS_STORAGE_FNAME)
 
-.PHONY: install clean all
+test:
+	bats tests/
+
+.PHONY: install clean all test
 
 # run "debuild" in chroot to make deb package
