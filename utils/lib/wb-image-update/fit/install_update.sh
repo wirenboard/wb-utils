@@ -826,19 +826,23 @@ get_update_debian_version() {
 }
 
 get_installed_debian_version() {
-    actual_rootfs=${ROOTDEV}p${PREVIOUS_PART}
+    if disk_layout_is_ab; then
+        actual_rootfs=${ROOTDEV}p${PREVIOUS_PART}
+    else
+        actual_rootfs=$EXT_ROOTFS_PART
+    fi
     local MNT
     MNT=$(mktemp -d)
 
     if flag_set from-initramfs ; then
         if [[ -e "$actual_rootfs" ]]; then
             info "Temporarily mount actual rootfs $actual_rootfs to check previous OS release"
-            if mount -t ext4 "$actual_rootfs" "$MNT" >/dev/null 2>&1 ; then
+            if mount -t ext4 -o ro "$actual_rootfs" "$MNT" >/dev/null 2>&1 ; then
                 sync
                 # shellcheck source=/dev/null
                 source "$MNT/etc/os-release"
                 echo "$VERSION_CODENAME"
-                umount -f "$actual_rootfs" >/dev/null 2>&1 || true
+                umount "$MNT" >/dev/null 2>&1 || true
             else
                 info "Failed to mount rootfs from $actual_rootfs, skipping release check"
                 echo "unknown"
