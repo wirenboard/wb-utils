@@ -826,19 +826,23 @@ get_update_debian_version() {
 }
 
 get_installed_debian_version() {
-    actual_rootfs=${ROOTDEV}p${PREVIOUS_PART}
+    if disk_layout_is_ab; then
+        actual_rootfs=${ROOTDEV}p${PREVIOUS_PART}
+    else
+        actual_rootfs=$EXT_ROOTFS_PART
+    fi
     local MNT
     MNT=$(mktemp -d)
 
     if flag_set from-initramfs ; then
         if [[ -e "$actual_rootfs" ]]; then
             info "Temporarily mount actual rootfs $actual_rootfs to check previous OS release"
-            if mount -t ext4 "$actual_rootfs" "$MNT" >/dev/null 2>&1 ; then
+            if mount -t ext4 -o ro "$actual_rootfs" "$MNT" >/dev/null 2>&1 ; then
                 sync
                 # shellcheck source=/dev/null
                 source "$MNT/etc/os-release"
                 echo "$VERSION_CODENAME"
-                umount -f "$actual_rootfs" >/dev/null 2>&1 || true
+                umount "$MNT" >/dev/null 2>&1 || true
             else
                 info "Failed to mount rootfs from $actual_rootfs, skipping release check"
                 echo "unknown"
@@ -851,12 +855,39 @@ get_installed_debian_version() {
     fi
 }
 
+get_release_version() {
+    case "$1" in
+        stretch)  echo 9 ;;
+        bullseye) echo 11 ;;
+        trixie)   echo 13 ;;
+        *)
+            echo "Unknown Debian release: $1" >&2
+            return 1
+            ;;
+    esac
+}
+
 ensure_no_downgrade() {
+    local actual
+    local upcoming
+    local actual_version
+    local upcoming_version
+
     actual=$(get_installed_debian_version)
     upcoming=$(get_update_debian_version)
 
-    info "Debian: $actual -> $upcoming"
-    if [ "$actual" = "bullseye" ] && [ "$upcoming" = "stretch" ]; then
+    if ! actual_version=$(get_release_version "$actual"); then
+        info "WARNING: Unable to resolve installed Debian release '$actual', skipping downgrade check"
+        return
+    fi
+
+    if ! upcoming_version=$(get_release_version "$upcoming"); then
+        info "WARNING: Unable to resolve update Debian release '$upcoming', skipping downgrade check"
+        return
+    fi
+
+    info "Debian: $actual ($actual_version) -> $upcoming ($upcoming_version)"
+    if [ "$upcoming_version" -lt "$actual_version" ]; then
         if ! flag_set factoryreset; then
             message=(
                 ""

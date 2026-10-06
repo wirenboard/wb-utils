@@ -1,3 +1,10 @@
+wb-utils (4.27.8-wb101) stable; urgency=medium
+
+  * Don't allow rollback from trixie to bullseye without factoryreset
+  * Fix Debian downgrade check on single and extended rootfs layouts
+
+ -- Ekaterina Volkova <ekaterina.volkova@wirenboard.com>  Tue, 06 Oct 2026 15:07:26 +0300
+
 wb-utils (4.27.8-wb100) stable; urgency=medium
 
   * Don't wipe /mnt/data during upgrade with fit-image
