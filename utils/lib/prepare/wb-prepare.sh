@@ -14,7 +14,7 @@ WB_DIR="/var/lib/wirenboard"
 SERIAL="$WB_DIR/serial.conf"
 SHORT_SN_FNAME="$WB_DIR/short_sn.conf"
 
-WB_HOSTNAME_PREFIX="${WB_HOSTNAME_PREFIX:-wirenboard}"
+WB_HOSTNAME_PREFIX="${WB_HOSTNAME_PREFIX:-oni}"
 
 FIRSTBOOT_NEED_REBOOT=false
 

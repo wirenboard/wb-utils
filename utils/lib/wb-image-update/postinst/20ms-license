@@ -1,0 +1,25 @@
+#!/bin/sh -e
+# Restore MasterSCADA license key from hiddenfs
+
+ROOTFS="$1"
+
+HIDDENFS_PART=/dev/mmcblk0p1
+HIDDENFS_OFFSET=$((8192*512))  # 8192 blocks of 512 bytes
+LICENSE_NAME="mplc.key"
+ROOTFS_LICENSE_PATH="opt/mplc4/mplc.key"
+
+HIDDENFS_MNT=$(mktemp -d)
+
+LO_DEVICE=$(losetup -f)
+losetup -r -o "$HIDDENFS_OFFSET" "$LO_DEVICE" "$HIDDENFS_PART" || {
+    echo "Failed to setup loop device for hiddenfs" >&2
+    exit
+}
+if mount "$LO_DEVICE" "$HIDDENFS_MNT" >/dev/null 2>&1; then
+    cp "$HIDDENFS_MNT/$LICENSE_NAME" "$ROOTFS/$ROOTFS_LICENSE_PATH" || {
+        echo "Failed to copy license key from hiddenfs" >&2
+    }
+    umount "$HIDDENFS_MNT"
+    losetup -d "$LO_DEVICE"
+    sync
+fi
