@@ -61,10 +61,23 @@ wb_check_alt_rootfs()
     return $ret
 }
 
+WB_SWAPFILE_SIZE_MB=256  # size: no hibernation; just to handle some peaks of consumption
+
 wb_check_swap()
 {
     local swap=$1
     grep ${swap} /proc/swaps 2>&1 >/dev/null && return 0
+
+    # On the extended-rootfs layout swap is a file on rootfs rather than a
+    # partition. If fstab points swap at a regular file that doesn't exist yet
+    # (firstboot), create it here before mkswap. We use dd,
+    # not fallocate, because swapon rejects files with holes on ext4.
+    if [[ ! -e "${swap}" ]] && [[ "${swap}" != /dev/* ]]; then
+        log_action_begin_msg "Creating swap file ${swap} (${WB_SWAPFILE_SIZE_MB}M)"
+        dd if=/dev/zero of="${swap}" bs=1M count=${WB_SWAPFILE_SIZE_MB} status=none && \
+            chmod 600 "${swap}"
+        log_end_msg $?
+    fi
 
     [[ -e "${swap}" ]] || {
         log_failure_msg "Swap device $swap not found"

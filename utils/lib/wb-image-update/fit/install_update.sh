@@ -11,10 +11,9 @@ ROOTFS2_PART=${ROOTDEV}p3
 SWAP_PART=${ROOTDEV}p5
 DATA_PART=${ROOTDEV}p6
 
-# Extended rootfs layout
+# Extended rootfs layout (swap is a file on rootfs, so there is no swap partition)
 EXT_ROOTFS_PART=${ROOTDEV}p2
-EXT_SWAP_PART=${ROOTDEV}p3
-EXT_RESERVED_PART=${ROOTDEV}p4
+EXT_RESERVED_PART=${ROOTDEV}p3
 
 # appends a command to a trap
 #
@@ -400,23 +399,20 @@ ensure_extended_rootfs_parttable() {
     # Extended rootfs layout (8Gb):
     #
     # /dev/mmcblk0p1 : start=        2048, size=       32768, type=53  # 16M
-    # /dev/mmcblk0p2 : start=       34816, size=    13137920, type=83  # 6,3G
-    # /dev/mmcblk0p3 : start=    13172736, size=     1048576, type=82  # 512M
-    # /dev/mmcblk0p4 : start=    14221312, size=     1048576, type=83  # 512M
+    # /dev/mmcblk0p2 : start=       34816, size=    14186496, type=83  # 6,8G
+    # /dev/mmcblk0p3 : start=    14221312, size=     1048576, type=83  # 512M (reserved)
     #
     # Extended rootfs layout (16Gb):
     #
     # /dev/mmcblk0p1 : start=        2048, size=       32768, type=53  # 16M
-    # /dev/mmcblk0p2 : start=       34816, size=    29915136, type=83  # 14.3G
-    # /dev/mmcblk0p3 : start=    29949952, size=     1048576, type=82  # 512M
-    # /dev/mmcblk0p4 : start=    30998528, size=     1048576, type=83  # 512M
+    # /dev/mmcblk0p2 : start=       34816, size=    30963712, type=83  # 14.8G
+    # /dev/mmcblk0p3 : start=    30998528, size=     1048576, type=83  # 512M (reserved)
     #
     # Extended rootfs layout (64Gb):
     #
     # /dev/mmcblk0p1 : start=        2048, size=       32768, type=53  # 16M
-    # /dev/mmcblk0p2 : start=       34816, size=   130578432, type=83  # 62.3G
-    # /dev/mmcblk0p3 : start=   130613248, size=     1048576, type=82  # 512M
-    # /dev/mmcblk0p4 : start=   131661824, size=     1048576, type=83  # 512M
+    # /dev/mmcblk0p2 : start=       34816, size=   131627008, type=83  # 62.8G
+    # /dev/mmcblk0p3 : start=   131661824, size=     1048576, type=83  # 512M (reserved)
     #
 
     TEMP_DUMP="$(mktemp)"
@@ -425,7 +421,6 @@ ensure_extended_rootfs_parttable() {
     info "Creating a new parition table"
 
     ROOTFS_START_BLOCKS=34816
-    SWAP_SIZE_BLOCKS=1048576
     RESERVED_SIZE_BLOCKS=1048576
 
     local block_size=512
@@ -433,21 +428,23 @@ ensure_extended_rootfs_parttable() {
     local write_protect_group_size=$(( 8*1024*1024 ))
 
     RESERVED_START_BLOCKS=$(( ((emmc_size / write_protect_group_size) * write_protect_group_size)/block_size - RESERVED_SIZE_BLOCKS ))
-    SWAP_START_BLOCKS=$(( RESERVED_START_BLOCKS - SWAP_SIZE_BLOCKS ))
-    ROOTFS_SIZE_BLOCKS=$(( SWAP_START_BLOCKS - ROOTFS_START_BLOCKS ))
+    ROOTFS_SIZE_BLOCKS=$(( RESERVED_START_BLOCKS - ROOTFS_START_BLOCKS ))
 
     info "Umount partitions"
     umount "$ROOTFS1_PART" >/dev/null 2>&1 || true
     umount "$ROOTFS2_PART" >/dev/null 2>&1 || true
     umount "$DATA_PART" >/dev/null 2>&1 || true
 
+    # Starting from the source A/B (or single) dump, keep p1/p2/p3 and drop the
+    # DOS extended container (p4) together with its logical swap (p5) and data
+    # (p6). rootfs (p2) is grown; the former rootfs2 (p3) is repurposed as the
+    # reserved partition at the end of the disk. label-id and the header are
+    # preserved because we transform the existing dump in place.
     sfdisk --dump "$ROOTDEV" | \
         sfdisk_set_size  "$EXT_ROOTFS_PART" "$ROOTFS_SIZE_BLOCKS" | \
+        sfdisk_rm_partition "${ROOTDEV}p4" | \
         sfdisk_rm_partition "$SWAP_PART" | \
         sfdisk_rm_partition "$DATA_PART" | \
-        sfdisk_set_start "$EXT_SWAP_PART" "$SWAP_START_BLOCKS" | \
-        sfdisk_set_size "$EXT_SWAP_PART" "$SWAP_SIZE_BLOCKS" | \
-        sfdisk_set_type "$EXT_SWAP_PART" 82 | \
         sfdisk_set_start "$EXT_RESERVED_PART" "$RESERVED_START_BLOCKS" | \
         sfdisk_set_size "$EXT_RESERVED_PART" "$RESERVED_SIZE_BLOCKS" | \
         sfdisk_set_type "$EXT_RESERVED_PART" 83 | \
@@ -478,23 +475,9 @@ ensure_extended_rootfs_parttable() {
         fatal "Failed to create filesystem on new rootfs, exiting"
     }
 
-    info "Creating filesystem on swap partition"
-    mkswap "$EXT_SWAP_PART" || {
-        info "Creating new filesystem on swap partition failed!"
-        info "Restoring saved MBR backup and exit"
-        restore_mbr "$mbr_backup"
-        fatal "Failed to create filesystem on new swap, exiting"
-    }
-
-    # FIXME: Buffer I/O error
-    #info "Creating filesystem on reserved partition"
-    #mkfs_ext4 "$EXT_RESERVED_PART" "reserved" || {
-    #    info "Creating new filesystem on reserved partition failed!"
-    #    info "Restoring saved MBR backup and exit"
-    #    restore_mbr "$mbr_backup"
-    #    fatal "Failed to create filesystem on new reserved, exiting"
-    #}
-    #mmc writeprotect user set temp $RESERVED_START_BLOCKS $RESERVED_SIZE_BLOCKS $ROOTDEV
+    info "Creating filesystem on reserved partition"
+    yes | mkfs.ext4 -L "reserved" -O ^has_journal -E stride=2,stripe-width=1024 -b 4096 "$EXT_RESERVED_PART" || \
+        info "WARNING: failed to create filesystem on reserved partition, leaving it empty"
 
     info "Repartition is done!"
 }
