@@ -1,3 +1,10 @@
+wb-utils (4.29.1) stable; urgency=medium
+
+  * wb-image-update: save U-Boot ENV backup made by u-boot-install-wb on
+    factory reset to /mnt/data/.wb-restore (it was looked up in a wrong /tmp)
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Tue, 27 Oct 2026 12:00:00 +0400
+
 wb-utils (4.29.0) stable; urgency=medium
 
   * Drop nginx-extras dependency
