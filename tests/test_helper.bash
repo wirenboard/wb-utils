@@ -18,7 +18,10 @@ setup_install_update() {
     CALLS="$WORKDIR/calls"
     : > "$CALLS"
 
+    export WEBUPD_DIR="$WORKDIR/webupd"   # /mnt/data/.wb-update on a controller
+
     FLAGS=""                    # flags given to wb-run-update, e.g. " --from-initramfs"
+    declare -gA FIT_COMPAT_OF   # firmware-compatible property per FIT file, see fit_prop_string
     FIT_RELEASE_TARGET=""       # release-target property of the FIT being installed
     FIT_FIRMWARE_COMPATIBLE=""  # firmware-compatible property of the FIT
     ROOTFS_CODENAME=""          # VERSION_CODENAME of the rootfs found on a mounted partition
@@ -65,15 +68,36 @@ blockdev() {
     cat "$2.size"
 }
 
+# A fake partition is "mounted" by pointing the mountpoint at its content
+# directory (see part_fs), so files written through the mountpoint can be
+# checked after the call.
 mount() {
     echo "mount $*" >> "$CALLS"
     local args=("$@")
     local dev="${args[-2]}" mountpoint="${args[-1]}"
+    case "$dev" in
+        proc|configfs) return 0 ;;
+    esac
     [ -e "$dev" ] || return 32
-    mkdir -p "$mountpoint/etc"
+    local content
+    content=$(part_fs "${dev##*p}")
+    mkdir -p "$content/etc"
     if [ -n "$ROOTFS_CODENAME" ]; then
-        echo "VERSION_CODENAME=$ROOTFS_CODENAME" > "$mountpoint/etc/os-release"
+        echo "VERSION_CODENAME=$ROOTFS_CODENAME" > "$content/etc/os-release"
     fi
+    rmdir "$mountpoint" 2>/dev/null || true
+    ln -sfn "$content" "$mountpoint"
+}
+
+# prepare_env sets up configfs for the device tree; not on the test host
+mkdir() {
+    [ "${*: -1}" != /sys/kernel/config ] || return 0
+    command mkdir "$@"
+}
+
+# part_fs <partition number>: directory holding the content of a fake partition
+part_fs() {
+    echo "$WORKDIR/fs/$(basename "$ROOTDEV")p$1"
 }
 
 umount() { echo "umount $*" >> "$CALLS"; }
@@ -84,6 +108,8 @@ fw_printenv() {
     [ -n "$MMCPART" ] || return 1
     echo "mmcpart=$MMCPART"
 }
+
+fw_setenv() { echo "fw_setenv $*" >> "$CALLS"; }
 
 # --- stubs for functions provided by wb-run-update --------------------------
 
@@ -96,13 +122,29 @@ mqtt_status() { :; }
 fit_prop_string() {
     case "$2" in
         release-target) echo "$FIT_RELEASE_TARGET" ;;
-        firmware-compatible) echo "$FIT_FIRMWARE_COMPATIBLE" ;;
+        firmware-compatible)
+            # the FIT may be addressed through a fake mountpoint, see mount
+            local key
+            key=$(readlink -f "$FIT" 2>/dev/null || echo "$FIT")
+            echo "${FIT_COMPAT_OF[$key]:-$FIT_FIRMWARE_COMPATIBLE}" ;;
     esac
 }
 
 # --- helpers for tests ------------------------------------------------------
 
 in_bootlet() { FLAGS="$FLAGS --from-initramfs"; }
+
+# use_fit <path>: the FIT being installed is a plain file at <path>
+# (its content does not matter, properties come from fit_prop_string)
+use_fit() {
+    FIT="$1"
+    mkdir -p "$(dirname "$FIT")"
+    echo "fit $FIT" > "$FIT"
+}
+
+# isolated <command>: run the command in a subshell without the traps bats
+# installs, for functions that end with exit (their EXIT trap must run alone).
+isolated() { ( trap - EXIT ERR; "$@" ); }
 
 # not <command>: succeeds when the command fails.
 # A plain "! command" does not fail a bats test unless it is the last line.

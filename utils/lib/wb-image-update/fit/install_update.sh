@@ -134,7 +134,7 @@ prepare_env() {
         mount -t configfs configfs /sys/kernel/config
     fi
 
-    WEBUPD_DIR="/mnt/data/.wb-update"
+    WEBUPD_DIR="${WEBUPD_DIR:-/mnt/data/.wb-update}"
 
     # FLAGS variable is defined in wb-run-update
     # This is a hack to pass more flags from installation media for debugging
