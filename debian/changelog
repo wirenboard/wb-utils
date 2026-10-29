@@ -1,3 +1,10 @@
+wb-utils (4.30.0) stable; urgency=medium
+
+  * Extended rootfs: swap is a file (instead of whole partition)
+  * Add --unextend-rootfs option
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Thu, 29 Oct 2026 11:20:02 +0300
+
 wb-utils (4.29.0) stable; urgency=medium
 
   * Drop nginx-extras dependency
