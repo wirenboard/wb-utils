@@ -134,7 +134,7 @@ prepare_env() {
         mount -t configfs configfs /sys/kernel/config
     fi
 
-    WEBUPD_DIR="/mnt/data/.wb-update"
+    WEBUPD_DIR="${WEBUPD_DIR:-/mnt/data/.wb-update}"
 
     # FLAGS variable is defined in wb-run-update
     # This is a hack to pass more flags from installation media for debugging
@@ -850,7 +850,7 @@ get_installed_debian_version() {
         fi
     else
         # shellcheck source=/dev/null
-        source "/etc/os-release"
+        source "${OS_RELEASE_FILE:-/etc/os-release}"
         echo "$VERSION_CODENAME"
     fi
 }
@@ -1302,6 +1302,9 @@ maybe_factory_reset() {
 }
 
 #---------------------------------------- main ----------------------------------------
+
+# unit tests source this file for its functions only
+[ -z "$INSTALL_UPDATE_FUNCTIONS_ONLY" ] || return 0
 
 maybe_fix_uboot_dynamic_env $ROOTDEV
 prepare_env

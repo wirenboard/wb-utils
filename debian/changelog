@@ -1,3 +1,15 @@
+wb-utils (4.29.2) stable; urgency=medium
+
+  * Add unit tests (bats) for install_update.sh and wb-watch-update, run on
+    package build: layout detection, downgrade check, flags files, external
+    script, web update hand-off, factory FIT bookkeeping, repartition choice,
+    dispatch of the main flow
+  * install_update.sh, wb-watch-update: can be sourced for their functions
+    only; WEBUPD_DIR and OS_RELEASE_FILE can be overridden from the
+    environment (hooks for the tests, no change in normal operation)
+
+ -- Ekaterina Volkova <ekaterina.volkova@wirenboard.com>  Thu, 29 Oct 2026 14:00:00 +0300
+
 wb-utils (4.29.1) stable; urgency=medium
 
   * wb-image-update: save U-Boot ENV backup made by u-boot-install-wb on
