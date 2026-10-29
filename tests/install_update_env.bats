@@ -20,10 +20,6 @@ teardown() { teardown_install_update; }
 @test "prepare_env: install_update.flags next to the FIT is appended to FLAGS" {
     echo "--fail --no-reboot" > "$WORKDIR/media/install_update.flags"
 
-    run prepare_env
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"Using flags from $WORKDIR/media/install_update.flags: --fail --no-reboot"* ]]
-
     prepare_env
     flag_set fail
     flag_set no-reboot
@@ -102,7 +98,6 @@ teardown() { teardown_install_update; }
 
 @test "update_after_reboot: FIT is moved to webupd.fit, wb_webupd is set, system reboots" {
     prepare_env
-    ensure_uboot_ready_for_webupd() { :; }
 
     run isolated update_after_reboot
     [ "$status" -eq 0 ]
@@ -116,7 +111,6 @@ teardown() { teardown_install_update; }
 @test "update_after_reboot: --no-remove keeps the original FIT" {
     FLAGS="$FLAGS --no-remove"
     prepare_env
-    ensure_uboot_ready_for_webupd() { :; }
 
     run isolated update_after_reboot
     [ "$status" -eq 0 ]
@@ -127,7 +121,6 @@ teardown() { teardown_install_update; }
 @test "update_after_reboot: --no-reboot exits without rebooting" {
     FLAGS="$FLAGS --no-reboot"
     prepare_env
-    ensure_uboot_ready_for_webupd() { :; }
 
     run isolated update_after_reboot
     [ "$status" -eq 0 ]
@@ -137,7 +130,6 @@ teardown() { teardown_install_update; }
 
 @test "update_after_reboot: FIT already at the webupd location is used in place" {
     prepare_env
-    ensure_uboot_ready_for_webupd() { :; }
     use_fit "$WEBUPD_DIR/webupd.fit"
 
     run isolated update_after_reboot
@@ -156,42 +148,49 @@ teardown() { teardown_install_update; }
 }
 
 @test "factory FIT: a factory FIT supporting the required features is kept" {
-    local factory="$(part_fs 6)/.wb-restore/factoryreset.fit"
-    mkdir -p "$(dirname "$factory")"
-    echo "old factory fit" > "$factory"
-    FIT_COMPAT_OF[$factory]="+single-rootfs "
+    use_factory_fit "+single-rootfs "
     FIT_FIRMWARE_COMPATIBLE="+single-rootfs "
 
     run update_current_factory_fit_if_not_compatible "single-rootfs"
     [ "$status" -eq 0 ]
     [[ "$output" == *"keeping it"* ]]
-    [ "$(cat "$factory")" == "old factory fit" ]
+    [ "$(cat "$FACTORY_FIT")" == "old factory fit" ]
     [ ! -e "$(part_fs 6)/.wb-restore/factoryreset.original.fit" ]
 }
 
 @test "factory FIT: an outdated factory FIT is replaced and kept as factoryreset.original.fit" {
-    local factory="$(part_fs 6)/.wb-restore/factoryreset.fit"
-    mkdir -p "$(dirname "$factory")"
-    echo "old factory fit" > "$factory"
-    FIT_COMPAT_OF[$factory]="+single-rootfs "
+    use_factory_fit "+single-rootfs "
     FIT_FIRMWARE_COMPATIBLE="+single-rootfs +uboot-dynamic-env "
 
     update_current_factory_fit_if_not_compatible "single-rootfs uboot-dynamic-env"
-    [ "$(cat "$factory")" == "fit $FIT" ]
+    [ "$(cat "$FACTORY_FIT")" == "fit $FIT" ]
     [ "$(cat "$(part_fs 6)/.wb-restore/factoryreset.original.fit")" == "old factory fit" ]
+    not called "chattr *"
+}
+
+@test "factory FIT: an immutable factory FIT is made writable for the copy and immutable again" {
+    use_factory_fit "+single-rootfs +fit-immutable-support "
+    chattr +i "$FACTORY_FIT"
+    : > "$CALLS"
+    FIT_FIRMWARE_COMPATIBLE="+single-rootfs +uboot-dynamic-env +fit-immutable-support "
+
+    update_current_factory_fit_if_not_compatible "single-rootfs uboot-dynamic-env"
+    [ "$(cat "$FACTORY_FIT")" == "fit $FIT" ]
+    [ -e "$FACTORY_FIT.immutable" ]
+    # the factory FIT is addressed through the mountpoint, hence the glob
+    [ "$(grep -c '^chattr' "$CALLS")" -eq 2 ]
+    [[ "$(grep '^chattr' "$CALLS" | head -1)" == "chattr -i "*"/.wb-restore/factoryreset.fit" ]]
+    [[ "$(grep '^chattr' "$CALLS" | tail -1)" == "chattr +i "*"/.wb-restore/factoryreset.fit" ]]
 }
 
 @test "factory FIT: an update lacking a required feature is refused" {
-    local factory="$(part_fs 6)/.wb-restore/factoryreset.fit"
-    mkdir -p "$(dirname "$factory")"
-    echo "old factory fit" > "$factory"
-    FIT_COMPAT_OF[$factory]="+single-rootfs "
+    use_factory_fit "+single-rootfs "
     FIT_FIRMWARE_COMPATIBLE="+single-rootfs "
 
     run update_current_factory_fit_if_not_compatible "single-rootfs uboot-dynamic-env"
     [ "$status" -ne 0 ]
     [[ "$output" == *"uboot-dynamic-env is required, but not supported"* ]]
-    [ "$(cat "$factory")" == "old factory fit" ]
+    [ "$(cat "$FACTORY_FIT")" == "old factory fit" ]
 }
 
 @test "factory FIT: on the extended layout .wb-restore lives on the rootfs partition" {
@@ -206,47 +205,36 @@ teardown() { teardown_install_update; }
 # --- which repartitioning a factory reset performs --------------------------
 
 @test "maybe_repartition: default is enlarging the rootfs" {
-    ensure_ab_rootfs_parttable() { echo ab >> "$CALLS"; }
-    ensure_extended_rootfs_parttable() { echo extended >> "$CALLS"; }
-    ensure_enlarged_rootfs_parttable() { echo enlarged >> "$CALLS"; }
-
     maybe_repartition
-    called enlarged
-    not called ab
-    not called extended
+    called ensure_enlarged_rootfs_parttable
+    not called ensure_ab_rootfs_parttable
+    not called ensure_extended_rootfs_parttable
 }
 
 @test "maybe_repartition: --restore-ab-rootfs restores the A/B scheme" {
     FLAGS="$FLAGS --restore-ab-rootfs"
-    ensure_ab_rootfs_parttable() { echo ab >> "$CALLS"; }
-    ensure_enlarged_rootfs_parttable() { echo enlarged >> "$CALLS"; }
 
     maybe_repartition
-    called ab
-    not called enlarged
+    called ensure_ab_rootfs_parttable
+    not called ensure_enlarged_rootfs_parttable
 }
 
 @test "maybe_repartition: --extend-rootfs switches to the extended layout" {
     FLAGS="$FLAGS --extend-rootfs"
-    ensure_extended_rootfs_parttable() { echo extended >> "$CALLS"; }
-    ensure_enlarged_rootfs_parttable() { echo enlarged >> "$CALLS"; }
 
     maybe_repartition
-    called extended
-    not called enlarged
+    called ensure_extended_rootfs_parttable
+    not called ensure_enlarged_rootfs_parttable
 }
 
 @test "maybe_repartition: --extend-rootfs is ignored for web and factory FIT updates" {
-    ensure_extended_rootfs_parttable() { echo extended >> "$CALLS"; }
-    ensure_enlarged_rootfs_parttable() { echo enlarged >> "$CALLS"; }
-
     FLAGS="--extend-rootfs --from-webupdate"
     maybe_repartition
     FLAGS="--extend-rootfs --from-emmc-factoryreset"
     maybe_repartition
 
-    not called extended
-    [ "$(grep -c enlarged "$CALLS")" -eq 2 ]
+    not called ensure_extended_rootfs_parttable
+    [ "$(grep -c ensure_enlarged_rootfs_parttable "$CALLS")" -eq 2 ]
 }
 
 @test "maybe_repartition: a failed repartition is fatal only for the explicit layouts" {

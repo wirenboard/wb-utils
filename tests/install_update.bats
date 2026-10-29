@@ -71,25 +71,23 @@ teardown() { teardown_install_update; }
 }
 
 @test "running system: downgrade is refused without factory reset" {
-    # the running system is the test host, its /etc/os-release is used as is
-    local host_release
-    host_release=$(. /etc/os-release && echo "$VERSION_CODENAME")
-    get_release_version "$host_release" >/dev/null || skip "host Debian release $host_release is not known to install_update.sh"
-    [ "$host_release" != stretch ] || skip "nothing to downgrade to from stretch"
+    # the installed release comes from /etc/os-release of the running system
+    echo "VERSION_CODENAME=trixie" > "$OS_RELEASE_FILE"
 
-    FIT_RELEASE_TARGET="wb7/stretch"
+    FIT_RELEASE_TARGET="wb7/bullseye"
     run ensure_no_downgrade
     [ "$status" -ne 0 ]
-    [[ "$output" == *"Rollback from $host_release to stretch is not allowed"* ]]
-    not called "reboot *"
+    [[ "$output" == *"Rollback from trixie to bullseye is not allowed"* ]]
+    not called "reboot*"
 }
 
-@test "running system: same release is allowed" {
-    local host_release
-    host_release=$(. /etc/os-release && echo "$VERSION_CODENAME")
-    get_release_version "$host_release" >/dev/null || skip "host Debian release $host_release is not known to install_update.sh"
+@test "running system: upgrade and the same release are allowed" {
+    echo "VERSION_CODENAME=bullseye" > "$OS_RELEASE_FILE"
 
-    FIT_RELEASE_TARGET="wb7/$host_release"
+    FIT_RELEASE_TARGET="wb7/bullseye"
+    ensure_no_downgrade
+
+    FIT_RELEASE_TARGET="wb7/trixie"
     ensure_no_downgrade
 }
 
@@ -134,7 +132,7 @@ teardown() { teardown_install_update; }
     [[ "$output" == *"Rollback from trixie to bullseye is not allowed"* ]]
     called "mount * -o ro ${ROOTDEV}p2 $TMPDIR/*"
     called "umount $TMPDIR/*"
-    not called "umount * ${ROOTDEV}p2*"
+    not called "umount *${ROOTDEV}p2*"
 }
 
 @test "bootlet: upgrade and reinstall of the same release are allowed" {
@@ -161,7 +159,7 @@ teardown() { teardown_install_update; }
     ensure_no_downgrade
 }
 
-@test "bootlet: unreadable installed rootfs skips the check with a warning" {
+@test "bootlet: missing installed rootfs partition skips the check with a warning" {
     in_bootlet
     use_layout ab
     PREVIOUS_PART=3
@@ -170,6 +168,19 @@ teardown() { teardown_install_update; }
 
     run ensure_no_downgrade
     [ "$status" -eq 0 ]
+    [[ "$output" == *"Unable to resolve installed Debian release"*"skipping downgrade check"* ]]
+}
+
+@test "bootlet: unmountable installed rootfs skips the check with a warning" {
+    in_bootlet
+    use_layout ab
+    PREVIOUS_PART=3
+    touch "${ROOTDEV}p3.nomount"
+    FIT_RELEASE_TARGET="wb7/bullseye"
+
+    run ensure_no_downgrade
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Failed to mount rootfs from ${ROOTDEV}p3"* ]]
     [[ "$output" == *"skipping downgrade check"* ]]
 }
 

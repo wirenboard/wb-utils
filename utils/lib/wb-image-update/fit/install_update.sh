@@ -850,7 +850,7 @@ get_installed_debian_version() {
         fi
     else
         # shellcheck source=/dev/null
-        source "/etc/os-release"
+        source "${OS_RELEASE_FILE:-/etc/os-release}"
         echo "$VERSION_CODENAME"
     fi
 }
