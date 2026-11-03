@@ -11,10 +11,9 @@ ROOTFS2_PART=${ROOTDEV}p3
 SWAP_PART=${ROOTDEV}p5
 DATA_PART=${ROOTDEV}p6
 
-# Extended rootfs layout
+# Extended rootfs layout (swap is a file on rootfs, so there is no swap partition)
 EXT_ROOTFS_PART=${ROOTDEV}p2
-EXT_SWAP_PART=${ROOTDEV}p3
-EXT_RESERVED_PART=${ROOTDEV}p4
+EXT_RESERVED_PART=${ROOTDEV}p3
 
 # appends a command to a trap
 #
@@ -400,23 +399,20 @@ ensure_extended_rootfs_parttable() {
     # Extended rootfs layout (8Gb):
     #
     # /dev/mmcblk0p1 : start=        2048, size=       32768, type=53  # 16M
-    # /dev/mmcblk0p2 : start=       34816, size=    13137920, type=83  # 6,3G
-    # /dev/mmcblk0p3 : start=    13172736, size=     1048576, type=82  # 512M
-    # /dev/mmcblk0p4 : start=    14221312, size=     1048576, type=83  # 512M
+    # /dev/mmcblk0p2 : start=       34816, size=    14186496, type=83  # 6,8G
+    # /dev/mmcblk0p3 : start=    14221312, size=     1048576, type=83  # 512M (reserved)
     #
     # Extended rootfs layout (16Gb):
     #
     # /dev/mmcblk0p1 : start=        2048, size=       32768, type=53  # 16M
-    # /dev/mmcblk0p2 : start=       34816, size=    29915136, type=83  # 14.3G
-    # /dev/mmcblk0p3 : start=    29949952, size=     1048576, type=82  # 512M
-    # /dev/mmcblk0p4 : start=    30998528, size=     1048576, type=83  # 512M
+    # /dev/mmcblk0p2 : start=       34816, size=    30963712, type=83  # 14.8G
+    # /dev/mmcblk0p3 : start=    30998528, size=     1048576, type=83  # 512M (reserved)
     #
     # Extended rootfs layout (64Gb):
     #
     # /dev/mmcblk0p1 : start=        2048, size=       32768, type=53  # 16M
-    # /dev/mmcblk0p2 : start=       34816, size=   130578432, type=83  # 62.3G
-    # /dev/mmcblk0p3 : start=   130613248, size=     1048576, type=82  # 512M
-    # /dev/mmcblk0p4 : start=   131661824, size=     1048576, type=83  # 512M
+    # /dev/mmcblk0p2 : start=       34816, size=   131627008, type=83  # 62.8G
+    # /dev/mmcblk0p3 : start=   131661824, size=     1048576, type=83  # 512M (reserved)
     #
 
     TEMP_DUMP="$(mktemp)"
@@ -425,7 +421,6 @@ ensure_extended_rootfs_parttable() {
     info "Creating a new parition table"
 
     ROOTFS_START_BLOCKS=34816
-    SWAP_SIZE_BLOCKS=1048576
     RESERVED_SIZE_BLOCKS=1048576
 
     local block_size=512
@@ -433,21 +428,23 @@ ensure_extended_rootfs_parttable() {
     local write_protect_group_size=$(( 8*1024*1024 ))
 
     RESERVED_START_BLOCKS=$(( ((emmc_size / write_protect_group_size) * write_protect_group_size)/block_size - RESERVED_SIZE_BLOCKS ))
-    SWAP_START_BLOCKS=$(( RESERVED_START_BLOCKS - SWAP_SIZE_BLOCKS ))
-    ROOTFS_SIZE_BLOCKS=$(( SWAP_START_BLOCKS - ROOTFS_START_BLOCKS ))
+    ROOTFS_SIZE_BLOCKS=$(( RESERVED_START_BLOCKS - ROOTFS_START_BLOCKS ))
 
     info "Umount partitions"
     umount "$ROOTFS1_PART" >/dev/null 2>&1 || true
     umount "$ROOTFS2_PART" >/dev/null 2>&1 || true
     umount "$DATA_PART" >/dev/null 2>&1 || true
 
+    # Starting from the source A/B (or single) dump, keep p1/p2/p3 and drop the
+    # DOS extended container (p4) together with its logical swap (p5) and data
+    # (p6). rootfs (p2) is grown; the former rootfs2 (p3) is repurposed as the
+    # reserved partition at the end of the disk. label-id and the header are
+    # preserved because we transform the existing dump in place.
     sfdisk --dump "$ROOTDEV" | \
         sfdisk_set_size  "$EXT_ROOTFS_PART" "$ROOTFS_SIZE_BLOCKS" | \
+        sfdisk_rm_partition "${ROOTDEV}p4" | \
         sfdisk_rm_partition "$SWAP_PART" | \
         sfdisk_rm_partition "$DATA_PART" | \
-        sfdisk_set_start "$EXT_SWAP_PART" "$SWAP_START_BLOCKS" | \
-        sfdisk_set_size "$EXT_SWAP_PART" "$SWAP_SIZE_BLOCKS" | \
-        sfdisk_set_type "$EXT_SWAP_PART" 82 | \
         sfdisk_set_start "$EXT_RESERVED_PART" "$RESERVED_START_BLOCKS" | \
         sfdisk_set_size "$EXT_RESERVED_PART" "$RESERVED_SIZE_BLOCKS" | \
         sfdisk_set_type "$EXT_RESERVED_PART" 83 | \
@@ -478,25 +475,126 @@ ensure_extended_rootfs_parttable() {
         fatal "Failed to create filesystem on new rootfs, exiting"
     }
 
-    info "Creating filesystem on swap partition"
-    mkswap "$EXT_SWAP_PART" || {
-        info "Creating new filesystem on swap partition failed!"
-        info "Restoring saved MBR backup and exit"
-        restore_mbr "$mbr_backup"
-        fatal "Failed to create filesystem on new swap, exiting"
-    }
-
-    # FIXME: Buffer I/O error
-    #info "Creating filesystem on reserved partition"
-    #mkfs_ext4 "$EXT_RESERVED_PART" "reserved" || {
-    #    info "Creating new filesystem on reserved partition failed!"
-    #    info "Restoring saved MBR backup and exit"
-    #    restore_mbr "$mbr_backup"
-    #    fatal "Failed to create filesystem on new reserved, exiting"
-    #}
-    #mmc writeprotect user set temp $RESERVED_START_BLOCKS $RESERVED_SIZE_BLOCKS $ROOTDEV
+    info "Creating filesystem on reserved partition"
+    yes | mkfs.ext4 -L "reserved" -O ^has_journal -E stride=2,stripe-width=1024 -b 4096 "$EXT_RESERVED_PART" || \
+        info "WARNING: failed to create filesystem on reserved partition, leaving it empty"
 
     info "Repartition is done!"
+}
+
+# Convert an extended-rootfs layout
+# back to the single-rootfs layout. Runs only on the factoryreset
+# path under the --unextend-rootfs flag (see maybe_repartition).
+ensure_single_rootfs_parttable() {
+    if ! disk_layout_is_extended; then
+        info "Partition table already has a data partition (p6), nothing to unextend"
+        return 0
+    fi
+
+    info "Converting extended-rootfs layout back to the single-rootfs layout"
+
+    info "Backing up old MBR (and partition table)"
+    local mbr_backup
+    mbr_backup=$(mktemp)
+    dd if="$ROOTDEV" of="$mbr_backup" bs=512 count=1 || {
+        info "Failed to save MBR backup"
+        return 1
+    }
+
+    # Preserve the MBR label-id so PARTUUID references and U-Boot keep working:
+    # it is a random per-device disk identifier assigned at manufacturing, so it
+    # must be read from the current table rather than hardcoded
+    local label_id
+    label_id=$(sfdisk --dump "$ROOTDEV" | sed -n 's/^label-id:[[:space:]]*//p') || {
+        info "Failed to read label-id from the current partition table"
+        return 1
+    }
+
+    info "Umount partitions"
+    umount "$ROOTFS1_PART" >/dev/null 2>&1 || true
+
+    TEMP_DUMP="$(mktemp)"
+    info "New disk dump will be saved in $TEMP_DUMP"
+
+    info "Creating a new parition table"
+    {
+        echo "label: dos"
+        [ -n "$label_id" ] && echo "label-id: $label_id"
+        echo "unit: sectors"
+        echo ""
+        echo "${ROOTDEV}p1 : start=2048, size=32768, type=53"  # uboot; invariant 16MiB
+        echo "${ROOTDEV}p2 : start=34816, size=4194304, type=83"  # rootfs; 2GiB
+        echo "${ROOTDEV}p3 : start=4229120, size=4096, type=83"  # 2MiB placeholder; compatibility w A/B layout
+        echo "${ROOTDEV}p4 : start=4233216, type=5"  # extended container; fill
+        echo "${ROOTDEV}p5 : start=4235264, size=524288, type=82"  # swap; 256MiB logical
+        echo "${ROOTDEV}p6 : start=4761600, type=83"  # data; logical fill
+    } | tee "$TEMP_DUMP" | sfdisk -f "$ROOTDEV" --no-reread >/dev/null || {
+        info "New parttable creation failed, restoring saved MBR backup"
+        cat "$TEMP_DUMP"
+        restore_mbr "$mbr_backup"
+        return 1
+    }
+
+    cat "$TEMP_DUMP"
+    sync
+    reload_parttable
+
+    if [ "$(blockdev --getsz "$ROOTFS1_PART")" != 4194304 ]; then  # p2 size, see table above
+        info "New parttable is not applied, restoring saved MBR backup and exit"
+        restore_mbr "$mbr_backup"
+        fatal "Failed to apply a new partition table"
+    fi
+
+    info "Creating filesystem on data partition"
+    mkfs_ext4 "$DATA_PART" "data" || {
+        info "Creating new filesystem on data partition failed!"
+        info "Restoring saved MBR backup and exit"
+        restore_mbr "$mbr_backup"
+        fatal "Failed to create filesystem on new data partition, exiting"
+    }
+
+    # Brick-safety: put a recovery FIT on the fresh data partition BEFORE the
+    # mkfs below wipes the old rootfs. Then, if power is lost in the
+    # mkfs/extract window, U-Boot can still restore firmware -- it loads
+    # factoryreset.fit from the data partition (trymmcdatapart). The old rootfs
+    # on p2 is still intact here, so a failure is recoverable: restore and bail.
+    info "Stashing recovery FIT onto the new data partition"
+    local data_mnt stash_fit
+    data_mnt=$(mktemp -d)
+    stash_fit="$data_mnt/.wb-restore/factoryreset.fit"
+    if mount -t ext4 "$DATA_PART" "$data_mnt"; then
+        if mkdir -p "$data_mnt/.wb-restore" && cp "$FIT" "$stash_fit" && sync; then
+            # Set the same immutable protection the factory FIT carries on normal
+            # systems. We create the file here, so the end-of-run factory-FIT
+            # finalizer preserves whatever immutability state it finds -- without
+            # +i now, the final factory FIT would stay unprotected after rollback.
+            if fw_compatible "fit-immutable-support"; then
+                chattr +i "$stash_fit" || info "WARNING: failed to set immutable attr on stashed factoryreset.fit"
+            fi
+        else
+            umount "$data_mnt" >/dev/null 2>&1 || true
+            restore_mbr "$mbr_backup"
+            fatal "Failed to stash recovery FIT onto the new data partition"
+        fi
+        umount "$data_mnt" >/dev/null 2>&1 || true
+    else
+        restore_mbr "$mbr_backup"
+        fatal "Failed to mount new data partition to stash recovery FIT"
+    fi
+    rmdir "$data_mnt" 2>/dev/null || true
+
+    info "Creating filesystem on rootfs partition"
+    mkfs_ext4 "$ROOTFS1_PART" "rootfs" || {
+        info "Creating new filesystem on rootfs partition failed!"
+        info "Restoring saved MBR backup and exit"
+        restore_mbr "$mbr_backup"
+        fatal "Failed to create filesystem on new rootfs, exiting"
+    }
+
+    info "Creating swap on swap partition"
+    mkswap "$SWAP_PART" || info "WARNING: failed to create swap on $SWAP_PART, firstboot will retry"
+
+    info "Repartition to unextended layout is done!"
 }
 
 ensure_enlarged_rootfs_parttable() {
@@ -811,6 +909,15 @@ maybe_repartition() {
             fatal "Failed to extend rootfs"
         fi
         info "rootfs extended!"
+        return
+    fi
+
+    if flag_set unextend-rootfs && ! flag_set from-webupdate && ! flag_set from-emmc-factoryreset; then
+        info "Reverting to the factory single-rootfs layout as requested"
+        if ! ensure_single_rootfs_parttable; then
+            fatal "Failed to revert to single-rootfs layout"
+        fi
+        info "rootfs unextended!"
         return
     fi
 
@@ -1359,7 +1466,7 @@ if ! flag_set from-initramfs && flag_set "force-repartition"; then
     update_after_reboot
 fi
 
-if ( ( flag_set "factoryreset" || flag_set "force-repartition" ) && ! flag_set "no-repartition" && ! disk_layout_is_extended); then
+if ( ( flag_set "factoryreset" || flag_set "force-repartition" ) && ! flag_set "no-repartition" && ( ! disk_layout_is_extended || flag_set "unextend-rootfs" ) ); then
     maybe_repartition
 fi
 

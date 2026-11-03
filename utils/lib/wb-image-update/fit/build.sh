@@ -88,6 +88,7 @@ cd "$BUILDDIR" && tar cvzf $IMAGEUPDATE_DIR/deps.tar.gz .
 {
     echo -n "+extended-rootfs "
     echo -n "+single-rootfs "
+    echo -n "+unextend-rootfs "
     echo -n "+fit-factory-reset "
     echo -n "+force-repartition "
     echo -n "+repartition-ramsize-fix "
