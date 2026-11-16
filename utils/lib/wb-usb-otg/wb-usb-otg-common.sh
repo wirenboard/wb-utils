@@ -4,6 +4,11 @@ IMAGE_FILE=/usr/lib/wb-utils/wb-usb-otg/mass_storage.img
 USBDEV="usb0"
 USBGADGET_CONFIG=/sys/kernel/config/usb_gadget/g1
 RNDIS_IFNAME="dbg%d"
+ECM_IFNAME="dbge%d"
+# Handed to wb-usb-otg-netfunc.service (EnvironmentFile=): the daemon links the functions
+# into the configuration, binds the UDC and inserts the mass-storage medium.
+NETFUNC_ENV_FILE=/run/wb-usb-otg/env
+ECM_FUNCTION=
 NETWORK_CONNAME="wb-debug"
 NETWORK_TIMEOUT=5
 
@@ -60,6 +65,23 @@ setup_rndis() {
     echo $RNDIS_IFNAME > ${USBGADGET_CONFIG}/functions/rndis.$USBDEV/ifname
 }
 
+setup_ecm() {
+    # CDC ECM for hosts without an RNDIS driver (macOS). Created here, linked into the
+    # configuration by wb-usb-otg-netfunc.py only when the probe finds no RNDIS host:
+    # RNDIS + mass storage + ECM do not fit the 4+4 endpoints of the H616 musb together.
+    # Optional: without the module the Debug Network keeps working as before (RNDIS only).
+    if ! modprobe usb_f_ecm || ! mkdir -p ${USBGADGET_CONFIG}/functions/ecm.$USBDEV; then
+        log "usb_f_ecm not available, CDC ECM (macOS) disabled"
+        return 0
+    fi
+    ECM_FUNCTION="ecm.$USBDEV"
+    echo "1a:55:89:a2:69:45" > ${USBGADGET_CONFIG}/functions/ecm.$USBDEV/dev_addr
+    # Same host MAC as RNDIS: both layouts serve one host on a /30 with a single DHCP
+    # lease, and a different MAC would leave dnsmasq with "no address available".
+    cat ${USBGADGET_CONFIG}/functions/rndis.$USBDEV/host_addr > ${USBGADGET_CONFIG}/functions/ecm.$USBDEV/host_addr
+    echo $ECM_IFNAME > ${USBGADGET_CONFIG}/functions/ecm.$USBDEV/ifname
+}
+
 setup_mass_storage() {
     mkdir -p ${USBGADGET_CONFIG}/functions/mass_storage.$USBDEV
     echo 1 > ${USBGADGET_CONFIG}/functions/mass_storage.$USBDEV/stall
@@ -77,6 +99,7 @@ setup_device() {
     setup_usb
     setup_mass_storage
     setup_rndis
+    setup_ecm
 }
 
 bind_device() {
@@ -94,9 +117,12 @@ unbind_device() {
 }
 
 config_reset() {
+    # The function links in c.1 are created by wb-usb-otg-netfunc.py; remove whatever is there
     if [ -L ${USBGADGET_CONFIG}/os_desc/c.1 ]; then rm ${USBGADGET_CONFIG}/os_desc/c.1; fi
-    rm ${USBGADGET_CONFIG}/configs/c.1/mass_storage.$USBDEV
-    if [ -L ${USBGADGET_CONFIG}/configs/c.1/rndis.$USBDEV ]; then rm ${USBGADGET_CONFIG}/configs/c.1/rndis.$USBDEV; fi
+    for link in ${USBGADGET_CONFIG}/configs/c.1/*.*; do
+        [ -L "$link" ] && rm "$link"
+    done
+    rm -f ${NETFUNC_ENV_FILE}
 }
 
 remove_usb_gadget() {
@@ -129,24 +155,28 @@ remove_usb_gadget() {
     rmdir "${USBGADGET_CONFIG}"
 }
 
-config_rndis() {
-    ln -s ${USBGADGET_CONFIG}/functions/rndis.$USBDEV/ ${USBGADGET_CONFIG}/configs/c.1/
-
-    # OS descriptors
-    echo 1       > ${USBGADGET_CONFIG}/os_desc/use
+setup_os_desc() {
+    # MS OS 1.0 descriptors (RNDIS compat ID). os_desc/use is toggled per layout by the daemon.
     echo 0xcd    > ${USBGADGET_CONFIG}/os_desc/b_vendor_code
     echo MSFT100 > ${USBGADGET_CONFIG}/os_desc/qw_sign
 
     ln -s ${USBGADGET_CONFIG}/configs/c.1 ${USBGADGET_CONFIG}/os_desc
 }
 
-mount_ms() {
-    echo $IMAGE_FILE > ${USBGADGET_CONFIG}/functions/mass_storage.$USBDEV/lun.0/file
+write_netfunc_env() {
+    mkdir -p "$(dirname ${NETFUNC_ENV_FILE})"
+    cat > ${NETFUNC_ENV_FILE} <<EOF
+USBGADGET_CONFIG=${USBGADGET_CONFIG}
+USBDEV=${USBDEV}
+IMAGE_FILE=${IMAGE_FILE}
+ECM_FUNCTION=${ECM_FUNCTION}
+EOF
 }
 
 enable_profile() {
-    log "enabling profile rndis"
-    config_rndis
-    ln -s ${USBGADGET_CONFIG}/functions/mass_storage.$USBDEV ${USBGADGET_CONFIG}/configs/c.1/
-    bind_device
+    log "enabling profile"
+    setup_os_desc
+    # The functions are linked into c.1 and the UDC is bound by wb-usb-otg-netfunc.service,
+    # which picks RNDIS or CDC ECM for the connected host and inserts the mass-storage medium.
+    write_netfunc_env
 }

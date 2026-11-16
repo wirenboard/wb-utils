@@ -24,3 +24,4 @@ debian/wb-utils/
 debian/debhelper-build-stamp
 
 build_scripts/mass_storage.img
+__pycache__/
