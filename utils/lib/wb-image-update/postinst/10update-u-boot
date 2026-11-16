@@ -32,8 +32,10 @@ if [ -e "$ROOTFS/usr/bin/u-boot-install-wb" ] ; then
     cp /etc/fw_env.config $ROOTFS/etc/fw_env.config
     chroot "$ROOTFS" /usr/bin/u-boot-install-wb --force
     cp $ROOTFS/etc/fw_env.config /etc/fw_env.config || true
-    if [ -f "/tmp/fw_env.txt" ]; then
-        mv /tmp/fw_env.txt /mnt/data/.wb-restore/
+    # u-boot-install-wb ran in chroot, so its env backup is in new rootfs /tmp
+    if [ -f "$ROOTFS/tmp/fw_env.txt" ]; then
+        mkdir -p /mnt/data/.wb-restore
+        mv "$ROOTFS/tmp/fw_env.txt" /mnt/data/.wb-restore/
     fi
 else
     echo "No u-boot installer found in new rootfs, skipping step"
