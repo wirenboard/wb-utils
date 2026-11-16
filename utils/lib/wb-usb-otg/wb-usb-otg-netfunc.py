@@ -234,7 +234,10 @@ class NetFunc:  # pylint: disable=too-many-instance-attributes  # the layout sta
         ms = "1" if net == "rndis" else "0"
         write(f"{G}/os_desc/use", ms)
         if os.path.exists(f"{G}/msos20/use"):
-            write(f"{G}/msos20/use", ms)
+            # The set names the WinUSB interface; without it Windows could reject the set
+            # and, ignoring MS OS 1.0 then, leave RNDIS without its compat ID
+            winusb_linked = WINUSB_FUNCTION in functions
+            write(f"{G}/msos20/use", "1" if net == "rndis" and winusb_linked else "0")
         try:
             write(f"{G}/UDC", self.udc)
         except OSError as e:

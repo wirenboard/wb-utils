@@ -220,6 +220,12 @@ class DetachTests(unittest.TestCase):
             self.assertEqual(fx.events[-1], ("medium", False))
             self.assertEqual(len([e for e in fx.events if e[0] == "bind"]), 1)
 
+    def test_host_gone_from_ecm_restores_the_probe_layout(self):
+        with Fixture(Host(talks=["ecm"]), landing_page=URL) as fx:
+            fx.nf.bind("ecm", True)
+            fx.nf.host_gone()
+            self.assertEqual(fx.events[-1], ("bind", "rndis", False))
+
     def test_switch_reports_missing_host(self):
         host = Host(configures=())
         with Fixture(host) as fx:
@@ -303,6 +309,7 @@ class ConfigfsTests(unittest.TestCase):
             self.bind(g, "rndis", False)
             self.assertEqual(self.links(g), ["ffs.wbwinusb", "mass_storage.usb0", "rndis.usb0"])
             self.assertEqual((g / "os_desc/use").read_text(), "1")
+            self.assertEqual((g / "msos20/use").read_text(), "1")
             self.assertEqual((g / "webusb/landingPage").read_text(), "\n")
 
     def test_layout_without_winusb_function(self):
@@ -310,6 +317,9 @@ class ConfigfsTests(unittest.TestCase):
             g = self.make_tree(tmp)
             self.bind(g, "rndis", False, winusb="")
             self.assertEqual(self.links(g), ["mass_storage.usb0", "rndis.usb0"])
+            # the MS OS 2.0 set names the missing WinUSB interface: fall back to MS OS 1.0
+            self.assertEqual((g / "os_desc/use").read_text(), "1")
+            self.assertEqual((g / "msos20/use").read_text(), "0")
 
     def test_bind_retries_without_winusb_on_enodev(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -324,6 +334,7 @@ class ConfigfsTests(unittest.TestCase):
             self.bind(g, "rndis", False, udc_writes=udc)
             self.assertEqual(len(attempts), 2)
             self.assertEqual(self.links(g), ["mass_storage.usb0", "rndis.usb0"])
+            self.assertEqual((g / "msos20/use").read_text(), "0")
 
     def test_bind_retries_without_winusb_on_ebusy_too(self):
         """6.8 reports a failed composite bind through driver_register() as EBUSY."""
@@ -339,6 +350,7 @@ class ConfigfsTests(unittest.TestCase):
             self.bind(g, "rndis", False, udc_writes=udc)
             self.assertEqual(len(attempts), 2)
             self.assertEqual(self.links(g), ["mass_storage.usb0", "rndis.usb0"])
+            self.assertEqual((g / "msos20/use").read_text(), "0")
 
     def test_other_bind_errors_propagate(self):
         with tempfile.TemporaryDirectory() as tmp:

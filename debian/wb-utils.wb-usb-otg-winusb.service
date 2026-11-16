@@ -11,9 +11,6 @@ ConditionPathExists=/sys/kernel/config
 Type=notify
 NotifyAccess=all
 ExecStart=/usr/lib/wb-utils/wb-usb-otg/wb-usb-otg-winusb.sh
-# The process keeps ep0 open; its death tears the function down, so bring it back up
+# No restart: only the wb-usb-otg start script brings it up, together with the gadget;
+# the netfunc daemon rebinds without the function if it dies
 Restart=no
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
