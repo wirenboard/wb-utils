@@ -1,4 +1,4 @@
-wb-utils (4.28.8) stable; urgency=medium
+wb-utils (4.32.0) stable; urgency=medium
 
   * wb-usb-otg: announce a WebUSB landing page pointing at the controller web
     interface when wb-mqtt-homeui has configured HTTPS; the page is advertised
@@ -11,7 +11,7 @@ wb-utils (4.28.8) stable; urgency=medium
 
  -- Evgeny Boger <boger@wirenboard.com>  Sun, 06 Sep 2026 12:38:17 +0300
 
-wb-utils (4.28.7) stable; urgency=medium
+wb-utils (4.31.0) stable; urgency=medium
 
   * wb-usb-otg: make the Debug Network usable from macOS: a new
     wb-usb-otg-netfunc daemon enumerates as RNDIS first, keeps it for hosts
@@ -24,6 +24,45 @@ wb-utils (4.28.7) stable; urgency=medium
     lives on the bridge and leases are keyed by the fixed host MAC in wb-configs
 
  -- Evgeny Boger <boger@wirenboard.com>  Sun, 06 Sep 2026 12:35:30 +0300
+
+wb-utils (4.30.0) stable; urgency=medium
+
+  * Extended rootfs: swap is a file (instead of whole partition)
+  * Add --unextend-rootfs option
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Tue, 03 Nov 2026 15:20:02 +0300
+
+wb-utils (4.29.1) stable; urgency=medium
+
+  * wb-image-update: save U-Boot ENV backup made by u-boot-install-wb on
+    factory reset to /mnt/data/.wb-restore (it was looked up in a wrong /tmp)
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Tue, 27 Oct 2026 12:00:00 +0400
+
+wb-utils (4.29.0) stable; urgency=medium
+
+  * Drop nginx-extras dependency
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Wed, 14 Oct 2026 12:00:00 +0400
+
+wb-utils (4.28.9) stable; urgency=medium
+
+  * wb-watch-update: don't treat the retained broker uptime message as a broker
+    restart, it overwrote the status saved by the bootlet on boot
+
+ -- Ekaterina Volkova <ekaterina.volkova@wirenboard.com>  Tue, 06 Oct 2026 18:48:58 +0300
+
+wb-utils (4.28.8) stable; urgency=medium
+
+  * Fix Debian downgrade check on single and extended rootfs layouts
+
+ -- Ekaterina Volkova <ekaterina.volkova@wirenboard.com>  Tue, 06 Oct 2026 15:07:26 +0300
+
+wb-utils (4.28.7) stable; urgency=medium
+
+  * Avoid /dev/fd dependency when checking FIT compatibility
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Fri, 25 Sep 2026 16:20:00 +0400
 
 wb-utils (4.28.6) stable; urgency=medium
 
