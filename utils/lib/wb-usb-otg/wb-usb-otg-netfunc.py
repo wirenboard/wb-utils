@@ -104,7 +104,14 @@ def netdev(net):
 def carrier(net):
     """Link level of a function's netdev; sysfs reports it only while the netdev is admin UP."""
     dev = netdev(net)
-    return dev is not None and read(f"/sys/class/net/{dev}/carrier") == "1"
+    if dev is None:
+        return False
+    value = read(f"/sys/class/net/{dev}/carrier")
+    if value is None:
+        # Taken down (e.g. NM re-activating the port): that is not the host leaving
+        link_up(net)
+        value = read(f"/sys/class/net/{dev}/carrier")
+    return value == "1"
 
 
 def link_up(net):
@@ -190,8 +197,15 @@ class NetFunc:  # pylint: disable=too-many-instance-attributes  # the layout sta
     def set_medium(self, inserted):
         if inserted == self.medium:
             return
+        lun = f"{G}/functions/{MSC_FUNCTION}/lun.0"
         try:
-            write(f"{G}/functions/{MSC_FUNCTION}/lun.0/file", IMAGE_FILE if inserted else "")
+            if inserted:
+                write(f"{lun}/file", IMAGE_FILE)
+            elif os.path.exists(f"{lun}/forced_eject"):
+                # An empty file fails with EBUSY while the host prevents medium removal
+                write(f"{lun}/forced_eject", "1")
+            else:
+                write(f"{lun}/file", "")
             self.medium = inserted
         except OSError as e:
             log(f"lun.0/file: {e}")
