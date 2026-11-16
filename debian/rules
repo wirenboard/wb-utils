@@ -13,5 +13,6 @@ override_dh_installsystemd:
 	dh_installsystemd --name=wb-watch-update
 	dh_installsystemd --name=wb-gsm
 	dh_installsystemd --name=wb-usb-otg
+	dh_installsystemd --name=wb-usb-otg-winusb --no-start --no-enable
 	# started and restarted along with wb-usb-otg (Wants=, PartOf=)
 	dh_installsystemd --name=wb-usb-otg-netfunc --no-start --no-restart-after-upgrade --no-restart-on-upgrade
