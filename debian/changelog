@@ -1,3 +1,10 @@
+wb-utils (4.30.1) stable; urgency=medium
+
+  * Create ext4 filesystems without orphan_file: the 5.10 bootlet kernels
+    and bullseye e2fsck do not support it
+
+ -- Ekaterina Volkova <ekaterina.volkova@wirenboard.com>  Wed, 25 Nov 2026 12:10:09 +0000
+
 wb-utils (4.30.0) stable; urgency=medium
 
   * Extended rootfs: swap is a file (instead of whole partition)

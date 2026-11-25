@@ -231,7 +231,9 @@ prepare_env() {
             local part=$1
             local label=$2
 
-            yes | mkfs.ext4 -L "$label" -E stride=2,stripe-width=1024 -b 4096 "$part"
+            # no orphan_file: the 5.10 bootlet kernels and bullseye e2fsck do not know it,
+            # and a kernel that does marks the fs unmountable for them after a power loss
+            yes | mkfs.ext4 -L "$label" -O ^orphan_file -E stride=2,stripe-width=1024 -b 4096 "$part"
         }
     }
 
